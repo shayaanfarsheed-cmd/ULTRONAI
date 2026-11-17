@@ -283,7 +283,7 @@ def build_checkpoint_smoke_report(config: Mapping[str, Any]) -> dict[str, Any]:
     tokenizer = CharTokenizer()
     model = ULTRONTransformer(
         vocab_size=tokenizer.vocab_size,
-        context_length=settings.get("context_length", 128),
+        context_length=settings.get("context_length", 192),
         dimension=settings.get("embedding_dimension", 256),
         layers=settings.get("transformer_layers", 5),
         heads=settings.get("attention_heads", 8),
@@ -335,6 +335,85 @@ def build_checkpoint_smoke_report(config: Mapping[str, Any]) -> dict[str, Any]:
         }
 
 
+def build_training_smoke_report(config: Mapping[str, Any]) -> dict[str, Any]:
+    import torch
+    from ultron_data import generate_dataset
+    from ultron_model import CharTokenizer, ULTRONTransformer
+    from ultron_training import CurriculumController, MathBatchStream, make_grad_scaler, train_steps
+
+    seed = int(config.get("training", {}).get("seed", 20261117))
+    torch.manual_seed(seed)
+    platform_id = detect_platform()
+    runtime = resolve_runtime_settings(config, platform_id, torch_module=torch)
+    device = runtime["device"]
+    torch.set_num_threads(int(runtime["cpu_threads"]))
+
+    model_settings = config.get("model", {})
+    tokenizer = CharTokenizer()
+    model = ULTRONTransformer(
+        vocab_size=tokenizer.vocab_size,
+        context_length=model_settings.get("context_length", 192),
+        dimension=model_settings.get("embedding_dimension", 256),
+        layers=model_settings.get("transformer_layers", 5),
+        heads=model_settings.get("attention_heads", 8),
+        feedforward_multiplier=model_settings.get("feedforward_multiplier", 4),
+        dropout=model_settings.get("dropout", 0.1),
+    )
+    optimizer_settings = config.get("training", {})
+    optimizer = torch.optim.AdamW(
+        model.parameters(),
+        lr=float(optimizer_settings.get("learning_rate", 0.0003)),
+        weight_decay=float(optimizer_settings.get("weight_decay", 0.1)),
+    )
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimizer,
+        T_max=max(1, int(optimizer_settings.get("maximum_training_steps", 100000))),
+    )
+    curriculum_settings = optimizer_settings.get("curriculum", {})
+    curriculum = CurriculumController(
+        curriculum_settings.get("stages", []),
+        mastery_accuracy=float(curriculum_settings.get("unlock_mastery_accuracy", 0.9)),
+        consecutive_evaluations=int(curriculum_settings.get("consecutive_evaluations_required", 3)),
+        require_held_out=bool(curriculum_settings.get("held_out_evaluation_required", True)),
+    )
+    topics = curriculum.current_topics
+    examples = generate_dataset(32, seed=seed, split="train", topics=topics)
+    stream = MathBatchStream(
+        examples,
+        tokenizer,
+        context_length=int(model_settings.get("context_length", 192)),
+        batch_size=min(4, int(runtime["batch_size"])),
+        seed=seed,
+    )
+    precision = runtime["mixed_precision"] if device == "cuda" else "none"
+    scaler = make_grad_scaler(device, precision)
+    result = train_steps(
+        model,
+        optimizer,
+        stream,
+        steps=2,
+        device=device,
+        precision=precision,
+        gradient_clip_norm=float(optimizer_settings.get("gradient_clip_norm", 1.0)),
+        scheduler=scheduler,
+        scaler=scaler,
+    )
+    return {
+        "training_smoke_passed": result["step"] == 2 and result["last_loss"] is not None,
+        "training_started": True,
+        "step": result["step"],
+        "last_loss": result["last_loss"],
+        "device": device,
+        "platform": platform_id,
+        "curriculum_stage": curriculum.current_stage,
+        "topics_used": topics,
+        "data_position": result["data_position"],
+        "data_epoch": result["data_epoch"],
+        "parameter_count": model.parameter_count(),
+        "learning_rate_after_smoke": optimizer.param_groups[0]["lr"],
+    }
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="ultron-train", description="ULTRON portable training preflight")
     parser.add_argument("--config", default="config.json")
@@ -343,6 +422,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--model-summary", action="store_true")
     parser.add_argument("--data-smoke-test", action="store_true")
     parser.add_argument("--checkpoint-smoke-test", action="store_true")
+    parser.add_argument("--training-smoke-test", action="store_true")
     args = parser.parse_args(argv)
 
     config = load_json(args.config)
@@ -367,6 +447,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(json.dumps(checkpoint_report, indent=2))
         if not checkpoint_report["checkpoint_verified"] or not checkpoint_report["restored_exactly"]:
             return 5
+
+    if args.training_smoke_test:
+        training_report = build_training_smoke_report(config)
+        print(json.dumps(training_report, indent=2))
+        if not training_report["training_smoke_passed"]:
+            return 6
 
     if not report["configuration_valid"]:
         return 2
