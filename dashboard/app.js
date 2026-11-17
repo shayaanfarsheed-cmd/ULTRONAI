@@ -681,7 +681,9 @@
     if (ramSlider) {
       ramSlider.value = String(state.ramLimitGb);
       $("ramLimitValue").textContent = state.ramLimitGb + " GB";
-      $("ramLimitStatus").textContent = "Saved on this browser only. Not yet applied to the Windows laptop; secure agent control is still being built.";
+      const localRamValue = $("deviceRamLimitValue");
+      if (localRamValue) localRamValue.textContent = state.ramLimitGb + " GB";
+      $("ramLimitStatus").textContent = "Saved on this browser only. It is not enforced on a connected device yet.";
     }
     $("ownerIdText").textContent = state.user ? state.user.id : "—";
     const review = state.projectConfig.terms_review || {};
@@ -750,7 +752,8 @@
       servers: ["SERVERS", "Free compute servers"],
       history: ["HISTORY", "Switch and session history"],
       checkpoints: ["CHECKPOINTS", "Verified checkpoints"],
-      settings: ["SETTINGS", "System settings"]
+      settings: ["SETTINGS", "System settings"],
+      devices: ["CONNECTED DEVICES", "Connected devices"]
     };
     $("viewName").textContent = labels[view][0];
     $("pageTitle").textContent = labels[view][1];
@@ -1066,8 +1069,10 @@
       const selected = Math.max(2, Math.min(10, Number($("ramLimitSlider").value)));
       state.ramLimitGb = Math.round(selected * 2) / 2;
       $("ramLimitValue").textContent = state.ramLimitGb + " GB";
+      const localRamValue = $("deviceRamLimitValue");
+      if (localRamValue) localRamValue.textContent = state.ramLimitGb + " GB";
       try { localStorage.setItem(RAM_LIMIT_KEY, String(state.ramLimitGb)); } catch (_) {}
-      $("ramLimitStatus").textContent = "Saved as " + state.ramLimitGb + " GB on this browser only. It is not yet sent to or enforced by the Windows laptop.";
+      $("ramLimitStatus").textContent = "Saved as " + state.ramLimitGb + " GB on this browser only. It is not yet sent to or enforced by a connected device.";
     });
     $("copyOwnerId").addEventListener("click", copyOwnerId);
     $("copyOwnerIdSettings").addEventListener("click", copyOwnerId);

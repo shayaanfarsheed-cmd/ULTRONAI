@@ -287,7 +287,7 @@ code { color: var(--red); font-size: .92em; }
   .manual-form { grid-template-columns: 1fr 1fr; }
   .manual-form button { align-self: end; }
 }
-@media (max-width: 760px) {
+@media (max-width: 820px) {
   .page-shell { padding-top: 20px; }
   .auth-wrap { grid-template-columns: 1fr; padding: 25px 0 50px; gap: 25px; }
   .auth-hero { padding: 0 4px; }
@@ -330,3 +330,32 @@ code { color: var(--red); font-size: .92em; }
 .ram-slider { display: block; width: 100%; margin: 20px 0 10px; accent-color: var(--red); cursor: pointer; }
 .ram-scale { color: var(--muted); font-size: 10px; }
 .ram-panel .notice { margin-top: 12px; }
+
+
+/* Cross-platform connected-device view */
+.device-device-hero { display: flex; align-items: center; gap: 18px; padding: 22px; border-color: var(--line-strong); background: linear-gradient(120deg, var(--surface), rgba(75,7,22,.18)); }
+.device-device-icon { display: grid; place-items: center; flex: 0 0 54px; width: 54px; height: 54px; border-radius: 15px; color: var(--red); background: var(--red-soft); border: 1px solid var(--line-strong); font-size: 27px; }
+.device-device-copy { flex: 1; min-width: 0; }
+.device-device-copy h2 { margin: 6px 0 4px; font-size: 20px; }
+.device-device-copy p { margin: 0; }
+.device-metric-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; }
+.device-steps { display: grid; gap: 17px; padding: 0; margin: 20px 0; list-style: none; }
+.device-steps li { display: grid; grid-template-columns: 38px minmax(0,1fr); gap: 12px; align-items: start; }
+.device-steps li > span { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--line-strong); border-radius: 10px; color: var(--red); font-size: 11px; font-weight: 900; }
+.device-steps strong { display: block; color: var(--text); font-size: 13px; }
+.device-steps p { margin: 5px 0 0; color: var(--muted); font-size: 11px; line-height: 1.65; }
+.device-action-row { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; margin-top: 16px; }
+.device-controls button:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+.device-run-grid, .device-telemetry { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; margin-top: 18px; }
+.device-run-grid > div, .device-telemetry > div { display: grid; gap: 7px; padding: 13px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); min-width: 0; }
+.device-run-grid span, .device-telemetry span { color: var(--muted); font-size: 9px; font-weight: 900; letter-spacing: .12em; }
+.device-run-grid strong, .device-telemetry strong { color: var(--soft); font-size: 12px; overflow-wrap: anywhere; }
+@media (max-width: 820px) {
+  .side-nav { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .device-metric-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .device-device-hero { align-items: flex-start; flex-wrap: wrap; }
+  .device-device-hero > .status-pill { margin-left: 72px; }
+}
+@media (max-width: 520px) {
+  .device-run-grid, .device-telemetry { grid-template-columns: 1fr 1fr; }
+}
