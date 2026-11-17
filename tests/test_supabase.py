@@ -8,6 +8,7 @@ from ultron_supabase import (
     SupabaseRESTClient,
     TrainingControlAPI,
     iso_utc,
+    parse_timestamp,
     utc_now,
 )
 
@@ -376,6 +377,7 @@ class SupabaseLeaseTests(unittest.TestCase):
                 "ckpt-0002",
                 100,
                 {"step": 2, "current_topic": "fractions", "difficulty": 1, "data_position": 8},
+                manifest_sha256="b" * 64,
             )
 
     def test_release_clears_lease_and_preserves_run(self):
