@@ -5,7 +5,7 @@ import torch
 from torch import nn
 
 from ultron_checkpoint import LocalCheckpointStore
-from ultron_storage import RemoteCheckpointStore, SupabaseStorageError
+from ultron_storage import RemoteCheckpointStore, SupabaseStorageClient, SupabaseStorageError
 
 
 class FakeStorage:
@@ -39,6 +39,39 @@ class FakeStorage:
 
 
 class RemoteCheckpointTests(unittest.TestCase):
+
+    def test_new_secret_key_is_sent_only_as_apikey(self):
+        captured = {}
+
+        class Response:
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                return False
+            def read(self):
+                return b"{}"
+
+        def opener(request, timeout):
+            captured["request"] = request
+            captured["timeout"] = timeout
+            return Response()
+
+        client = SupabaseStorageClient(
+            "https://example.supabase.co",
+            "sb_secret_storage_test",
+            opener=opener,
+        )
+        client._request(
+            "POST",
+            "object/checkpoints/owner/run/checkpoint/model.safetensors",
+            body=b"weights",
+            content_type="application/octet-stream",
+            upsert=False,
+        )
+        self.assertEqual(captured["request"].get_header("Apikey"), "sb_secret_storage_test")
+        self.assertIsNone(captured["request"].get_header("Authorization"))
+        self.assertNotIn("sb_secret_storage_test", repr(client))
+
     def _save(self, store, model, optimizer, step):
         return store.save(
             model,
@@ -67,6 +100,7 @@ class RemoteCheckpointTests(unittest.TestCase):
             remote = RemoteCheckpointStore(storage)
             uploaded = remote.upload_checkpoint(source, manifest["checkpoint_id"], "owner-1", "run-1")
             self.assertTrue(uploaded["verified"])
+            self.assertEqual(len(uploaded["manifest_sha256"]), 64)
             self.assertEqual(len(storage.objects), 6)
             target = LocalCheckpointStore(target_dir)
             downloaded = remote.download_checkpoint("owner-1", "run-1", manifest["checkpoint_id"], target)
