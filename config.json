@@ -3,8 +3,8 @@
   "project": {
     "name": "ULTRON",
     "purpose": "Train an independently implemented mathematics Transformer from random initialization.",
-    "stage": 1,
-    "stage_scope": "Validated runtime, provider and training-control configuration",
+    "stage": 6,
+    "stage_scope": "Training engine, verified local checkpoints, Supabase training schema and remote checkpoint coordination",
     "target_parameter_count": {
       "minimum": 3000000,
       "target": 4000000,
@@ -161,7 +161,7 @@
   "coordination": {
     "one_writer_at_a_time": true,
     "lease_renewal_interval_seconds": 60,
-    "lease_ttl_seconds": 240,
+    "lease_ttl_seconds": 780,
     "require_lease_before_training": true,
     "require_lease_before_checkpoint_commit": true,
     "fencing_token_monotonically_increasing": true,
