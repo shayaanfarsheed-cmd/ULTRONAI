@@ -200,9 +200,14 @@ def build_preflight_report(
             "id": server.get("id") if server else None,
             "name": server.get("name") if server else "Unrecognized platform",
             "current_status": server.get("current_status") if server else "unknown",
-            "automatic_start": server.get("automatic_start", {}).get("capability") if server else "no",
+            "automatic_start": (
+                server.get("automatic_start", "no").get("capability", "no")
+                if isinstance(server.get("automatic_start"), dict)
+                else str(server.get("automatic_start", "no"))
+            ) if server else "no",
             "session_limit_hours": (
                 server.get("limits", {}).get("session_limit_hours")
+                or server.get("limits", {}).get("free_studio_restart_hours")
                 or server.get("limits", {}).get("job_execution_limit_hours")
             ) if server else None,
         },
