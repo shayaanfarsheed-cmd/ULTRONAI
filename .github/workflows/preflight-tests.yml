@@ -39,5 +39,7 @@ jobs:
         run: python train.py --data-smoke-test
       - name: Verify checkpoint save and restore
         run: python train.py --checkpoint-smoke-test
+      - name: Verify training loop
+        run: python train.py --training-smoke-test
       - name: Run platform preflight
         run: python train.py --preflight
