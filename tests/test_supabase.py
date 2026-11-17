@@ -14,6 +14,7 @@ class FakeClient:
     def __init__(self):
         self.rows = {}
         self.logs = []
+        self.switches = []
         self.requests = []
 
     def _matches(self, row, filters):
@@ -35,6 +36,10 @@ class FakeClient:
                 value = row.get(key)
                 if value is None or value <= expression[3:]:
                     return False
+            elif expression.startswith("in.(") and expression.endswith(")"):
+                allowed = expression[4:-1].split(",")
+                if str(row.get(key)) not in allowed:
+                    return False
             else:
                 raise AssertionError(expression)
         return True
@@ -45,6 +50,8 @@ class FakeClient:
             values = list(self.rows.values())
         elif table == "server_log":
             values = list(self.logs)
+        elif table == "switch_requests":
+            values = list(self.switches)
         else:
             values = []
         selected = [dict(row) for row in values if self._matches(row, filters or {})]
@@ -66,6 +73,9 @@ class FakeClient:
         if table == "server_log":
             self.logs.append(dict(row))
             return [dict(row)]
+        if table == "switch_requests":
+            self.switches.append(dict(row))
+            return [dict(row)]
         return []
 
     def patch(self, table, filters, values):
@@ -74,6 +84,8 @@ class FakeClient:
             rows = list(self.rows.values())
         elif table == "server_log":
             rows = self.logs
+        elif table == "switch_requests":
+            rows = self.switches
         else:
             rows = []
         updated = []
@@ -192,6 +204,28 @@ class SupabaseLeaseTests(unittest.TestCase):
         self.assertEqual(captured["request"].get_header("Accept-profile"), "training_api")
         self.assertEqual(captured["request"].get_header("Apikey"), "sb_secret_never-print")
         self.assertIn("/rest/v1/training_status", captured["request"].full_url)
+
+    def test_switch_request_is_completed_on_target_first_heartbeat(self):
+        self.api.acquire_lease("run-1", "Kaggle", "worker-a", ttl_seconds=120)
+        request_id = self.api.create_switch_request("run-1", "kaggle", "google_colab", "user_requested")
+        self.assertEqual(len(self.client.switches), 1)
+        self.api.assign_switch_target(request_id, "google_colab", {"manual": True})
+        completed = self.api.mark_switch_requests_done("run-1", "google_colab")
+        self.assertEqual(completed, 1)
+        self.assertEqual(self.client.switches[0]["result"], "done")
+
+    def test_server_status_updates_only_the_requested_server_entry(self):
+        self.api.acquire_lease("run-1", "Kaggle", "worker-a", ttl_seconds=120)
+        self.assertTrue(self.api.update_server_status(
+            "run-1",
+            "kaggle",
+            "unavailable_until",
+            reason="maintenance",
+            unavailable_until="2026-11-18T12:00:00Z",
+        ))
+        status = self.client.rows["run-1"]["server_statuses"]["kaggle"]
+        self.assertEqual(status["status"], "unavailable_until")
+        self.assertEqual(status["reason"], "maintenance")
 
 
 if __name__ == "__main__":
