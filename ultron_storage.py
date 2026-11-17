@@ -266,7 +266,10 @@ class RemoteCheckpointStore:
             uploaded["total_size_bytes"],
             training_state,
         )
-        self.prune_remote(owner_id, run_id, pinned_ids={checkpoint_id})
+        try:
+            self.prune_remote(owner_id, run_id, pinned_ids={checkpoint_id})
+        except Exception as error:
+            uploaded["prune_warning"] = type(error).__name__
         return uploaded
 
     def list_remote_candidates(self, owner_id: str, run_id: str, maximum_step: int | None = None) -> list[dict[str, Any]]:
