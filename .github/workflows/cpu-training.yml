@@ -1,0 +1,45 @@
+name: ULTRON CPU Training
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types:
+      - ultron-cpu-start
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ultron-training
+  cancel-in-progress: false
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - name: Check out ULTRON
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install CPU PyTorch
+        run: python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Install ULTRON dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Validate configuration and training code
+        run: python train.py --preflight --config config.json --servers servers.json
+
+      - name: Resume or start ULTRON training
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SUPABASE_OWNER_ID: ${{ secrets.SUPABASE_OWNER_ID }}
+        run: python train.py --train --config config.json --servers servers.json
