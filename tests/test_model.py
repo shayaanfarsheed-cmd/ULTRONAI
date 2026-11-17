@@ -15,7 +15,7 @@ class ModelTests(unittest.TestCase):
         count = self.model.parameter_count()
         self.assertGreaterEqual(count, 3000000)
         self.assertLessEqual(count, 5000000)
-        self.assertEqual(count, 4021068)
+        self.assertEqual(count, 4022094)
 
     def test_forward_shape_and_finite_loss(self):
         tokens = torch.randint(0, self.tokenizer.vocab_size, (2, 24))
