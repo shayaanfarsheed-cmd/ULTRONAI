@@ -239,6 +239,26 @@
         </section>
 
         <section id="view-settings" class="view-section" hidden>
+          <article class="panel section-panel ram-panel">
+            <div class="section-heading">
+              <div>
+                <div class="eyebrow">LOCAL WINDOWS TRAINING</div>
+                <h2>RAM usage limit</h2>
+              </div>
+              <span class="small-pill">16 GB LAPTOP PRESET</span>
+            </div>
+            <p class="muted-text">Choose the maximum memory budget for the ULTRON training process. The recommended starting point for a 16 GB computer is 6 GB, leaving memory for Windows and other apps.</p>
+            <div class="ram-control">
+              <div class="ram-value-row">
+                <label for="ramLimitSlider">Training memory budget</label>
+                <strong><output id="ramLimitValue" for="ramLimitSlider">6 GB</output></strong>
+              </div>
+              <input id="ramLimitSlider" class="ram-slider" type="range" min="2" max="10" step="0.5" value="6">
+              <div class="ram-scale"><span>2 GB · Light</span><span>10 GB · High</span></div>
+            </div>
+            <p id="ramLimitStatus" class="notice notice-warn" role="status">Saved on this browser only. It is not applied to the laptop yet because the Windows agent is not implemented.</p>
+            <p class="fine-print">The Windows agent will enforce this limit on the entire training process before it starts. It will refuse a limit that leaves too little memory for Windows. This controls system RAM, not GPU VRAM.</p>
+          </article>
           <div class="two-column">
             <article class="panel section-panel">
               <div class="eyebrow">AUTOMATION SAFETY</div>
