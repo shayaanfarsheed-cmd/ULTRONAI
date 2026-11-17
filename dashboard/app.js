@@ -681,7 +681,7 @@
     if (ramSlider) {
       ramSlider.value = String(state.ramLimitGb);
       $("ramLimitValue").textContent = state.ramLimitGb + " GB";
-      const localRamValue = $("localRamLimitValue");
+      const localRamValue = $("deviceRamLimitValue");
       if (localRamValue) localRamValue.textContent = state.ramLimitGb + " GB";
       $("ramLimitStatus").textContent = "Saved on this browser only. Not yet applied to the Windows laptop; secure agent control is still being built.";
     }
@@ -753,7 +753,7 @@
       history: ["HISTORY", "Switch and session history"],
       checkpoints: ["CHECKPOINTS", "Verified checkpoints"],
       settings: ["SETTINGS", "System settings"],
-      local: ["LOCAL PC", "Local Windows computer"]
+      devices: ["CONNECTED DEVICES", "Connected devices"]
     };
     $("viewName").textContent = labels[view][0];
     $("pageTitle").textContent = labels[view][1];
