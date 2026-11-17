@@ -163,11 +163,23 @@ class LocalCheckpointStore:
         scheduler: Any | None = None,
         fault_hook: Callable[[str, Path], None] | None = None,
     ) -> dict[str, Any]:
-        if not isinstance(state.get("step"), int) or state["step"] < 0:
+        required_fields = ("step", "current_topic", "difficulty", "data_position", "seed", "lease_holder", "fencing_token")
+        missing_fields = [name for name in required_fields if name not in state]
+        if missing_fields:
+            raise CheckpointError(f"Checkpoint state is missing required fields: {missing_fields}")
+        if type(state["step"]) is not int or state["step"] < 0:
             raise CheckpointError("Checkpoint state requires a non-negative integer step")
-        if not isinstance(state.get("lease_holder"), str) or not state["lease_holder"]:
+        if not isinstance(state["current_topic"], str) or not state["current_topic"]:
+            raise CheckpointError("Checkpoint state requires a current topic")
+        if type(state["difficulty"]) is not int or state["difficulty"] < 1:
+            raise CheckpointError("Checkpoint state requires a positive difficulty")
+        if type(state["data_position"]) is not int or state["data_position"] < 0:
+            raise CheckpointError("Checkpoint state requires a non-negative data position")
+        if type(state["seed"]) is not int:
+            raise CheckpointError("Checkpoint state requires an integer seed")
+        if not isinstance(state["lease_holder"], str) or not state["lease_holder"]:
             raise CheckpointError("Checkpoint state requires a lease holder")
-        if not isinstance(state.get("fencing_token"), int) or state["fencing_token"] < 1:
+        if type(state["fencing_token"]) is not int or state["fencing_token"] < 1:
             raise CheckpointError("Checkpoint state requires a positive fencing token")
 
         step = state["step"]
@@ -248,6 +260,9 @@ class LocalCheckpointStore:
         }
         _write_json(temporary / "manifest.json", manifest)
         _fsync_file(temporary / "manifest.json")
+        verified, verified_manifest = self._verify_folder(temporary, checkpoint_id)
+        if not verified or verified_manifest != manifest:
+            raise CheckpointError("Temporary checkpoint failed its verification pass")
         manifest_hash = _sha256(temporary / "manifest.json")
         _fsync_directory(temporary)
 
@@ -276,12 +291,14 @@ class LocalCheckpointStore:
         self.prune()
         return manifest
 
-    def verify_checkpoint(self, checkpoint_id: str) -> tuple[bool, dict[str, Any] | None]:
+    def _verify_folder(self, folder: Path, expected_id: str) -> tuple[bool, dict[str, Any] | None]:
         try:
-            folder = self._checkpoint_path(checkpoint_id)
             manifest_path = folder / "manifest.json"
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-            if manifest.get("checkpoint_id") != checkpoint_id or not isinstance(manifest.get("files"), dict):
+            required_files = {"model.safetensors", "optimizer.safetensors", "rng.safetensors", "state.json"}
+            if manifest.get("checkpoint_id") != expected_id or not isinstance(manifest.get("files"), dict):
+                return False, None
+            if not required_files.issubset(manifest["files"]):
                 return False, None
             for name, entry in manifest["files"].items():
                 if Path(name).name != name:
@@ -291,7 +308,23 @@ class LocalCheckpointStore:
                     return False, None
                 if _sha256(file_path) != entry.get("sha256"):
                     return False, None
+            metadata = json.loads((folder / "state.json").read_text(encoding="utf-8"))
+            saved_state = metadata.get("state", {})
+            if metadata.get("checkpoint_id") != expected_id:
+                return False, None
+            if saved_state.get("step") != manifest.get("step"):
+                return False, None
+            if saved_state.get("lease_holder") != manifest.get("lease_holder"):
+                return False, None
+            if saved_state.get("fencing_token") != manifest.get("fencing_token"):
+                return False, None
             return True, manifest
+        except Exception:
+            return False, None
+
+    def verify_checkpoint(self, checkpoint_id: str) -> tuple[bool, dict[str, Any] | None]:
+        try:
+            return self._verify_folder(self._checkpoint_path(checkpoint_id), checkpoint_id)
         except Exception:
             return False, None
 
