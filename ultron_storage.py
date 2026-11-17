@@ -269,7 +269,7 @@ class RemoteCheckpointStore:
         self.prune_remote(owner_id, run_id, pinned_ids={checkpoint_id})
         return uploaded
 
-    def list_remote_candidates(self, owner_id: str, run_id: str) -> list[dict[str, Any]]:
+    def list_remote_candidates(self, owner_id: str, run_id: str, maximum_step: int | None = None) -> list[dict[str, Any]]:
         prefix = self._prefix(owner_id, run_id)
         top_level = self.storage.list_objects(self.bucket, prefix)
         checkpoint_ids = set()
@@ -292,6 +292,8 @@ class RemoteCheckpointStore:
                 if receipt.get("checkpoint_id") != checkpoint_id or receipt.get("manifest_sha256") != _sha256_bytes(manifest_data):
                     continue
                 if receipt.get("files") != manifest.get("files"):
+                    continue
+                if maximum_step is not None and int(manifest.get("step", -1)) > maximum_step:
                     continue
                 candidates.append(manifest)
             except Exception:
