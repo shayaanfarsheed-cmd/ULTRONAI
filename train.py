@@ -423,6 +423,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--data-smoke-test", action="store_true")
     parser.add_argument("--checkpoint-smoke-test", action="store_true")
     parser.add_argument("--training-smoke-test", action="store_true")
+    parser.add_argument("--train", action="store_true")
     args = parser.parse_args(argv)
 
     config = load_json(args.config)
@@ -456,6 +457,14 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if not report["configuration_valid"]:
         return 2
+
+    if args.train:
+        from ultron_session import run_training_session
+        result = run_training_session(config, servers)
+        print(json.dumps(result, indent=2))
+        if result.get("state") in {"finished", "handoff_needed", "paused", "waiting_for_lease"}:
+            return 0
+        return 7
 
     return 0
 
