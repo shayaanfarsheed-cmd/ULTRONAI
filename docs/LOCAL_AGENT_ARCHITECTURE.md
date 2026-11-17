@@ -86,3 +86,34 @@ No command accepts arbitrary command-line text or code.
 - Local agent trust boundary and command allowlist specified.
 - No secret values added to source.
 - No training started.
+
+## Stage 2 read-only backend inspection (2026-11-17)
+
+The connected Supabase project `ultron-memory` (`euhmejpaswmdpsutbtse`) is reachable and reports `ACTIVE_HEALTHY` on PostgreSQL 17.12. This inspection made no database changes.
+
+### Existing objects and controls
+
+- The exposed training backend schema is `training_api`.
+- Existing tables are `training_status`, `server_log`, and `switch_requests`; all three have RLS enabled.
+- The existing RLS policies restrict dashboard reads and permitted updates/inserts to `owner_id = auth.uid()`. The dashboard is deliberately granted only selected control-column updates on `training_status`.
+- Existing lease/checkpoint RPC functions use `SECURITY INVOKER` and are granted to `service_role` only. Preserve this model; do not grant device agents broad table access.
+- Six existing public memory tables are present and have owner-scoped RLS. Do not modify them.
+- Four database migrations are recorded: `secure_ultron_memory_rls`, `ultron_training_control_schema`, `ultron_checkpoint_commit_step`, and `ultron_handoff_request_flag`.
+- No Supabase Edge Functions currently exist.
+- The Supabase Security Advisor returned no findings at inspection time.
+
+### Implications for the local-agent backend
+
+Do not add agent command writes to the existing dashboard-writable training tables. The next backend proposal should add a separate, narrowly scoped control plane in the non-exposed `training_api` schema (or a dedicated private schema after confirming grants), with:
+- device registration records containing owner, public device metadata, credential hash, created/last-seen/revoked timestamps, and status;
+- short-lived, single-use pairing challenges, stored hashed and consumed atomically;
+- command records with a strict enum (`start`, `pause`, `resume`, `stop`, `status`), validated bounded payload, owner/device IDs, creation/expiry, idempotency key, claim/ack timestamps, and result;
+- RPC or Edge Function operations that atomically validate owner/device, credential, expiry, replay, active-run policy and state transitions;
+- agent polling and acknowledgement authenticated with a revocable per-device credential, separate from the user's browser JWT;
+- no direct browser access to device credentials or command queue tables.
+
+The current schema does not contain device or command tables, and no Edge Functions are deployed. Do not create them until the SQL/RLS/function contract and test cases have been reviewed. The RAM slider remains browser-local until a paired agent confirms the applied cap; the future `start` command must include the validated `memory_limit_gb` (2.0–10.0, 0.5 increments), and the Windows agent must enforce it using a Job Object before resuming the training process.
+
+### Current stage result
+
+Stage 2 discovery is complete; implementation has not begun. No Supabase tables, policies, functions, secrets, or existing training data were changed. Next: prepare the proposed schema and Edge Function contract plus negative security tests for review, then implement only after the design is approved.
