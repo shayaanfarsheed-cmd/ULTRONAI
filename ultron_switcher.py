@@ -518,6 +518,9 @@ def main() -> int:
     args = parser.parse_args()
     config = json.loads(Path(args.config).read_text(encoding="utf-8"))
     servers = json.loads(Path(args.servers).read_text(encoding="utf-8"))
+    configured_url = config.get("database", {}).get("project_url")
+    if configured_url and not os.environ.get("SUPABASE_URL"):
+        os.environ["SUPABASE_URL"] = str(configured_url)
     result = run_switcher(config, servers, repository_root=args.repository_root)
     print(json.dumps(result, indent=2, default=str))
     return 0
