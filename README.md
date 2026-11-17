@@ -2,6 +2,12 @@
 
 ULTRON is an independently implemented mathematics Transformer training project. It starts from random weights, generates its own deterministic mathematics data, verifies examples independently, and does not use pretrained models, pretrained weights, AI APIs, or paid compute.
 
+## Online website-controlled local training
+
+The selected hosting is GitHub Pages. The intended workflow is an online dashboard on GitHub Pages, Supabase for authenticated control and coordination, and a Windows local agent that makes outbound HTTPS connections and starts the fixed ULTRON training entry point only after local preflight and lease checks. This allows an iPad browser to control a paired Windows computer without exposing an inbound port.
+
+The architecture and security contract is documented in [`docs/LOCAL_AGENT_ARCHITECTURE.md`](docs/LOCAL_AGENT_ARCHITECTURE.md). This is a design specification only: the Windows agent and Run/Pause/Resume/Stop integration have not yet been implemented, and training has not started.
+
 ## Browser dashboard
 
 The static dashboard is in `dashboard/`. The repository root redirects to it.
