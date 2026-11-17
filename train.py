@@ -246,12 +246,39 @@ def build_model_summary(config: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def build_data_smoke_report(config: Mapping[str, Any]) -> dict[str, Any]:
+    from ultron_data import generate_dataset
+    from ultron_verify import verify_example_detailed
+
+    training = config.get("training", {})
+    curriculum = training.get("curriculum", {})
+    topics = curriculum.get("initial_topics", [])
+    seed = int(training.get("seed", 20261117))
+    examples = generate_dataset(100, seed=seed, split="train", topics=topics)
+    topic_counts: dict[str, int] = {}
+    for example in examples:
+        valid, reason = verify_example_detailed(example)
+        if not valid:
+            raise ValueError(f"Independent verification failed: {reason}")
+        topic_counts[example["topic"]] = topic_counts.get(example["topic"], 0) + 1
+
+    return {
+        "generated_examples": len(examples),
+        "independently_verified_examples": len(examples),
+        "topics_covered": len(topic_counts),
+        "topic_counts": topic_counts,
+        "seed": seed,
+        "training_started": False,
+    }
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="ultron-train", description="ULTRON portable training preflight")
     parser.add_argument("--config", default="config.json")
     parser.add_argument("--servers", default="servers.json")
     parser.add_argument("--preflight", action="store_true")
     parser.add_argument("--model-summary", action="store_true")
+    parser.add_argument("--data-smoke-test", action="store_true")
     args = parser.parse_args(argv)
 
     config = load_json(args.config)
@@ -264,6 +291,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(json.dumps(summary, indent=2))
         if not summary["within_target_range"] or not summary["matches_expected_count"]:
             return 3
+
+    if args.data_smoke_test:
+        data_report = build_data_smoke_report(config)
+        print(json.dumps(data_report, indent=2))
+        if data_report["generated_examples"] != data_report["independently_verified_examples"]:
+            return 4
 
     if not report["configuration_valid"]:
         return 2
