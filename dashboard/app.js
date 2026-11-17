@@ -10,6 +10,7 @@
   const SESSION_KEY = "ultron_training_session";
   const CACHE_PREFIX = "ultron_training_cache_";
   const THEME_KEY = "ultron_training_theme";
+  const RAM_LIMIT_KEY = "ultron_training_ram_limit_gb";
   const POLL_MS = 15000;
   const STALE_SECONDS = 720;
 
@@ -29,7 +30,8 @@
     refreshing: false,
     checkpointBusy: false,
     quota: {},
-    projectConfig: {}
+    projectConfig: {},
+    ramLimitGb: 6
   };
 
   function escapeHtml(value) {
@@ -675,6 +677,12 @@
 
   function renderSettings() {
     $("autoStartToggle").checked = Boolean(state.status && state.status.automatic_start_enabled);
+    const ramSlider = $("ramLimitSlider");
+    if (ramSlider) {
+      ramSlider.value = String(state.ramLimitGb);
+      $("ramLimitValue").textContent = state.ramLimitGb + " GB";
+      $("ramLimitStatus").textContent = "Saved on this browser only. Not yet applied to the Windows laptop; secure agent control is still being built.";
+    }
     $("ownerIdText").textContent = state.user ? state.user.id : "—";
     const review = state.projectConfig.terms_review || {};
     const intervalDays = Number(review.reminder_interval_days || 90);
@@ -1054,6 +1062,13 @@
     $("safeResumeButton").addEventListener("click", function () { safeResume().catch(function (error) { showCheckpointNotice(error.message, "error"); }); });
     $("verifyCheckpointsButton").addEventListener("click", function () { safeResume().catch(function (error) { showCheckpointNotice(error.message, "error"); }); });
     $("autoStartToggle").addEventListener("change", function () { toggleAutomaticStart($("autoStartToggle").checked).catch(function (error) { showNotice(error.message, "error"); }); });
+    $("ramLimitSlider").addEventListener("input", function () {
+      const selected = Math.max(2, Math.min(10, Number($("ramLimitSlider").value)));
+      state.ramLimitGb = Math.round(selected * 2) / 2;
+      $("ramLimitValue").textContent = state.ramLimitGb + " GB";
+      try { localStorage.setItem(RAM_LIMIT_KEY, String(state.ramLimitGb)); } catch (_) {}
+      $("ramLimitStatus").textContent = "Saved as " + state.ramLimitGb + " GB on this browser only. It is not yet sent to or enforced by the Windows laptop.";
+    });
     $("copyOwnerId").addEventListener("click", copyOwnerId);
     $("copyOwnerIdSettings").addEventListener("click", copyOwnerId);
     $("manualHoursForm").addEventListener("submit", function (event) { addManualHours(event).catch(function (error) { showNotice(error.message, "error"); }); });
@@ -1075,6 +1090,12 @@
 
   async function init() {
     initTheme();
+    try {
+      const savedRamLimit = Number(localStorage.getItem(RAM_LIMIT_KEY));
+      if (Number.isFinite(savedRamLimit) && savedRamLimit >= 2 && savedRamLimit <= 10 && savedRamLimit * 2 === Math.round(savedRamLimit * 2)) {
+        state.ramLimitGb = savedRamLimit;
+      }
+    } catch (_) {}
     bindEvents();
     if (!isConfigured()) {
       $("configWarning").hidden = false;
