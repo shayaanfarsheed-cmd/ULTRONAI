@@ -85,7 +85,8 @@
         "quota_period": "weekly",
         "phone_verification_required_for_gpu": true,
         "monthly_gpu_quota": null,
-        "quota_notes": "Kaggle documents 30 GPU hours per week or sometimes higher depending on demand and resources. The 12-hour limit applies to CPU/GPU notebook sessions; TPU sessions are limited to 9 hours."
+        "quota_notes": "Kaggle documents 30 GPU hours per week or sometimes higher depending on demand and resources. The 12-hour limit applies to CPU/GPU notebook sessions; TPU sessions are limited to 9 hours.",
+        "training_session_target_hours": 11.5
       },
       "automatic_start": "yes",
       "start_steps": [
@@ -128,7 +129,8 @@
         "weekly_gpu_hours": null,
         "monthly_gpu_hours": null,
         "quota_period": "dynamic_not_published",
-        "quota_notes": "Free runtimes can run for at most 12 hours, depending on availability and usage patterns. GPU types, usage limits, idle timeout and VM lifetime vary and are not published as a fixed quota."
+        "quota_notes": "Free runtimes can run for at most 12 hours, depending on availability and usage patterns. GPU types, usage limits, idle timeout and VM lifetime vary and are not published as a fixed quota.",
+        "training_session_target_hours": 11.5
       },
       "automatic_start": "no",
       "start_steps": [
@@ -178,7 +180,8 @@
         "quota_period": "initial_credits_not_monthly",
         "gpu_hours": null,
         "quota_notes": "The Free plan lists one active free CPU Studio with 4-hour restarts. The FAQ states 5 credits at registration; 25 additional credits require adding a card. Credits are not a recurring monthly allowance. No payment method will be added for ULTRON.",
-        "credits_notes": "The free offer is a limited credit allocation, not a guaranteed monthly recurring GPU quota. Verify the balance and hardware price in the account before each run."
+        "credits_notes": "The free offer is a limited credit allocation, not a guaranteed monthly recurring GPU quota. Verify the balance and hardware price in the account before each run.",
+        "training_session_target_hours": 3.5
       },
       "automatic_start": "conditional",
       "start_steps": [
@@ -222,7 +225,8 @@
         "standard_runner_minutes_for_public_repository": "unlimited",
         "artifact_storage_mb_in_account_plan": 500,
         "quota_period": "public_repository_standard_runner",
-        "quota_notes": "Standard GitHub-hosted runners are free and unlimited for public repositories. Each workflow job can execute for up to 6 hours. Avoid storing checkpoints as Actions artifacts; use the configured checkpoint storage."
+        "quota_notes": "Standard GitHub-hosted runners are free and unlimited for public repositories. Each workflow job can execute for up to 6 hours. Avoid storing checkpoints as Actions artifacts; use the configured checkpoint storage.",
+        "training_session_target_hours": 5.5
       },
       "automatic_start": "yes",
       "start_steps": [
@@ -266,7 +270,8 @@
         "session_hours": null,
         "gpu_hours": 0,
         "quota_period": "not_applicable",
-        "quota_notes": "CPU Basic is listed as 2 vCPU, 16 GB RAM and 50 GB non-persistent disk at no hourly hardware cost. Confirm account and Space eligibility before relying on it. This is a slow CPU fallback, not a GPU server."
+        "quota_notes": "CPU Basic is listed as 2 vCPU, 16 GB RAM and 50 GB non-persistent disk at no hourly hardware cost. Confirm account and Space eligibility before relying on it. This is a slow CPU fallback, not a GPU server.",
+        "training_session_target_hours": 5.5
       },
       "start_notes": [
         "Use only CPU Basic hardware; do not upgrade to paid hardware.",
