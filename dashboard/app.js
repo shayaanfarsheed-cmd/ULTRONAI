@@ -145,7 +145,6 @@
     if (!response.ok) {
       if (response.status === 401) {
         saveSession(null);
-        showAuth("Your session expired. Sign in again.");
       }
       const message = data && (data.message || data.hint || data.error) ? (data.message || data.hint || data.error) : "Database request failed (" + response.status + ").";
       throw new Error(message);
@@ -172,83 +171,6 @@
       throw new Error(data.message || data.error || "Storage request failed (" + response.status + ").");
     }
     return binary ? response.arrayBuffer() : response.json().catch(function () { return null; });
-  }
-
-  function showAuth(message) {
-    $("authPanel").hidden = false;
-    $("dashboardPanel").hidden = true;
-    $("logoutButton").hidden = true;
-    setConnection("NOT CONNECTED", "");
-    if (message) $("authMessage").textContent = message;
-  }
-
-  function showDashboard() {
-    $("authPanel").hidden = true;
-    $("dashboardPanel").hidden = false;
-    $("logoutButton").hidden = false;
-    $("accountEmail").textContent = state.user && state.user.email ? state.user.email : "Signed-in account";
-    $("ownerIdText").textContent = "Private account data is not available in public mode.";
-  }
-
-  function setAuthMode(mode) {
-    state.authMode = mode;
-    document.querySelectorAll("[data-auth-mode]").forEach(function (button) {
-      button.classList.toggle("active", button.getAttribute("data-auth-mode") === mode);
-    });
-    $("authSubmit").textContent = mode === "signup" ? "Create account" : "Sign in";
-    $("authPassword").autocomplete = mode === "signup" ? "new-password" : "current-password";
-    $("authMessage").textContent = "";
-  }
-
-  async function submitAuth(event) {
-    event.preventDefault();
-    if (!isConfigured()) {
-      $("authMessage").textContent = "Add your Supabase publishable/anon key to dashboard/config.js first.";
-      return;
-    }
-    const email = $("authEmail").value.trim();
-    const password = $("authPassword").value;
-    $("authSubmit").disabled = true;
-    $("authMessage").textContent = state.authMode === "signup" ? "Creating your account…" : "Signing in…";
-    try {
-      if (state.authMode === "signup") {
-        const redirect = encodeURIComponent(window.location.origin + window.location.pathname);
-        const data = await authRequest("signup?redirect_to=" + redirect, {email: email, password: password});
-        if (data.access_token) {
-          saveSession(sessionFromResponse(data));
-          showDashboard();
-          await refreshData();
-        } else {
-          $("authMessage").textContent = "Account created. Check your email to confirm the address, then sign in.";
-        }
-      } else {
-        const data = await authRequest("token?grant_type=password", {email: email, password: password});
-        saveSession(sessionFromResponse(data));
-        showDashboard();
-        await refreshData();
-      }
-    } catch (error) {
-      $("authMessage").textContent = error.message;
-    } finally {
-      $("authSubmit").disabled = false;
-    }
-  }
-
-  async function logout() {
-    try {
-      if (state.session && state.session.access_token && isConfigured()) {
-        await fetch(AUTH_ROOT + "logout", {
-          method: "POST",
-          headers: {"apikey": PUBLISHABLE_KEY, "Authorization": "Bearer " + state.session.access_token}
-        });
-      }
-    } catch (_) {}
-    saveSession(null);
-    state.status = null;
-    state.logs = [];
-    state.switches = [];
-    state.checkpoints = [];
-    showAuth("You have signed out.");
   }
 
   async function loadServerRegistry() {
