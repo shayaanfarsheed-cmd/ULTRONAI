@@ -6,6 +6,7 @@ import random
 import signal
 import time
 import uuid
+from datetime import timedelta
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
@@ -21,6 +22,7 @@ from ultron_supabase import (
     TrainingControlAPI,
     from_environment,
     iso_utc,
+    utc_now,
 )
 from ultron_training import (
     CurriculumController,
