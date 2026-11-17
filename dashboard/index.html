@@ -33,7 +33,7 @@
       <div class="auth-hero">
         <div class="eyebrow"><span class="pulse-dot"></span> PRIVATE TRAINING CONSOLE</div>
         <h1>Control the training.<br><span>Keep every checkpoint.</span></h1>
-        <p>Monitor ULTRON and control your paired Windows training computer from this browser. The training workload runs locally, not inside the website.</p>
+        <p>Monitor ULTRON and control compatible paired devices from this browser. Training runs on a supported device, not inside the website.</p>
         <div class="auth-points">
           <span>NO PAID COMPUTE</span>
           <span>NO AI APIS</span>
@@ -70,7 +70,7 @@
         <div class="sidebar-label">CONTROL ROOM</div>
         <nav class="side-nav" aria-label="Dashboard sections">
           <button class="nav-button active" type="button" data-view="overview"><span>◈</span> Overview</button>
-          <button class="nav-button" type="button" data-view="local"><span>▣</span> Local PC</button>
+          <button class="nav-button" type="button" data-view="devices"><span>▣</span> Devices</button>
           <button class="nav-button" type="button" data-view="servers"><span>⌘</span> Servers</button>
           <button class="nav-button" type="button" data-view="history"><span>≋</span> History</button>
           <button class="nav-button" type="button" data-view="checkpoints"><span>⬡</span> Checkpoints</button>
@@ -95,60 +95,70 @@
 
         <div id="globalNotice" class="notice" role="status" hidden></div>
 
-        <section id="view-local" class="view-section" hidden>
+        <section id="view-devices" class="view-section" hidden>
           <div class="section-intro">
             <div>
-              <div class="eyebrow">LOCAL WINDOWS COMPUTE</div>
-              <h2>Your training computer</h2>
-              <p class="muted-text">Use this dashboard from your iPad to control ULTRON on your paired Windows laptop. The browser never runs the training workload itself.</p>
+              <div class="eyebrow">CONNECTED DEVICE NETWORK</div>
+              <h2>Your training devices</h2>
+              <p class="muted-text">Use this dashboard from a computer, phone or tablet. Compatible computers may run training through a secure device agent; phones and tablets can monitor and control the system, but may not support the training runtime.</p>
             </div>
-            <span class="status-pill">AGENT NOT CONNECTED</span>
+            <span class="status-pill">NO DEVICES CONNECTED</span>
           </div>
 
-          <article class="panel local-device-hero">
-            <div class="local-device-icon">▣</div>
-            <div class="local-device-copy">
+          <article class="panel device-device-hero">
+            <div class="device-device-icon">▣</div>
+            <div class="device-device-copy">
               <div class="eyebrow">DEVICE CONNECTION</div>
-              <h2>Windows training agent</h2>
-              <p id="localAgentStatus" class="muted-text">Not paired · The secure Windows agent has not been installed or connected yet.</p>
+              <h2>ULTRON device agent</h2>
+              <p class="muted-text">No paired device is currently reporting status or capabilities.</p>
             </div>
-            <span class="status-pill unavailable_until">NOT CONNECTED</span>
+            <span class="status-pill">NOT CONNECTED</span>
           </article>
 
-          <div class="local-metric-grid">
-            <article class="metric-card panel"><span class="metric-label">DEVICE</span><strong class="metric-value">Windows</strong><small>16 GB installed RAM</small></article>
-            <article class="metric-card panel"><span class="metric-label">AGENT VERSION</span><strong class="metric-value">—</strong><small>Not installed</small></article>
-            <article class="metric-card panel"><span class="metric-label">TRAINING STATE</span><strong class="metric-value">IDLE</strong><small>No local run has started</small></article>
-            <article class="metric-card panel"><span class="metric-label">MEMORY BUDGET</span><strong id="localRamLimitValue" class="metric-value numeric">6 GB</strong><small>Saved preference · not enforced yet</small></article>
+          <div class="device-metric-grid">
+            <article class="metric-card panel"><span class="metric-label">CONNECTED DEVICES</span><strong class="metric-value">0</strong><small>No agent heartbeat received</small></article>
+            <article class="metric-card panel"><span class="metric-label">PLATFORM</span><strong class="metric-value">—</strong><small>Not reported</small></article>
+            <article class="metric-card panel"><span class="metric-label">TRAINING STATE</span><strong class="metric-value">IDLE</strong><small>No device run has started</small></article>
+            <article class="metric-card panel"><span class="metric-label">MEMORY BUDGET</span><strong id="deviceRamLimitValue" class="metric-value numeric">6 GB</strong><small>Saved preference · not enforced</small></article>
           </div>
 
           <article class="panel section-panel">
             <div class="section-heading">
-              <div><div class="eyebrow">PAIRING</div><h2>Connect your Windows laptop</h2></div>
+              <div><div class="eyebrow">PAIRING</div><h2>Connect a device</h2></div>
               <span class="small-pill">SECURE OUTBOUND CONNECTION</span>
             </div>
-            <ol class="local-steps">
-              <li><span>01</span><div><strong>Install the ULTRON local agent</strong><p>The agent will run on your Windows laptop and start only the fixed ULTRON training program.</p></div></li>
-              <li><span>02</span><div><strong>Pair this device</strong><p>Sign in here, then use a short-lived one-time pairing code. The agent will make outbound HTTPS requests; no router port forwarding is needed.</p></div></li>
-              <li><span>03</span><div><strong>Control it from any browser</strong><p>Once connected, this page will show live heartbeats, memory use, training progress and checkpoint status.</p></div></li>
+            <ol class="device-steps">
+              <li><span>01</span><div><strong>Install a supported ULTRON device agent</strong><p>Agent adapters will be built for supported desktop operating systems. The agent will run only the fixed ULTRON training program.</p></div></li>
+              <li><span>02</span><div><strong>Pair this device</strong><p>Sign in here and use a short-lived, one-time pairing code. The agent initiates outbound HTTPS; no router port forwarding is required.</p></div></li>
+              <li><span>03</span><div><strong>Control it from any browser</strong><p>Once connected, this page will show verified device capabilities, heartbeats, memory use, training progress and checkpoint status.</p></div></li>
             </ol>
-            <div class="notice notice-warn">Pairing is not available yet. The secure backend and Windows agent are deliberately not deployed. No device is connected and no command will be sent.</div>
-            <div class="local-action-row">
-              <button class="primary-button" type="button" disabled>Pair Windows device</button>
-              <a class="text-link" href="../docs/LOCAL_AGENT_ARCHITECTURE.md" target="_blank" rel="noopener">Read connection architecture ↗</a>
+            <div class="notice notice-warn">Device pairing is not available yet. The secure backend and device agents are not deployed. No device is connected and no command will be sent.</div>
+            <div class="device-action-row">
+              <button class="primary-button" type="button" disabled>Connect a device</button>
+              <a class="text-link" href="../docs/LOCAL_AGENT_ARCHITECTURE.md" target="_blank" rel="noopener">Read device architecture ↗</a>
             </div>
           </article>
 
           <article class="panel section-panel">
-            <div class="section-heading"><div><div class="eyebrow">TRAINING CONTROLS</div><h2>Local run control</h2></div><span class="status-pill">LOCKED UNTIL PAIRED</span></div>
-            <p class="muted-text">These controls will become active only after the device is authenticated, the Windows memory limit is enforced, and the server confirms a valid single-writer training lease.</p>
-            <div class="control-row local-controls">
+            <div class="section-heading"><div><div class="eyebrow">DEVICE COMPATIBILITY</div><h2>Capability-based support</h2></div><span class="status-pill">NOT YET VERIFIED</span></div>
+            <div class="device-run-grid">
+              <div><span>WINDOWS / MACOS / LINUX</span><strong>Desktop training agents planned; capability checks required</strong></div>
+              <div><span>IPADOS / IOS / ANDROID</span><strong>Dashboard monitoring and control; local training not promised</strong></div>
+              <div><span>DEVICE MEMORY / CPU / GPU</span><strong>Reported by a paired agent; currently unavailable</strong></div>
+              <div><span>TRAINING ELIGIBILITY</span><strong>Determined by runtime and resource preflight</strong></div>
+            </div>
+          </article>
+
+          <article class="panel section-panel">
+            <div class="section-heading"><div><div class="eyebrow">TRAINING CONTROLS</div><h2>Device run control</h2></div><span class="status-pill">LOCKED UNTIL VERIFIED</span></div>
+            <p class="muted-text">Controls activate only after a device is authenticated, its capability and memory limits are verified, resource enforcement is confirmed, and the server grants a valid single-writer training lease.</p>
+            <div class="control-row device-controls">
               <button class="primary-button" type="button" disabled>Start training</button>
               <button class="secondary-button" type="button" disabled>Pause</button>
               <button class="secondary-button" type="button" disabled>Resume</button>
               <button class="quiet-button" type="button" disabled>Stop</button>
             </div>
-            <div class="local-run-grid">
+            <div class="device-run-grid">
               <div><span>MODEL</span><strong>ULTRON · 4.04M parameters</strong></div>
               <div><span>INITIALIZATION</span><strong>Random weights</strong></div>
               <div><span>DATA</span><strong>Generated mathematics</strong></div>
@@ -158,13 +168,13 @@
 
           <article class="panel section-panel">
             <div class="section-heading"><div><div class="eyebrow">LIVE TELEMETRY</div><h2>Device activity</h2></div><span class="small-pill">WAITING FOR AGENT</span></div>
-            <div class="local-telemetry">
+            <div class="device-telemetry">
               <div><span>CPU usage</span><strong>—</strong></div>
               <div><span>RAM in use</span><strong>—</strong></div>
-              <div><span>Training step</span><strong>0</strong></div>
+              <div><span>Training step</span><strong>—</strong></div>
               <div><span>Latest checkpoint</span><strong>—</strong></div>
             </div>
-            <p class="fine-print">Telemetry is intentionally blank until a real agent reports it. The dashboard will never invent device statistics.</p>
+            <p class="fine-print">Telemetry and device specifications remain blank until a real paired agent reports them. The dashboard will not invent device statistics.</p>
           </article>
         </section>
 
@@ -316,12 +326,12 @@
           <article class="panel section-panel ram-panel">
             <div class="section-heading">
               <div>
-                <div class="eyebrow">LOCAL WINDOWS TRAINING</div>
+                <div class="eyebrow">DEVICE MEMORY SETTINGS</div>
                 <h2>RAM usage limit</h2>
               </div>
-              <span class="small-pill">16 GB LAPTOP PRESET</span>
+              <span class="small-pill">DEVICE CAPABILITY PENDING</span>
             </div>
-            <p class="muted-text">Choose the maximum memory budget for the ULTRON training process. The recommended starting point for a 16 GB computer is 6 GB, leaving memory for Windows and other apps.</p>
+            <p class="muted-text">Choose a preferred maximum memory budget for a future compatible training device. The safe range will be checked against that device's reported memory before training can start.</p>
             <div class="ram-control">
               <div class="ram-value-row">
                 <label for="ramLimitSlider">Training memory budget</label>
@@ -330,7 +340,7 @@
               <input id="ramLimitSlider" class="ram-slider" type="range" min="2" max="10" step="0.5" value="6">
               <div class="ram-scale"><span>2 GB · Light</span><span>10 GB · High</span></div>
             </div>
-            <p id="ramLimitStatus" class="notice notice-warn" role="status">Saved on this browser only. It is not applied to the laptop yet because the Windows agent is not implemented.</p>
+            <p id="ramLimitStatus" class="notice notice-warn" role="status">Saved on this browser only. It is not enforced on any device until a compatible agent is connected.</p>
             <p class="fine-print">The Windows agent will enforce this limit on the entire training process before it starts. It will refuse a limit that leaves too little memory for Windows. This controls system RAM, not GPU VRAM.</p>
           </article>
           <div class="two-column">
