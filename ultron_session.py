@@ -427,9 +427,19 @@ def run_training_session(
 
     last_heartbeat = monotonic() - heartbeat_interval
     last_checkpoint = monotonic()
-    pending_checkpoint_id: str | None = None
-    pending_state: dict[str, Any] | None = None
+    pending_checkpoint_id: str | None = (
+        str(loaded["checkpoint_id"])
+        if loaded is not None and selected_backup_candidate is not None and resume_sync_error
+        else None
+    )
+    pending_state: dict[str, Any] | None = state if pending_checkpoint_id is not None else None
+    last_saved_checkpoint_id: str | None = str(loaded["checkpoint_id"]) if loaded is not None else None
     last_error: str | None = resume_sync_error
+    secondary_backup_ids: set[str] = set()
+    if selected_backup_candidate is not None:
+        secondary_backup_ids.add(str(selected_backup_candidate["checkpoint_id"]))
+    secondary_backup_interval = int(config.get("persistence", {}).get("secondary_backup_interval_seconds", 1800))
+    last_secondary_backup = monotonic() if selected_backup_candidate is not None else monotonic() - secondary_backup_interval
     switch_completion_marked = False
     final_state = "finished"
     force_handoff_reason = "no_gpu" if server and server.get("role") in {"primary_gpu", "backup_gpu"} and device != "cuda" else None
@@ -458,20 +468,36 @@ def run_training_session(
             "session_started_at": session_start_iso,
         }
 
-    def save_checkpoint() -> bool:
-        nonlocal pending_checkpoint_id, pending_state, last_checkpoint, last_error, last_saved_step
-        if step == last_saved_step and pending_checkpoint_id is None:
+    def backup_checkpoint(checkpoint_id: str) -> bool:
+        nonlocal last_secondary_backup, last_error
+        if backup_store is None:
+            return False
+        if checkpoint_id in secondary_backup_ids:
             return True
-        training_state = build_training_state()
-        manifest = local_store.save(model, optimizer, training_state, scheduler)
-        pending_checkpoint_id = str(manifest["checkpoint_id"])
-        pending_state = training_state
-        last_checkpoint = monotonic()
-        last_saved_step = step
+        try:
+            uploaded = backup_store.upload_checkpoint(local_store, checkpoint_id, api.owner_id, run_id)
+            if not uploaded.get("verified"):
+                raise TrainingSessionError("Secondary checkpoint backup did not verify")
+            secondary_backup_ids.add(checkpoint_id)
+            last_secondary_backup = monotonic()
+            return True
+        except Exception as error:
+            previous_error = last_error
+            failure = "secondary_backup_failed:" + type(error).__name__
+            last_error = (previous_error + "; " + failure) if previous_error else failure
+            return False
+
+    def try_commit_pending(force_secondary_backup: bool = False) -> bool:
+        nonlocal pending_checkpoint_id, pending_state, last_error, last_saved_checkpoint_id
+        if pending_checkpoint_id is None or pending_state is None:
+            if force_secondary_backup and last_saved_checkpoint_id is not None:
+                return backup_checkpoint(last_saved_checkpoint_id) or last_saved_checkpoint_id is not None
+            return True
+        checkpoint_id = pending_checkpoint_id
         try:
             remote_store.upload_and_commit(
                 local_store,
-                pending_checkpoint_id,
+                checkpoint_id,
                 api.owner_id,
                 run_id,
                 api,
@@ -481,13 +507,36 @@ def run_training_session(
             )
             pending_checkpoint_id = None
             pending_state = None
+            last_saved_checkpoint_id = checkpoint_id
             last_error = None
+            if backup_store is not None and (
+                force_secondary_backup or monotonic() - last_secondary_backup >= secondary_backup_interval
+            ):
+                backup_checkpoint(checkpoint_id)
             return True
         except LeaseLostError:
             raise
         except Exception as error:
-            last_error = type(error).__name__
-            return False
+            last_error = "primary_checkpoint_commit_failed:" + type(error).__name__
+            backup_ok = backup_checkpoint(checkpoint_id)
+            return backup_ok
+
+    def save_checkpoint(force_secondary_backup: bool = False) -> bool:
+        nonlocal pending_checkpoint_id, pending_state, last_checkpoint, last_error, last_saved_step, last_saved_checkpoint_id
+        if step == last_saved_step:
+            if pending_checkpoint_id is not None:
+                return try_commit_pending(force_secondary_backup)
+            if force_secondary_backup and last_saved_checkpoint_id is not None:
+                return backup_checkpoint(last_saved_checkpoint_id) or last_saved_checkpoint_id is not None
+            return True
+        training_state = build_training_state()
+        manifest = local_store.save(model, optimizer, training_state, scheduler)
+        pending_checkpoint_id = str(manifest["checkpoint_id"])
+        pending_state = training_state
+        last_saved_checkpoint_id = pending_checkpoint_id
+        last_checkpoint = monotonic()
+        last_saved_step = step
+        return try_commit_pending(force_secondary_backup)
 
     def update_heartbeat() -> bool:
         nonlocal last_heartbeat, lease_deadline, switch_completion_marked
