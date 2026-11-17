@@ -24,6 +24,9 @@ CREATE TABLE IF NOT EXISTS training_api.training_status (
     last_checkpoint_at timestamptz,
     last_checkpoint_size_bytes bigint CHECK (last_checkpoint_size_bytes IS NULL OR last_checkpoint_size_bytes >= 0),
     last_checkpoint_verified boolean NOT NULL DEFAULT false,
+    last_checkpoint_manifest_sha256 text,
+    active_session_id uuid,
+    requested_resume_checkpoint_id text,
     last_heartbeat_at timestamptz,
     session_started_at timestamptz,
     session_limit_seconds integer CHECK (session_limit_seconds IS NULL OR session_limit_seconds > 0),
@@ -43,6 +46,9 @@ CREATE TABLE IF NOT EXISTS training_api.training_status (
 
 ALTER TABLE training_api.training_status ADD COLUMN IF NOT EXISTS last_checkpoint_step bigint CHECK (last_checkpoint_step IS NULL OR last_checkpoint_step >= 0);
 ALTER TABLE training_api.training_status ADD COLUMN IF NOT EXISTS handoff_requested boolean NOT NULL DEFAULT false;
+ALTER TABLE training_api.training_status ADD COLUMN IF NOT EXISTS active_session_id uuid;
+ALTER TABLE training_api.training_status ADD COLUMN IF NOT EXISTS last_checkpoint_manifest_sha256 text;
+ALTER TABLE training_api.training_status ADD COLUMN IF NOT EXISTS requested_resume_checkpoint_id text;
 
 CREATE TABLE IF NOT EXISTS training_api.server_log (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -162,7 +168,7 @@ CREATE POLICY switch_requests_owner_insert
 
 REVOKE ALL ON ALL TABLES IN SCHEMA training_api FROM anon, authenticated;
 GRANT SELECT ON training_api.training_status, training_api.server_log, training_api.switch_requests TO authenticated;
-GRANT UPDATE (pause_requested, handoff_requested, automatic_start_enabled, server_statuses) ON training_api.training_status TO authenticated;
+GRANT UPDATE (pause_requested, handoff_requested, automatic_start_enabled, server_statuses, requested_resume_checkpoint_id) ON training_api.training_status TO authenticated;
 GRANT INSERT ON training_api.server_log, training_api.switch_requests TO authenticated;
 GRANT ALL ON training_api.training_status, training_api.server_log, training_api.switch_requests TO service_role;
 
