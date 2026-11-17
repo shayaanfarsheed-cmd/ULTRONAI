@@ -198,7 +198,10 @@
     "manual_only_platforms": [
       "google_colab"
     ],
-    "do_not_start_when_quota_or_cost_is_uncertain": true
+    "do_not_start_when_quota_or_cost_is_uncertain": true,
+    "failed_start_timeout_seconds": 1200,
+    "failed_server_cooldown_seconds": 21600,
+    "quota_switch_threshold_percent": 90
   },
   "quota_management": {
     "warning_threshold_percent": 80,
@@ -207,7 +210,8 @@
     "unknown_quota_policy": "show_unknown_and_require_manual_check",
     "usage_tracking": "session_logs_plus_manual_adjustments",
     "do_not_assume_provider_quota_api_exists": true,
-    "usage_period_timezone": "UTC"
+    "usage_period_timezone": "UTC",
+    "switch_at_percent": 90
   },
   "storage": {
     "primary_provider": "supabase",
@@ -293,5 +297,10 @@
     "initialization": "random_normal",
     "parameter_count_minimum": 3000000,
     "parameter_count_maximum": 5000000
+  },
+  "performance": {
+    "minimum_gpu_tokens_per_second": 0,
+    "warmup_steps_before_speed_check": 20,
+    "slow_gpu_switch_enabled": false
   }
 }
