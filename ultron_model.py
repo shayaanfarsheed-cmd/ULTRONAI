@@ -92,7 +92,7 @@ class ULTRONTransformer(nn.Module):
     def __init__(
         self,
         vocab_size: int = len(ALPHABET),
-        context_length: int = 128,
+        context_length: int = 192,
         dimension: int = 256,
         layers: int = 5,
         heads: int = 8,
