@@ -187,7 +187,7 @@ class RemoteCheckpointTests(unittest.TestCase):
                         if path.is_file():
                             self.files[path_in_repo + "/" + path.name] = path.read_bytes()
                 def list_repo_tree(self, repo_id, repo_type, revision, path_in_repo, recursive, expand, token):
-                    return [SimpleNamespace(path=path_in_repo + "/" + name) for name in sorted(self.files)]
+                    return [SimpleNamespace(path=name) for name in sorted(self.files)]
 
             api = FakeHFAPI()
             def download_file(repo_id, filename, repo_type, revision, token):
