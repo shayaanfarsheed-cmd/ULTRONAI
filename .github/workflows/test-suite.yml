@@ -35,6 +35,24 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
 
+      - name: Validate static dashboard JavaScript
+        run: |
+          node --check dashboard/app.js
+          node --check dashboard/config.js
+
+      - name: Validate JSON configuration and notebook
+        run: |
+          python -m json.tool config.json > /dev/null
+          python -m json.tool servers.json > /dev/null
+          python -m json.tool train.ipynb > /dev/null
+
+      - name: Check dashboard for backend secret values
+        run: |
+          if grep -R -E 'sb_secret_[A-Za-z0-9]{12,}' dashboard; then
+            echo "A backend secret-like value was found in dashboard files."
+            exit 1
+          fi
+
       - name: Compile Python modules
         run: python -m compileall -q .
 
