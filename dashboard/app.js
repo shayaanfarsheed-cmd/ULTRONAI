@@ -641,8 +641,8 @@
       const untilDate = saved.unavailable_until ? new Date(saved.unavailable_until) : null;
       const untilValue = untilDate && !Number.isNaN(untilDate.getTime()) ? new Date(untilDate.getTime() - untilDate.getTimezoneOffset() * 60000).toISOString().slice(0,16) : "";
       const startUrl = server.notebook_open_url || server.notebook_url || server.documentation_url || "#";
-      const limitText = server.limits && server.limits.session_limit_hours ? server.limits.session_limit_hours + "h session" :
-        (server.limits && server.limits.job_execution_limit_hours ? server.limits.job_execution_limit_hours + "h job" : "Session varies");
+      const limitHours = server.limits && (server.limits.session_limit_hours || server.limits.free_studio_restart_hours || server.limits.job_execution_limit_hours || server.limits.session_hours);
+      const limitText = limitHours ? limitHours + (server.limits.job_execution_limit_hours ? "h job" : "h session") : "Session varies";
       return '<article class="server-card' + (server.id === nextId ? ' next-server' : '') + '">' +
         '<div class="server-main">' +
           '<div class="server-title-row"><span class="server-number">0' + (index + 1) + '</span><strong class="server-title">' + escapeHtml(server.name) + '</strong><span class="status-pill ' + escapeHtml(status) + '">' + escapeHtml(status.replace(/_/g, " ")) + '</span>' + (server.id === nextId ? '<span class="next-flag">NEXT</span>' : '') + '</div>' +
@@ -1015,7 +1015,7 @@
 
   function applyTheme(theme) {
     document.body.setAttribute("data-theme", theme);
-    localStorage.setItem(THEME_KEY, theme);
+    try { localStorage.setItem(THEME_KEY, theme); } catch (_) {}
   }
 
   function initTheme() {
