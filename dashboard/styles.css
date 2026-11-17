@@ -321,3 +321,12 @@ code { color: var(--red); font-size: .92em; }
   .terms-list { grid-template-columns: 1fr; }
   .footer-line { flex-direction: column; }
 }
+
+.ram-panel { border-color: var(--line-strong); }
+.ram-control { margin: 20px 0 14px; padding: 16px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface-2); }
+.ram-value-row, .ram-scale { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ram-value-row label { color: var(--soft); font-size: 12px; font-weight: 800; }
+.ram-value-row output { color: var(--red); font-size: 22px; font-weight: 900; font-variant-numeric: tabular-nums; }
+.ram-slider { display: block; width: 100%; margin: 20px 0 10px; accent-color: var(--red); cursor: pointer; }
+.ram-scale { color: var(--muted); font-size: 10px; }
+.ram-panel .notice { margin-top: 12px; }
