@@ -371,6 +371,7 @@ class TrainingControlAPI:
             "curriculum_state": training_state.get("curriculum_state", {}),
             "learning_rate": training_state.get("learning_rate"),
             "last_checkpoint_id": checkpoint_id,
+            "last_checkpoint_step": int(training_state["step"]),
             "last_checkpoint_at": now_text,
             "last_checkpoint_size_bytes": checkpoint_size_bytes,
             "last_checkpoint_verified": True,
