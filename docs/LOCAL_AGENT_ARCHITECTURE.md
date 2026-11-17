@@ -30,13 +30,23 @@ GitHub Pages is static hosting. It cannot execute Python, hold private server cr
 - The browser uses only the Supabase publishable/anon key and a signed-in user's JWT.
 - Device pairing should issue a random per-device credential once. Store only its hash server-side; store the credential in Windows Credential Manager (or an equivalent OS-protected secret store), not in source code or a plaintext committed file.
 - Edge Functions validate the device credential, owner, device status, command expiry and idempotency. Revoke a device by disabling its registration and rotating its credential.
-- Commands are an enum (start, pause, resume, stop, status) with validated JSON parameters. No shell command, PowerShell, Python snippet, URL, or arbitrary executable path is accepted from the dashboard.
+- Commands are an enum (start, pause, resume, stop, status) with validated JSON parameters, including a bounded `memory_limit_gb` on start. No shell command, PowerShell, Python snippet, URL, or arbitrary executable path is accepted from the dashboard.
 - Start is disabled until local preflight passes, the model/data/config paths resolve inside the project directory, resource limits are applied, and no other ULTRON trainer is active.
 - The agent binds any optional local diagnostics endpoint to loopback only. Remote browser control goes through outbound HTTPS polling, not an exposed local web server.
 - Require explicit confirmation for first start and destructive actions. Stop is cooperative; hard termination is a separately guarded recovery action.
 - A command is acknowledged once and is idempotent. Expired, replayed, unknown, or out-of-order commands are rejected.
 - The agent stops training if it loses the authoritative Supabase lease or cannot safely renew it before the configured deadline. A secondary checkpoint is not permission to continue without a valid lease.
 - No automatic cloud-server switching in this stage. Future providers must use the same one-writer lease and free-tier-only policy.
+
+## Local training memory limit
+
+- Dashboard setting: `memory_limit_gb`, numeric range 2.0–10.0 GB in 0.5 GB increments; initial default 6.0 GB for the user's 16 GB laptop.
+- The dashboard preference is currently browser-local only. It is not considered applied until a paired Windows agent acknowledges the exact setting.
+- The future command/API contract must validate the value server-side and include it in the signed/authorized start configuration; never accept arbitrary resource-control arguments.
+- Before launch, the Windows agent must check physical RAM and reserve at least 6 GB for Windows and other applications. If the selected cap exceeds total RAM minus the reserve, reject the start and report the safe maximum.
+- Enforce the cap on the entire training process tree with a Windows Job Object memory limit. Create the child suspended, assign it to the Job Object, then resume it so child workers inherit the job. Do not rely on a Python-side estimate or dashboard display as enforcement.
+- Report configured cap and observed process/job memory in agent telemetry. Stop safely on memory-limit failure and preserve the last verified checkpoint.
+- This is system RAM, not GPU VRAM. GPU memory remains governed by the training runtime's batch-size/device checks.
 
 ## Initial command contract
 
