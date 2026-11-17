@@ -1,10 +1,10 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "project": {
     "name": "ULTRON",
-    "purpose": "Train an independently implemented mathematics model from random initialization.",
+    "purpose": "Train an independently implemented mathematics Transformer from random initialization.",
     "stage": 1,
-    "stage_scope": "Configuration files only",
+    "stage_scope": "Validated runtime, provider and training-control configuration",
     "target_parameter_count": {
       "minimum": 3000000,
       "target": 4000000,
@@ -21,26 +21,41 @@
     "independently_verify_generated_training_data": true,
     "free_compute_only": true,
     "paid_compute_allowed": false,
-    "store_secrets_in_repository": false
+    "adding_payment_method_allowed": false,
+    "store_secrets_in_repository": false,
+    "store_secrets_in_browser": false,
+    "bypass_provider_limits_or_idle_timeouts": false,
+    "multiple_accounts_to_expand_quotas": false
   },
   "server_rotation": {
     "registry_file": "servers.json",
-    "mode": "manual_recommendation",
+    "mode": "ordered_first_eligible",
     "respect_registry_order": true,
     "skip_disabled_servers": true,
-    "require_manual_confirmation_before_switch": true,
-    "require_manual_confirmation_before_any_paid_action": true,
-    "paid_actions_allowed": false,
-    "never_bypass_provider_limits": true
+    "skip_out_of_quota_servers": true,
+    "skip_kicked_out_servers_during_cooldown": true,
+    "skip_unavailable_until_timestamp": true,
+    "require_valid_lease_before_training": true,
+    "fallback_server_id": "github_actions_cpu",
+    "require_manual_confirmation_for_paid_actions": true,
+    "paid_actions_allowed": false
   },
   "runtime": {
     "platform_detection": true,
+    "supported_platforms": [
+      "kaggle",
+      "google_colab",
+      "lightning_ai",
+      "github_actions",
+      "other"
+    ],
     "device_preference": "auto",
     "mixed_precision": "auto",
     "batch_size": "auto",
     "dataloader_workers": "auto",
     "cpu_fallback_enabled": true,
-    "graceful_stop_enabled": true
+    "graceful_stop_enabled": true,
+    "no_network_training_data": true
   },
   "training": {
     "seed": 20261117,
@@ -50,57 +65,173 @@
     "learning_rate": 0.0003,
     "weight_decay": 0.1,
     "gradient_clip_norm": 1,
+    "allowed_school_levels": [
+      "elementary",
+      "middle_school"
+    ],
     "curriculum": {
       "enabled": true,
+      "initial_topics": [
+        "whole_number_arithmetic",
+        "fractions",
+        "decimals",
+        "percentages",
+        "ratios_and_proportions",
+        "integers",
+        "order_of_operations",
+        "pre_algebra",
+        "linear_equations",
+        "inequalities",
+        "exponents_and_roots",
+        "basic_geometry",
+        "basic_statistics",
+        "basic_probability"
+      ],
       "unlock_mastery_accuracy": 0.9,
       "consecutive_evaluations_required": 3,
-      "held_out_evaluation_required": true
+      "held_out_evaluation_required": true,
+      "do_not_train_advanced_topics": true
     }
   },
+  "session_management": {
+    "checkpoint_before_session_limit": true,
+    "session_safety_margin_minutes": 10,
+    "graceful_shutdown_timeout_seconds": 120,
+    "write_handoff_state_before_exit": true,
+    "estimate_session_time_left_from_platform_and_start_time": true,
+    "unknown_session_limit_policy": "require_manual_review_and_use_conservative_checkpointing"
+  },
   "persistence": {
+    "checkpoint_format": "safetensors_plus_json_metadata",
     "checkpoint_interval_seconds": 300,
     "checkpoint_on_graceful_stop": true,
     "keep_last_valid_checkpoints": 3,
+    "max_single_storage_object_mb": 40,
     "verify_sha256": true,
-    "atomic_checkpoint_commit": true,
+    "immutable_checkpoint_objects": true,
+    "atomic_manifest_commit": true,
     "retain_previous_checkpoint_until_new_one_verified": true,
     "fallback_to_previous_valid_checkpoint": true,
+    "resume_model_weights": true,
     "resume_optimizer_state": true,
+    "resume_learning_rate_scheduler": true,
     "resume_random_number_generator_state": true,
-    "resume_training_position": true,
-    "resume_curriculum_position": true
+    "resume_training_step": true,
+    "resume_data_position": true,
+    "resume_curriculum_position": true,
+    "resume_topic_and_difficulty": true,
+    "include_lease_holder_and_fencing_token": true
+  },
+  "coordination": {
+    "one_writer_at_a_time": true,
+    "lease_renewal_interval_seconds": 60,
+    "lease_ttl_seconds": 240,
+    "require_lease_before_training": true,
+    "require_lease_before_checkpoint_commit": true,
+    "fencing_token_monotonically_increasing": true,
+    "worker_must_stop_writing_after_lease_loss": true,
+    "wait_when_another_valid_lease_exists": true
   },
   "monitoring": {
     "heartbeat_interval_seconds": 60,
     "stale_run_after_seconds": 720,
     "dashboard_poll_interval_seconds": 15,
+    "start_heartbeat_timeout_seconds": 1200,
     "record_session_start_and_end": true,
     "update_single_status_record_on_heartbeat": true,
-    "never_log_secrets": true
+    "never_log_secrets": true,
+    "server_status_source": "database_plus_manual_account_checks"
+  },
+  "switching": {
+    "guided_switching_enabled": true,
+    "automatic_switching_enabled": true,
+    "automatic_start_global_kill_switch_default": true,
+    "maximum_automatic_starts_per_day": 3,
+    "cooldown_between_automatic_starts_seconds": 1200,
+    "new_server_first_heartbeat_timeout_seconds": 1200,
+    "retry_failed_server_after_seconds": 21600,
+    "mark_switch_done_on_first_valid_heartbeat": true,
+    "only_one_active_lease_holder": true,
+    "platform_allowlist": [
+      "kaggle",
+      "lightning_ai",
+      "github_actions"
+    ],
+    "manual_only_platforms": [
+      "google_colab"
+    ],
+    "do_not_start_when_quota_or_cost_is_uncertain": true
   },
   "quota_management": {
     "warning_threshold_percent": 80,
+    "switch_threshold_percent": 90,
     "stop_recommending_server_at_percent": 95,
     "unknown_quota_policy": "show_unknown_and_require_manual_check",
-    "usage_tracking": "session_logs_and_manual_adjustments",
-    "do_not_assume_provider_quota_api_exists": true
+    "usage_tracking": "session_logs_plus_manual_adjustments",
+    "do_not_assume_provider_quota_api_exists": true,
+    "usage_period_timezone": "UTC"
   },
   "storage": {
-    "checkpoint_format": "safetensors_plus_json_metadata",
-    "checkpoint_primary_location": "supabase_private_storage",
-    "secondary_backup_location": "huggingface_private_repository",
+    "primary_provider": "supabase",
+    "supabase_bucket": "checkpoints",
+    "supabase_bucket_private": true,
+    "secondary_provider": "huggingface_private_repository",
+    "secondary_storage_use": "checkpoint_file_backup_only",
     "temporary_runtime_storage_is_authoritative": false,
-    "verify_upload_hash_before_commit": true,
+    "retry_upload_when_primary_storage_recovers": true,
+    "verify_upload_hash_before_manifest_commit": true,
+    "delete_only_oldest_verified_checkpoints_beyond_retention": true,
+    "never_delete_last_three_valid_checkpoints": true,
     "secrets_source": "provider_secret_manager_or_environment",
     "credentials_must_never_be_committed": true
+  },
+  "database": {
+    "project_ref": "euhmejpaswmdpsutbtse",
+    "schema": "training_api",
+    "tables": [
+      "training_status",
+      "server_log",
+      "switch_requests"
+    ],
+    "expose_only_training_schema": true,
+    "row_level_security_required": true,
+    "user_reads_own_rows_only": true,
+    "notebook_writes_use_backend_secret": true,
+    "website_uses_publishable_key_only": true
+  },
+  "security": {
+    "backend_secret_prefix": "sb_secret_",
+    "never_embed_backend_secret_in_source": true,
+    "never_send_backend_secret_to_browser": true,
+    "never_print_credentials_or_authorization_headers": true,
+    "github_actions_permissions_minimal": true,
+    "do_not_run_secret_bearing_workflows_for_untrusted_pull_requests": true
+  },
+  "alerts": {
+    "enabled": false,
+    "default_channel": "web_push",
+    "require_explicit_user_opt_in": true,
+    "events": [
+      "run_dead",
+      "handoff_needed",
+      "all_servers_unavailable"
+    ]
   },
   "dashboard": {
     "default_language": "en",
     "mobile_first": true,
+    "support_ipad_safari": true,
+    "light_and_dark_mode": true,
     "offline_state_label": true,
     "show_next_server_recommendation": true,
     "show_quota_as_unknown_when_not_measurable": true,
-    "require_authentication_for_private_training_data": true
+    "require_authentication_for_private_training_data": true,
+    "one_next_action_instruction": true
+  },
+  "terms_review": {
+    "reminder_interval_days": 90,
+    "require_provider_terms_links": true,
+    "last_reviewed_date": "2026-11-17"
   },
   "release": {
     "format": "onnx",
