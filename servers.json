@@ -224,66 +224,28 @@
         "quota_period": "public_repository_standard_runner",
         "quota_notes": "Standard GitHub-hosted runners are free and unlimited for public repositories. Each workflow job can execute for up to 6 hours. Avoid storing checkpoints as Actions artifacts; use the configured checkpoint storage."
       },
-      "automatic_start": "no",
+      "automatic_start": "yes",
       "start_steps": [
-        "Open the repository Actions tab.",
-        "Choose the ULTRON CPU training workflow.",
-        "Press Run workflow for a guided/manual start, or let the switcher dispatch it after eligibility checks.",
-        "The worker resumes from the newest verified cloud checkpoint."
+        "Open the repository Actions tab and select the ULTRON CPU training workflow.",
+        "For a guided start, press Run workflow.",
+        "The switcher may trigger this workflow through the official workflow_dispatch event after quota, cooldown and lease checks.",
+        "The worker resumes from the newest committed and verified cloud checkpoint."
       ],
       "current_status": "unknown",
-      "status_reason": "Workflow has not yet been installed or run.",
+      "status_reason": "Workflow will be ready after cpu-training.yml is installed and the required GitHub Actions secrets are configured.",
       "sources": [
         "https://docs.github.com/en/actions/how-tos/write-workflows/choose-where-workflows-run/choose-the-runner-for-a-job",
         "https://docs.github.com/en/actions/reference/limits",
         "https://docs.github.com/en/actions/concepts/billing-and-usage",
-        "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service"
+        "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
+        "https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#workflow_dispatch"
       ],
       "last_reviewed": "2026-11-17",
       "automatic_start_enabled_by_default": false
     },
     {
-      "id": "github_actions",
-      "order": 5,
-      "name": "GitHub Actions CPU Runner",
-      "role": "primary_cpu_fallback",
-      "enabled": true,
-      "current_status": "unknown",
-      "automatic_start": "yes",
-      "automatic_start_enabled_by_default": false,
-      "notebook_url": "https://github.com/shayaanfarsheed-cmd/ULTRONAI/actions/workflows/cpu-training.yml",
-      "documentation_url": "https://docs.github.com/en/actions",
-      "hardware": {
-        "preferred": "ubuntu_standard_hosted_runner",
-        "runner_image": "ubuntu-latest",
-        "cpu_cores": 4,
-        "memory_gb": 16,
-        "disk_gb": 14,
-        "gpu_memory_gb": 0,
-        "cpu_fallback": true
-      },
-      "limits": {
-        "job_execution_limit_hours": 6,
-        "gpu_hours": 0,
-        "quota_hours": null,
-        "quota_period": "standard_public_repository_runners_free",
-        "quota_notes": "Standard GitHub-hosted runners are free for public repositories. Each job has a 6-hour maximum. Workflow concurrency and platform abuse policies still apply; checkpoint storage is external."
-      },
-      "start_notes": [
-        "Open the Actions tab and run the ULTRON CPU Training workflow.",
-        "The switcher may trigger this workflow using the official workflow_dispatch event.",
-        "The workflow runs one training process and checkpoints before its 6-hour job limit.",
-        "GitHub Actions is the selected CPU fallback; it is slower than GPU servers."
-      ],
-      "sources": [
-        "https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners",
-        "https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#workflow_dispatch"
-      ],
-      "last_reviewed": "2026-11-17"
-    },
-    {
       "id": "huggingface_cpu",
-      "order": 6,
+      "order": 5,
       "name": "Hugging Face Spaces CPU Basic",
       "role": "secondary_cpu_fallback",
       "enabled": true,
@@ -315,7 +277,11 @@
       "sources": [
         "https://huggingface.co/docs/hub/spaces-overview"
       ],
-      "last_reviewed": "2026-11-17"
+      "last_reviewed": "2026-11-17",
+      "provider": "huggingface_spaces",
+      "notebook_open_url": "https://huggingface.co/spaces",
+      "notebook_source_url": "https://github.com/shayaanfarsheed-cmd/ULTRONAI/blob/main/train.ipynb",
+      "status_reason": "Space has not yet been created in the user's Hugging Face account."
     }
   ],
   "status_values": [
