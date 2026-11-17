@@ -172,8 +172,8 @@ def run_training_session(
 
     if api is None:
         configured_url = config.get("database", {}).get("project_url")
-        if configured_url:
-            os.environ.setdefault("SUPABASE_URL", str(configured_url))
+        if configured_url and not os.environ.get("SUPABASE_URL"):
+            os.environ["SUPABASE_URL"] = str(configured_url)
         api = from_environment()
     if remote_store is None:
         project_url = api.client.project_url
