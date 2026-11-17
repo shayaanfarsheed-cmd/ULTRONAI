@@ -52,6 +52,7 @@ class FakeAPI:
         self.released = []
         self.sessions = []
         self.switches = []
+        self.selected_resume = []
 
     def create_run_id(self):
         return "run-1"
@@ -103,6 +104,24 @@ class FakeAPI:
         self.status.update(status_values or {})
         self.status["lease_expires_at"] = iso_utc(utc_now() + timedelta(seconds=ttl_seconds))
         self.status["last_heartbeat_at"] = iso_utc()
+        return True
+
+
+    def select_resume_checkpoint(self, run_id, lease_holder, fencing_token, checkpoint, training_state):
+        self.selected_resume.append(checkpoint["checkpoint_id"])
+        self.status.update({
+            "last_checkpoint_id": checkpoint["checkpoint_id"],
+            "last_checkpoint_step": checkpoint["step"],
+            "last_checkpoint_size_bytes": checkpoint["total_size_bytes"],
+            "last_checkpoint_manifest_sha256": checkpoint["manifest_sha256"],
+            "current_step": checkpoint["step"],
+            "requested_resume_checkpoint_id": None,
+        })
+        return True
+
+    def clear_requested_resume_checkpoint(self, run_id, lease_holder, fencing_token, requested_checkpoint_id, reason):
+        self.status["requested_resume_checkpoint_id"] = None
+        self.status["last_error"] = reason
         return True
 
     def controls(self, run_id):
@@ -310,6 +329,45 @@ class TrainingSessionTests(unittest.TestCase):
         self.assertEqual(second["state"], "finished")
         self.assertEqual(second["step"], 2)
         self.assertNotEqual(api.status["last_checkpoint_id"], newest_id)
+
+
+    def test_requested_resume_checkpoint_is_verified_before_pointer_selection(self):
+        api = FakeAPI()
+        storage = FakeStorage()
+        remote = RemoteCheckpointStore(storage, keep_last=3)
+        with tempfile.TemporaryDirectory() as first_folder:
+            first = run_training_session(
+                self._config(),
+                self._servers(),
+                checkpoint_root=first_folder,
+                api=api,
+                remote_store=remote,
+                platform_id="kaggle",
+                runtime_override={"device": "cpu", "batch_size": 2, "cpu_threads": 1, "mixed_precision": "none"},
+                max_steps_override=2,
+                model_factory=self._model_factory,
+            )
+        self.assertEqual(first["state"], "paused")
+        checkpoint_id = api.status["last_checkpoint_id"]
+        api.status["requested_resume_checkpoint_id"] = checkpoint_id
+
+        with tempfile.TemporaryDirectory() as second_folder:
+            second = run_training_session(
+                self._config(),
+                self._servers(),
+                checkpoint_root=second_folder,
+                api=api,
+                remote_store=remote,
+                platform_id="kaggle",
+                runtime_override={"device": "cpu", "batch_size": 2, "cpu_threads": 1, "mixed_precision": "none"},
+                max_steps_override=2,
+                model_factory=self._model_factory,
+            )
+
+        self.assertEqual(second["state"], "paused")
+        self.assertEqual(api.selected_resume, [checkpoint_id])
+        self.assertIsNone(api.status["requested_resume_checkpoint_id"])
+        self.assertEqual(api.status["last_checkpoint_id"], checkpoint_id)
 
     def test_handoff_request_saves_and_releases_lease(self):
         api = FakeAPI(handoff=True)
