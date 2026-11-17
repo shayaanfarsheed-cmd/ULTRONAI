@@ -759,14 +759,18 @@
   }
 
   async function insertSwitchRequest(reason, target) {
+    const current = state.status && state.status.current_server
+      ? state.servers.find(function (server) { return server.name === state.status.current_server; })
+      : null;
     const row = {
       owner_id: state.user.id,
       run_id: state.status ? state.status.run_id : null,
-      from_server: state.status ? state.status.current_server : null,
+      from_server: current ? current.id : null,
       to_server: target || null,
       reason: reason,
       result: "waiting",
-      details: {source: "dashboard"}
+      automatic: false,
+      metadata: {source: "dashboard"}
     };
     await apiRequest("switch_requests", "POST", "", row);
   }
