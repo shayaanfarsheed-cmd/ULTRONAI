@@ -533,9 +533,25 @@ class HuggingFaceCheckpointStore:
         candidates = []
         for checkpoint_id in checkpoint_ids:
             try:
-                candidate = self.verify_remote_checkpoint(owner_id, run_id, checkpoint_id)
-                if maximum_step is None or int(candidate["step"]) <= maximum_step:
-                    candidates.append(candidate)
+                checkpoint_prefix = f"{prefix}/{checkpoint_id}"
+                manifest_data = self._download_bytes(f"{checkpoint_prefix}/manifest.json")
+                manifest = json.loads(manifest_data.decode("utf-8"))
+                receipt_data = self._download_bytes(f"{checkpoint_prefix}/upload_receipt.json")
+                receipt = json.loads(receipt_data.decode("utf-8"))
+                manifest_hash = _sha256_bytes(manifest_data)
+                if manifest.get("checkpoint_id") != checkpoint_id:
+                    continue
+                if receipt.get("checkpoint_id") != checkpoint_id or receipt.get("manifest_sha256") != manifest_hash:
+                    continue
+                if receipt.get("files") != manifest.get("files"):
+                    continue
+                if maximum_step is not None and int(manifest.get("step", -1)) > maximum_step:
+                    continue
+                manifest["manifest_sha256"] = manifest_hash
+                manifest["total_size_bytes"] = sum(
+                    int(entry.get("size_bytes", 0)) for entry in manifest["files"].values()
+                ) + len(manifest_data)
+                candidates.append(manifest)
             except Exception:
                 continue
         candidates.sort(key=lambda item: (int(item["step"]), item["checkpoint_id"]), reverse=True)
@@ -553,12 +569,30 @@ class HuggingFaceCheckpointStore:
         manifest = json.loads(manifest_data.decode("utf-8"))
         if manifest.get("checkpoint_id") != checkpoint_id:
             raise CheckpointError("Hugging Face checkpoint manifest ID mismatch")
+        receipt_data = self._download_bytes(f"{prefix}/upload_receipt.json")
+        receipt = json.loads(receipt_data.decode("utf-8"))
+        if receipt.get("checkpoint_id") != checkpoint_id or receipt.get("manifest_sha256") != _sha256_bytes(manifest_data):
+            raise CheckpointError("Hugging Face checkpoint receipt does not match its manifest")
+        if receipt.get("files") != manifest.get("files"):
+            raise CheckpointError("Hugging Face checkpoint receipt file list does not match")
         files = {"manifest.json": manifest_data}
+        state_file = None
         for name, entry in manifest["files"].items():
             content = self._download_bytes(f"{prefix}/{name}")
             if len(content) != int(entry["size_bytes"]) or _sha256_bytes(content) != entry["sha256"]:
                 raise CheckpointError(f"Hugging Face checkpoint component failed verification: {name}")
+            if name == "state.json":
+                state_file = json.loads(content.decode("utf-8"))
             files[name] = content
+        if not state_file or state_file.get("checkpoint_id") != checkpoint_id:
+            raise CheckpointError("Hugging Face checkpoint state metadata is missing or inconsistent")
+        saved_state = state_file.get("state", {})
+        if saved_state.get("step") != manifest.get("step"):
+            raise CheckpointError("Hugging Face checkpoint step does not match its manifest")
+        if saved_state.get("lease_holder") != manifest.get("lease_holder"):
+            raise CheckpointError("Hugging Face checkpoint lease holder does not match")
+        if saved_state.get("fencing_token") != manifest.get("fencing_token"):
+            raise CheckpointError("Hugging Face checkpoint fencing token does not match")
         return local_store.import_checkpoint(checkpoint_id, files)
 
     @classmethod
