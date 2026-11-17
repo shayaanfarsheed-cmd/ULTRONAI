@@ -139,14 +139,14 @@ class FakeAPI:
         })
         return dict(self.status)
 
-    def release_lease(self, run_id, lease_holder, fencing_token, final_state):
+    def release_lease(self, run_id, lease_holder, fencing_token, final_state, end_reason=None):
         self.status["lease_holder"] = None
         self.status["lease_expires_at"] = None
         self.status["state"] = final_state
         self.released.append(final_state)
         if self.sessions:
             self.sessions[-1]["ended"] = True
-            self.sessions[-1]["end_reason"] = {
+            self.sessions[-1]["end_reason"] = end_reason or {
                 "finished": "finished",
                 "handoff_needed": "handoff",
                 "paused": "user_stop",
