@@ -214,17 +214,56 @@ def build_preflight_report(
     }
 
 
+def build_model_summary(config: Mapping[str, Any]) -> dict[str, Any]:
+    from ultron_model import CharTokenizer, ULTRONTransformer
+
+    settings = config.get("model", {})
+    tokenizer = CharTokenizer()
+    if settings.get("vocabulary_size", tokenizer.vocab_size) != tokenizer.vocab_size:
+        raise ValueError("Configured vocabulary size does not match the project tokenizer")
+
+    model = ULTRONTransformer(
+        vocab_size=tokenizer.vocab_size,
+        context_length=settings.get("context_length", 128),
+        dimension=settings.get("embedding_dimension", 256),
+        layers=settings.get("transformer_layers", 5),
+        heads=settings.get("attention_heads", 8),
+        feedforward_multiplier=settings.get("feedforward_multiplier", 4),
+        dropout=settings.get("dropout", 0.1),
+    )
+    parameters = model.parameter_count()
+    target = config.get("project", {}).get("target_parameter_count", {})
+    minimum = target.get("minimum", settings.get("parameter_count_minimum", 3000000))
+    maximum = target.get("maximum", settings.get("parameter_count_maximum", 5000000))
+    expected = settings.get("expected_parameter_count")
+    return {
+        "architecture": model.architecture(),
+        "parameter_count": parameters,
+        "within_target_range": minimum <= parameters <= maximum,
+        "matches_expected_count": expected is None or expected == parameters,
+        "target_minimum": minimum,
+        "target_maximum": maximum,
+    }
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="ultron-train", description="ULTRON portable training preflight")
     parser.add_argument("--config", default="config.json")
     parser.add_argument("--servers", default="servers.json")
     parser.add_argument("--preflight", action="store_true")
+    parser.add_argument("--model-summary", action="store_true")
     args = parser.parse_args(argv)
 
     config = load_json(args.config)
     servers = load_json(args.servers)
     report = build_preflight_report(config, servers)
     print(json.dumps(report, indent=2))
+
+    if args.model_summary:
+        summary = build_model_summary(config)
+        print(json.dumps(summary, indent=2))
+        if not summary["within_target_range"] or not summary["matches_expected_count"]:
+            return 3
 
     if not report["configuration_valid"]:
         return 2
