@@ -500,7 +500,7 @@
       meta.textContent = "Heartbeat " + formatAge(status.last_heartbeat_at) + " · Checkpoint " + formatAge(status.last_checkpoint_at);
       return;
     }
-    if (status.pause_requested) {
+    if (status.pause_requested && status.lease_holder && status.lease_expires_at && new Date(status.lease_expires_at).getTime() > Date.now() && derived !== "dead") {
       title.textContent = "Pause requested";
       text.textContent = "The active notebook will save a checkpoint and release its lease at the next heartbeat. Wait for the state to change before starting another server.";
       meta.textContent = "Only one server can train at a time.";
@@ -622,6 +622,8 @@
 
   function renderServers() {
     const container = $("serverList");
+    const nextChoice = chooseNextServer();
+    const nextId = nextChoice && nextChoice.server ? nextChoice.server.id : null;
     if (!state.servers.length) {
       container.innerHTML = '<div class="empty-state panel">Could not load servers.json.</div>';
       return;
@@ -636,9 +638,9 @@
       const startUrl = server.notebook_open_url || server.notebook_url || server.documentation_url || "#";
       const limitText = server.limits && server.limits.session_limit_hours ? server.limits.session_limit_hours + "h session" :
         (server.limits && server.limits.job_execution_limit_hours ? server.limits.job_execution_limit_hours + "h job" : "Session varies");
-      return '<article class="server-card">' +
+      return '<article class="server-card' + (server.id === nextId ? ' next-server' : '') + '">' +
         '<div class="server-main">' +
-          '<div class="server-title-row"><span class="server-number">0' + (index + 1) + '</span><strong class="server-title">' + escapeHtml(server.name) + '</strong><span class="status-pill ' + escapeHtml(status) + '">' + escapeHtml(status.replace(/_/g, " ")) + '</span></div>' +
+          '<div class="server-title-row"><span class="server-number">0' + (index + 1) + '</span><strong class="server-title">' + escapeHtml(server.name) + '</strong><span class="status-pill ' + escapeHtml(status) + '">' + escapeHtml(status.replace(/_/g, " ")) + '</span>' + (server.id === nextId ? '<span class="next-flag">NEXT</span>' : '') + '</div>' +
           '<div class="server-sub">' + escapeHtml(server.role || "compute server") + ' · ' + escapeHtml(limitText) + ' · Automatic start: ' + escapeHtml(server.automatic_start || "no") + '</div>' +
           '<div class="server-meta"><span class="meta-chip">' + escapeHtml(server.hardware && (server.hardware.cpu_only ? "CPU" : server.hardware.free_gpu_options ? "GPU / CPU" : server.hardware.preferred || "Compute")) + '</span><span class="meta-chip">' + escapeHtml(quotaText) + '</span><span class="meta-chip">Order ' + escapeHtml(server.order) + '</span></div>' +
           '<div class="quota-line"><div class="quota-top"><span>Quota usage</span><span>' + escapeHtml(quota.percent == null ? "Not measurable" : formatNumber(quota.percent, 1) + "%") + '</span></div><div class="quota-track"><div class="quota-fill" style="width:' + (quota.percent == null ? 0 : Math.max(0, Math.min(100, quota.percent))) + '%"></div></div></div>' +
@@ -849,6 +851,7 @@
       offset: 0,
       sortBy: {column: "name", order: "asc"}
     }, false);
+    const maximumCommittedStep = state.status.last_checkpoint_step == null ? -1 : Number(state.status.last_checkpoint_step);
     const ids = Array.from(new Set((listed || []).map(function (item) {
       return String(item.name || "").split("/")[0];
     }).filter(function (id) { return id.indexOf("ckpt-") === 0; })));
@@ -863,6 +866,7 @@
         if (manifest.checkpoint_id !== id || receipt.checkpoint_id !== id || receipt.manifest_sha256 !== manifestHash) continue;
         if (JSON.stringify(receipt.files) !== JSON.stringify(manifest.files)) continue;
         const total = Object.values(manifest.files || {}).reduce(function (sum, entry) { return sum + Number(entry.size_bytes || 0); }, manifestBytes.byteLength);
+        if (Number(manifest.step) > maximumCommittedStep) continue;
         candidates.push(Object.assign({}, manifest, {
           checkpoint_id: id,
           manifest_sha256: manifestHash,
