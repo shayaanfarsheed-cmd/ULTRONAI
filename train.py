@@ -272,6 +272,68 @@ def build_data_smoke_report(config: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def build_checkpoint_smoke_report(config: Mapping[str, Any]) -> dict[str, Any]:
+    import tempfile
+    import torch
+    from ultron_checkpoint import LocalCheckpointStore
+    from ultron_model import CharTokenizer, ULTRONTransformer
+
+    settings = config.get("model", {})
+    tokenizer = CharTokenizer()
+    model = ULTRONTransformer(
+        vocab_size=tokenizer.vocab_size,
+        context_length=settings.get("context_length", 128),
+        dimension=settings.get("embedding_dimension", 256),
+        layers=settings.get("transformer_layers", 5),
+        heads=settings.get("attention_heads", 8),
+        feedforward_multiplier=settings.get("feedforward_multiplier", 4),
+        dropout=settings.get("dropout", 0.1),
+    )
+    optimizer = torch.optim.AdamW(model.parameters(), lr=float(config.get("training", {}).get("learning_rate", 0.0003)))
+    tokens = torch.randint(0, tokenizer.vocab_size, (1, 8))
+    _, loss = model(tokens, tokens)
+    loss.backward()
+    optimizer.step()
+    state = {
+        "step": 1,
+        "current_topic": "whole_number_arithmetic",
+        "difficulty": 1,
+        "data_position": 8,
+        "seed": int(config.get("training", {}).get("seed", 20261117)),
+        "lease_holder": "local-checkpoint-smoke-test",
+        "fencing_token": 1,
+    }
+    maximum_mb = float(config.get("persistence", {}).get("max_single_storage_object_mb", 45))
+    with tempfile.TemporaryDirectory() as directory:
+        store = LocalCheckpointStore(
+            directory,
+            keep_last=int(config.get("persistence", {}).get("keep_last_valid_checkpoints", 3)),
+            maximum_file_bytes=int(maximum_mb * 1_000_000),
+        )
+        manifest = store.save(model, optimizer, state)
+        expected = {name: tensor.detach().clone() for name, tensor in model.state_dict().items()}
+        with torch.no_grad():
+            for parameter in model.parameters():
+                parameter.add_(1)
+        restored = store.load_latest(model, optimizer, restore_rng=False)
+        if restored is None:
+            raise RuntimeError("Checkpoint could not be restored")
+        exact = all(torch.equal(model.state_dict()[name], tensor) for name, tensor in expected.items())
+        folder = Path(directory) / manifest["checkpoint_id"]
+        sizes = {item.name: item.stat().st_size for item in folder.iterdir() if item.is_file()}
+        if not exact:
+            raise RuntimeError("Restored model weights do not match the saved weights")
+        return {
+            "checkpoint_verified": store.verify_checkpoint(manifest["checkpoint_id"])[0],
+            "restored_exactly": exact,
+            "step": restored["step"],
+            "component_sizes_bytes": sizes,
+            "largest_component_mb": round(max(sizes.values()) / 1_000_000, 3),
+            "total_checkpoint_mb": round(sum(sizes.values()) / 1_000_000, 3),
+            "training_started": False,
+        }
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="ultron-train", description="ULTRON portable training preflight")
     parser.add_argument("--config", default="config.json")
@@ -279,6 +341,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--preflight", action="store_true")
     parser.add_argument("--model-summary", action="store_true")
     parser.add_argument("--data-smoke-test", action="store_true")
+    parser.add_argument("--checkpoint-smoke-test", action="store_true")
     args = parser.parse_args(argv)
 
     config = load_json(args.config)
@@ -297,6 +360,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(json.dumps(data_report, indent=2))
         if data_report["generated_examples"] != data_report["independently_verified_examples"]:
             return 4
+
+    if args.checkpoint_smoke_test:
+        checkpoint_report = build_checkpoint_smoke_report(config)
+        print(json.dumps(checkpoint_report, indent=2))
+        if not checkpoint_report["checkpoint_verified"] or not checkpoint_report["restored_exactly"]:
+            return 5
 
     if not report["configuration_valid"]:
         return 2
