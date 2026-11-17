@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "project": "ULTRON Training Control",
+  "updated_at": "2026-11-17",
+  "policy": {
+    "free_tier_only": true,
+    "allow_paid_compute": false,
+    "automatic_server_start": false,
+    "automatic_account_creation": false,
+    "obey_provider_session_and_idle_limits": true,
+    "quota_values_are_estimates": true,
+    "verify_provider_limits_before_each_training_run": true
+  },
+  "rotation_mode": "manual_recommendation",
+  "servers": [
+    {
+      "id": "kaggle",
+      "order": 1,
+      "name": "Kaggle Notebooks",
+      "role": "primary_gpu",
+      "enabled": true,
+      "notebook_url": "https://www.kaggle.com/code",
+      "documentation_url": "https://www.kaggle.com/docs/efficient-gpu-usage",
+      "hardware": {
+        "preferred": "free_gpu_when_available",
+        "known_examples": [
+          "NVIDIA Tesla P100"
+        ],
+        "cpu_fallback": true
+      },
+      "limits": {
+        "session_hours": null,
+        "gpu_hours": 30,
+        "quota_period": "weekly",
+        "quota_notes": "Kaggle documents a weekly GPU quota of 30 hours or sometimes higher depending on demand and available resources. Actual quota is account- and resource-dependent."
+      },
+      "start_notes": [
+        "Sign in and create or open a notebook.",
+        "Enable an available accelerator only when training requires it.",
+        "Check the current GPU quota in Kaggle before starting.",
+        "Save checkpoints to persistent external storage; notebook runtime storage is not the checkpoint authority."
+      ],
+      "sources": [
+        "https://www.kaggle.com/docs/efficient-gpu-usage"
+      ],
+      "last_reviewed": "2026-11-17"
+    },
+    {
+      "id": "google_colab",
+      "order": 2,
+      "name": "Google Colab",
+      "role": "backup_gpu",
+      "enabled": true,
+      "notebook_url": "https://colab.research.google.com/",
+      "documentation_url": "https://research.google.com/colaboratory/faq.html",
+      "hardware": {
+        "preferred": "free_gpu_when_available",
+        "known_examples": [],
+        "cpu_fallback": true
+      },
+      "limits": {
+        "session_hours": 12,
+        "gpu_hours": null,
+        "quota_period": "dynamic",
+        "quota_notes": "Free-tier runtimes can run for at most 12 hours, depending on availability and usage patterns. GPU availability and usage limits vary; Google does not promise a fixed free GPU quota."
+      },
+      "start_notes": [
+        "Open the notebook in Colab and select an available runtime.",
+        "GPU access is not guaranteed on the free tier.",
+        "Expect disconnections and resume from the last verified checkpoint.",
+        "Do not use paid compute or purchase compute units."
+      ],
+      "sources": [
+        "https://research.google.com/colaboratory/faq.html"
+      ],
+      "last_reviewed": "2026-11-17"
+    },
+    {
+      "id": "lightning_ai",
+      "order": 3,
+      "name": "Lightning AI Studios",
+      "role": "conditional_backup",
+      "enabled": true,
+      "notebook_url": "https://lightning.ai/",
+      "documentation_url": "https://studio.lightning.ai/pricing/",
+      "hardware": {
+        "preferred": "free_cpu_or_free_credit_gpu_only",
+        "known_examples": [],
+        "cpu_fallback": true
+      },
+      "limits": {
+        "session_hours": 4,
+        "gpu_hours": null,
+        "quota_period": "credits_and_plan_dependent",
+        "quota_notes": "The Free plan lists one active free Studio with 4-hour restarts and a limited amount of free credits. GPU hours depend on hardware, credits and availability; do not assume GPU compute is free."
+      },
+      "start_notes": [
+        "Use only compute explicitly shown as free and available in the account.",
+        "Do not enable pay-as-you-go, add a payment method, or select paid hardware.",
+        "Plan for a Studio restart after 4 hours and resume from checkpoint.",
+        "Skip this server if the free allocation is unavailable or unclear."
+      ],
+      "sources": [
+        "https://studio.lightning.ai/pricing/"
+      ],
+      "last_reviewed": "2026-11-17"
+    },
+    {
+      "id": "huggingface_cpu",
+      "order": 4,
+      "name": "Hugging Face Spaces CPU Basic",
+      "role": "cpu_fallback",
+      "enabled": true,
+      "notebook_url": "https://huggingface.co/spaces",
+      "documentation_url": "https://huggingface.co/docs/hub/spaces-overview",
+      "hardware": {
+        "preferred": "cpu_basic",
+        "cpu_cores": 2,
+        "memory_gb": 16,
+        "gpu_memory_gb": 0,
+        "disk_gb": 50,
+        "disk_persistent": false
+      },
+      "limits": {
+        "session_hours": null,
+        "gpu_hours": 0,
+        "quota_period": "not_applicable",
+        "quota_notes": "CPU Basic is listed as 2 vCPU, 16 GB RAM and 50 GB non-persistent disk at no hourly hardware cost. Confirm account and Space eligibility before relying on it. This is a slow CPU fallback, not a GPU server."
+      },
+      "start_notes": [
+        "Use only CPU Basic hardware; do not upgrade to paid hardware.",
+        "Confirm the account permits the required compute Space before setup.",
+        "Treat local Space disk as temporary and upload verified checkpoints externally.",
+        "Use for validation or short CPU runs rather than expecting GPU training speed."
+      ],
+      "sources": [
+        "https://huggingface.co/docs/hub/spaces-overview"
+      ],
+      "last_reviewed": "2026-11-17"
+    }
+  ]
+}
