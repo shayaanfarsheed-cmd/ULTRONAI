@@ -214,6 +214,8 @@ body[data-theme="light"] .topbar { background: rgba(255, 255, 255, .78); }
 .text-link:hover { text-decoration: underline; }
 .server-list { display: grid; gap: 12px; }
 .server-card { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 14px; padding: 18px; border: 1px solid var(--line); border-radius: 15px; background: var(--surface); }
+.server-card.next-server { border-color: var(--line-strong); box-shadow: 0 0 28px rgba(255,48,72,.1); }
+.next-flag { padding: 5px 8px; border-radius: 99px; background: var(--red); color: #fff; font-size: 9px; font-weight: 900; letter-spacing: .12em; }
 .server-main { min-width: 0; display: grid; gap: 10px; }
 .server-title-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .server-number { color: var(--red); font-size: 10px; font-weight: 900; letter-spacing: .1em; }
