@@ -1,140 +1,283 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "project": "ULTRON Training Control",
   "updated_at": "2026-11-17",
+  "status_model": {
+    "initial_status": "unknown",
+    "allowed_statuses": [
+      "ready",
+      "running",
+      "out_of_quota",
+      "kicked_out",
+      "unavailable_until",
+      "unknown"
+    ],
+    "status_authority": "live_dashboard_state_and_manual_account_checks",
+    "never_assume_ready_without_a_successful_account_or_runtime_check": true
+  },
   "policy": {
     "free_tier_only": true,
     "allow_paid_compute": false,
-    "automatic_server_start": false,
+    "allow_adding_payment_method": false,
     "automatic_account_creation": false,
     "obey_provider_session_and_idle_limits": true,
-    "quota_values_are_estimates": true,
-    "verify_provider_limits_before_each_training_run": true
+    "quota_values_are_provider_published_baselines_not_guarantees": true,
+    "recheck_provider_limits_before_each_training_run": true,
+    "no_quota_evasion_or_idle_timeout_bypass": true
   },
-  "rotation_mode": "manual_recommendation",
+  "rotation_mode": "ordered_first_eligible",
+  "rotation_rules": {
+    "skip_disabled": true,
+    "skip_out_of_quota": true,
+    "skip_kicked_out_until_cooldown_expires": true,
+    "skip_unavailable_until_timestamp": true,
+    "require_valid_lease_before_training": true,
+    "fallback_server_id": "github_actions_cpu",
+    "if_all_gpu_servers_unavailable_use_cpu_fallback": true
+  },
+  "server_status_values": {
+    "ready": "Account and required hardware were checked and are currently usable.",
+    "running": "A training session currently owns the training lease on this server.",
+    "out_of_quota": "Provider quota is exhausted or the configured quota threshold was reached.",
+    "kicked_out": "The most recent session was terminated unexpectedly; retry only after cooldown.",
+    "unavailable_until": "Manually or automatically marked unavailable until the recorded timestamp.",
+    "unknown": "Not checked yet, or the provider does not expose enough information to verify availability."
+  },
   "servers": [
     {
       "id": "kaggle",
       "order": 1,
       "name": "Kaggle Notebooks",
+      "provider": "kaggle",
       "role": "primary_gpu",
       "enabled": true,
-      "notebook_url": "https://www.kaggle.com/code",
-      "documentation_url": "https://www.kaggle.com/docs/efficient-gpu-usage",
+      "notebook_open_url": "https://www.kaggle.com/code",
+      "notebook_source_url": "https://github.com/shayaanfarsheed-cmd/ULTRONAI/blob/main/train.ipynb",
+      "documentation_url": "https://www.kaggle.com/docs/notebooks",
+      "terms_url": "https://www.kaggle.com/terms",
       "hardware": {
-        "preferred": "free_gpu_when_available",
-        "known_examples": [
-          "NVIDIA Tesla P100"
+        "default_cpu": {
+          "cores": 4,
+          "memory_gb": 30
+        },
+        "free_gpu_options": [
+          {
+            "name": "NVIDIA Tesla P100",
+            "gpus": 1,
+            "cpu_cores": 4,
+            "memory_gb": 29
+          },
+          {
+            "name": "NVIDIA Tesla T4",
+            "gpus": 2,
+            "cpu_cores": 4,
+            "memory_gb": 29
+          }
         ],
-        "cpu_fallback": true
+        "cpu_fallback": true,
+        "gpu_availability": "limited_and_may_queue"
       },
       "limits": {
-        "session_hours": null,
-        "gpu_hours": 30,
+        "session_limit_hours": 12,
+        "tpu_session_limit_hours": 9,
+        "weekly_gpu_hours_baseline": 30,
+        "weekly_gpu_hours_can_be_higher": true,
         "quota_period": "weekly",
-        "quota_notes": "Kaggle documents a weekly GPU quota of 30 hours or sometimes higher depending on demand and available resources. Actual quota is account- and resource-dependent."
+        "phone_verification_required_for_gpu": true,
+        "monthly_gpu_quota": null,
+        "quota_notes": "Kaggle documents 30 GPU hours per week or sometimes higher depending on demand and resources. The 12-hour limit applies to CPU/GPU notebook sessions; TPU sessions are limited to 9 hours."
       },
-      "start_notes": [
-        "Sign in and create or open a notebook.",
-        "Enable an available accelerator only when training requires it.",
-        "Check the current GPU quota in Kaggle before starting.",
-        "Save checkpoints to persistent external storage; notebook runtime storage is not the checkpoint authority."
+      "automatic_start": {
+        "capability": "yes",
+        "enabled_in_switcher": true,
+        "method": "official_kaggle_cli_kernels_push",
+        "requirements": [
+          "Kaggle API token stored only as a GitHub Actions secret",
+          "Notebook metadata file for the user's Kaggle kernel",
+          "Kernels execute permission on the Kaggle token"
+        ],
+        "limitations": "This starts a notebook execution through Kaggle's API; it does not guarantee an interactive editor session or available GPU. Provider quota and accelerator availability still apply.",
+        "documentation_url": "https://www.kaggle.com/docs/api"
+      },
+      "start_steps": [
+        "Sign in to Kaggle and complete phone verification for GPU access.",
+        "Open the notebook page and create or import the repository's train.ipynb.",
+        "Select an available free GPU in Notebook Settings > Accelerator.",
+        "For an automated run, configure the Kaggle API token in GitHub Actions Secrets and register the kernel metadata."
       ],
+      "current_status": "unknown",
+      "status_reason": "Account verification, remaining GPU quota and accelerator availability have not yet been checked.",
       "sources": [
-        "https://www.kaggle.com/docs/efficient-gpu-usage"
+        "https://www.kaggle.com/docs/notebooks",
+        "https://www.kaggle.com/docs/efficient-gpu-usage",
+        "https://www.kaggle.com/docs/api",
+        "https://www.kaggle.com/terms"
       ],
       "last_reviewed": "2026-11-17"
     },
     {
       "id": "google_colab",
       "order": 2,
-      "name": "Google Colab",
+      "name": "Google Colab Free",
+      "provider": "google_colab",
       "role": "backup_gpu",
       "enabled": true,
-      "notebook_url": "https://colab.research.google.com/",
+      "notebook_open_url": "https://colab.research.google.com/",
+      "notebook_source_url": "https://colab.research.google.com/github/shayaanfarsheed-cmd/ULTRONAI/blob/main/train.ipynb",
       "documentation_url": "https://research.google.com/colaboratory/faq.html",
+      "terms_url": "https://research.google.com/colaboratory/faq.html",
       "hardware": {
         "preferred": "free_gpu_when_available",
-        "known_examples": [],
-        "cpu_fallback": true
+        "known_gpu_models": [],
+        "cpu_fallback": true,
+        "gpu_availability": "not_guaranteed",
+        "hardware_profiles": "dynamic_and_not_published"
       },
       "limits": {
-        "session_hours": 12,
-        "gpu_hours": null,
-        "quota_period": "dynamic",
-        "quota_notes": "Free-tier runtimes can run for at most 12 hours, depending on availability and usage patterns. GPU availability and usage limits vary; Google does not promise a fixed free GPU quota."
+        "session_limit_hours": 12,
+        "weekly_gpu_hours": null,
+        "monthly_gpu_hours": null,
+        "quota_period": "dynamic_not_published",
+        "quota_notes": "Free runtimes can run for at most 12 hours, depending on availability and usage patterns. GPU types, usage limits, idle timeout and VM lifetime vary and are not published as a fixed quota."
       },
-      "start_notes": [
-        "Open the notebook in Colab and select an available runtime.",
-        "GPU access is not guaranteed on the free tier.",
-        "Expect disconnections and resume from the last verified checkpoint.",
-        "Do not use paid compute or purchase compute units."
+      "automatic_start": {
+        "capability": "partly",
+        "enabled_in_switcher": false,
+        "method": "official_colab_runtime_api",
+        "requirements": [
+          "Google Cloud project and OAuth authorization",
+          "Colab API access for the account",
+          "A runtime client that connects and executes notebook code"
+        ],
+        "limitations": "The official API can create and manage Colab runtime assignments, but eligibility and execution for consumer Free accounts have not been verified. Keep this provider guided/manual unless a real Free-account test confirms the permitted flow.",
+        "documentation_url": "https://developers.google.com/colab/api/reference/rest"
+      },
+      "start_steps": [
+        "Open the repository's train.ipynb through the Colab GitHub link.",
+        "Choose Runtime > Change runtime type and select a free GPU if one is offered.",
+        "Add Supabase credentials through Colab Secrets, never notebook cells.",
+        "Press Runtime > Run all; if no GPU is offered, the notebook uses CPU settings."
       ],
+      "current_status": "unknown",
+      "status_reason": "Free GPU allocation and account usage limits are dynamic and cannot be determined from public documentation.",
       "sources": [
-        "https://research.google.com/colaboratory/faq.html"
+        "https://research.google.com/colaboratory/faq.html",
+        "https://developers.google.com/colab/api/reference/rest",
+        "https://research.google.com/colaboratory/tos.html"
       ],
       "last_reviewed": "2026-11-17"
     },
     {
       "id": "lightning_ai",
       "order": 3,
-      "name": "Lightning AI Studios",
+      "name": "Lightning AI Studios Free",
+      "provider": "lightning_ai",
       "role": "conditional_backup",
       "enabled": true,
-      "notebook_url": "https://lightning.ai/",
+      "notebook_open_url": "https://lightning.ai/",
+      "notebook_source_url": "https://github.com/shayaanfarsheed-cmd/ULTRONAI/blob/main/train.py",
       "documentation_url": "https://studio.lightning.ai/pricing/",
+      "terms_url": "https://lightning.ai/terms",
       "hardware": {
-        "preferred": "free_cpu_or_free_credit_gpu_only",
-        "known_examples": [],
+        "default_free_cpu": {
+          "cores": 4,
+          "memory_gb": 16
+        },
+        "maximum_cpu_cores_listed_on_free_plan": 32,
+        "gpu_hardware": "available_only_when_covered_by_free_credits_or_explicitly_free",
         "cpu_fallback": true
       },
       "limits": {
-        "session_hours": 4,
+        "active_free_cpu_studios": 1,
+        "free_studio_restart_hours": 4,
+        "free_credits_at_registration_without_payment_card": 5,
+        "additional_credits_listed": 25,
+        "additional_credits_require_payment_card": true,
+        "maximum_advertised_initial_credits": 30,
+        "monthly_recurring_free_credits": 0,
+        "quota_period": "initial_credits_not_monthly",
         "gpu_hours": null,
-        "quota_period": "credits_and_plan_dependent",
-        "quota_notes": "The Free plan lists one active free Studio with 4-hour restarts and a limited amount of free credits. GPU hours depend on hardware, credits and availability; do not assume GPU compute is free."
+        "quota_notes": "The Free plan lists one active free CPU Studio with 4-hour restarts. The FAQ states 5 credits at registration; 25 additional credits require adding a card. Credits are not a recurring monthly allowance. No payment method will be added for ULTRON."
       },
-      "start_notes": [
-        "Use only compute explicitly shown as free and available in the account.",
-        "Do not enable pay-as-you-go, add a payment method, or select paid hardware.",
-        "Plan for a Studio restart after 4 hours and resume from checkpoint.",
-        "Skip this server if the free allocation is unavailable or unclear."
+      "automatic_start": {
+        "capability": "yes",
+        "enabled_in_switcher": true,
+        "method": "official_lightning_sdk",
+        "requirements": [
+          "Lightning API authentication stored only as a GitHub Actions secret",
+          "An existing Studio name and Teamspace",
+          "A free-plan hardware and credit check before start"
+        ],
+        "limitations": "The SDK can start and stop Studios programmatically. The switcher must select only the free CPU Studio unless the account explicitly reports sufficient no-cost credits; it must never enable pay-as-you-go or paid hardware.",
+        "documentation_url": "https://studio.lightning.ai/docs/platform/developers/sdk/studio/"
+      },
+      "start_steps": [
+        "Sign in to Lightning AI and open the browser Studio.",
+        "Use the Free default CPU Studio unless free credits and a free GPU option are explicitly confirmed.",
+        "Open the repository train.py in the Studio browser terminal or editor.",
+        "Store Supabase credentials in environment secrets, not files."
       ],
+      "current_status": "unknown",
+      "status_reason": "Studio availability and remaining free credits must be checked in the user's account.",
       "sources": [
-        "https://studio.lightning.ai/pricing/"
+        "https://studio.lightning.ai/pricing/",
+        "https://studio.lightning.ai/docs/platform/developers/sdk/studio/",
+        "https://lightning.ai/terms"
       ],
       "last_reviewed": "2026-11-17"
     },
     {
-      "id": "huggingface_cpu",
+      "id": "github_actions_cpu",
       "order": 4,
-      "name": "Hugging Face Spaces CPU Basic",
+      "name": "GitHub Actions CPU Fallback",
+      "provider": "github_actions",
       "role": "cpu_fallback",
       "enabled": true,
-      "notebook_url": "https://huggingface.co/spaces",
-      "documentation_url": "https://huggingface.co/docs/hub/spaces-overview",
+      "notebook_open_url": "https://github.com/shayaanfarsheed-cmd/ULTRONAI/actions",
+      "notebook_source_url": "https://github.com/shayaanfarsheed-cmd/ULTRONAI/blob/main/train.py",
+      "documentation_url": "https://docs.github.com/en/actions",
+      "terms_url": "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
       "hardware": {
-        "preferred": "cpu_basic",
-        "cpu_cores": 2,
+        "runner_label": "ubuntu-latest",
+        "cpu_cores": 4,
         "memory_gb": 16,
+        "storage_gb": 14,
         "gpu_memory_gb": 0,
-        "disk_gb": 50,
-        "disk_persistent": false
+        "cpu_only": true
       },
       "limits": {
-        "session_hours": null,
-        "gpu_hours": 0,
-        "quota_period": "not_applicable",
-        "quota_notes": "CPU Basic is listed as 2 vCPU, 16 GB RAM and 50 GB non-persistent disk at no hourly hardware cost. Confirm account and Space eligibility before relying on it. This is a slow CPU fallback, not a GPU server."
+        "job_execution_limit_hours": 6,
+        "standard_runner_cost_for_public_repository": 0,
+        "standard_runner_minutes_for_public_repository": "unlimited",
+        "artifact_storage_mb_in_account_plan": 500,
+        "quota_period": "public_repository_standard_runner",
+        "quota_notes": "Standard GitHub-hosted runners are free and unlimited for public repositories. Each workflow job can execute for up to 6 hours. Avoid storing checkpoints as Actions artifacts; use the configured checkpoint storage."
       },
-      "start_notes": [
-        "Use only CPU Basic hardware; do not upgrade to paid hardware.",
-        "Confirm the account permits the required compute Space before setup.",
-        "Treat local Space disk as temporary and upload verified checkpoints externally.",
-        "Use for validation or short CPU runs rather than expecting GPU training speed."
+      "automatic_start": {
+        "capability": "yes",
+        "enabled_in_switcher": true,
+        "method": "workflow_dispatch_and_repository_dispatch",
+        "requirements": [
+          "Workflow files committed to the default branch",
+          "Minimal GitHub Actions permissions",
+          "Supabase secrets configured in repository Actions Secrets"
+        ],
+        "limitations": "A workflow can be triggered by an authorized dispatch or schedule. Scheduled starts can be delayed, and each job still ends at the 6-hour limit. Training must checkpoint and exit before that limit.",
+        "documentation_url": "https://docs.github.com/en/actions"
+      },
+      "start_steps": [
+        "Open the repository Actions tab.",
+        "Choose the ULTRON CPU training workflow.",
+        "Press Run workflow for a guided/manual start, or let the switcher dispatch it after eligibility checks.",
+        "The worker resumes from the newest verified cloud checkpoint."
       ],
+      "current_status": "unknown",
+      "status_reason": "Workflow has not yet been installed or run.",
       "sources": [
-        "https://huggingface.co/docs/hub/spaces-overview"
+        "https://docs.github.com/en/actions/how-tos/write-workflows/choose-where-workflows-run/choose-the-runner-for-a-job",
+        "https://docs.github.com/en/actions/reference/limits",
+        "https://docs.github.com/en/actions/concepts/billing-and-usage",
+        "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service"
       ],
       "last_reviewed": "2026-11-17"
     }
