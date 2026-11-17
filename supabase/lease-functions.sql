@@ -1,6 +1,9 @@
 ALTER TABLE training_api.training_status
   ADD COLUMN IF NOT EXISTS active_session_id uuid,
-  ADD COLUMN IF NOT EXISTS last_checkpoint_manifest_sha256 text;
+  ADD COLUMN IF NOT EXISTS last_checkpoint_manifest_sha256 text,
+  ADD COLUMN IF NOT EXISTS requested_resume_checkpoint_id text;
+
+GRANT UPDATE (requested_resume_checkpoint_id) ON training_api.training_status TO authenticated;
 
 CREATE OR REPLACE FUNCTION training_api.get_or_create_active_run(p_owner_id uuid)
 RETURNS jsonb
@@ -455,5 +458,115 @@ GRANT EXECUTE ON FUNCTION training_api.acquire_training_lease(uuid, uuid, text, 
 GRANT EXECUTE ON FUNCTION training_api.heartbeat_training_lease(uuid, uuid, text, bigint, integer, bigint, double precision, double precision, text, smallint, bigint, bigint, jsonb, jsonb, integer) TO service_role;
 GRANT EXECUTE ON FUNCTION training_api.commit_training_checkpoint(uuid, uuid, text, bigint, text, bigint, bigint, text, text, smallint, bigint, bigint, double precision, double precision, jsonb, jsonb) TO service_role;
 GRANT EXECUTE ON FUNCTION training_api.release_training_lease(uuid, uuid, text, bigint, text, text) TO service_role;
+
+
+CREATE OR REPLACE FUNCTION training_api.select_resume_checkpoint(
+  p_run_id uuid,
+  p_owner_id uuid,
+  p_worker_id text,
+  p_fencing_token bigint,
+  p_checkpoint_id text,
+  p_step bigint,
+  p_size_bytes bigint,
+  p_manifest_sha256 text,
+  p_current_topic text,
+  p_difficulty smallint,
+  p_data_position bigint,
+  p_data_epoch bigint,
+  p_loss double precision,
+  p_learning_rate double precision,
+  p_accuracy_by_topic jsonb,
+  p_curriculum_state jsonb
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = ''
+AS $
+DECLARE
+  v_row training_api.training_status%ROWTYPE;
+  v_now timestamptz := pg_catalog.clock_timestamp();
+BEGIN
+  IF p_checkpoint_id IS NULL OR p_checkpoint_id !~ '^ckpt-[a-zA-Z0-9-]{8,80}
+
+     OR p_step IS NULL OR p_step < 0
+     OR p_size_bytes IS NULL OR p_size_bytes < 1
+     OR p_manifest_sha256 IS NULL OR p_manifest_sha256 !~ '^[0-9a-f]{64}
+ THEN
+    RAISE EXCEPTION 'invalid resume checkpoint metadata';
+  END IF;
+
+  UPDATE training_api.training_status
+  SET last_checkpoint_id = p_checkpoint_id,
+      last_checkpoint_step = p_step,
+      last_checkpoint_at = v_now,
+      last_checkpoint_size_bytes = p_size_bytes,
+      last_checkpoint_verified = true,
+      last_checkpoint_manifest_sha256 = p_manifest_sha256,
+      current_step = p_step,
+      current_topic = p_current_topic,
+      difficulty = greatest(1, p_difficulty),
+      data_position = greatest(0, p_data_position),
+      data_epoch = greatest(0, p_data_epoch),
+      loss = p_loss,
+      learning_rate = p_learning_rate,
+      accuracy_by_topic = coalesce(p_accuracy_by_topic, '{}'::jsonb),
+      curriculum_state = coalesce(p_curriculum_state, '{}'::jsonb),
+      requested_resume_checkpoint_id = NULL,
+      last_heartbeat_at = v_now,
+      last_error = NULL,
+      updated_at = v_now
+  WHERE run_id = p_run_id
+    AND owner_id = p_owner_id
+    AND lease_holder = p_worker_id
+    AND fencing_token = p_fencing_token
+    AND lease_expires_at > v_now
+    AND requested_resume_checkpoint_id = p_checkpoint_id
+  RETURNING * INTO v_row;
+
+  IF NOT FOUND THEN
+    RETURN pg_catalog.jsonb_build_object('ok', false, 'reason', 'resume_request_or_lease_mismatch');
+  END IF;
+
+  RETURN pg_catalog.jsonb_build_object('ok', true, 'checkpoint_id', v_row.last_checkpoint_id, 'step', v_row.last_checkpoint_step);
+END;
+$;
+
+CREATE OR REPLACE FUNCTION training_api.clear_resume_checkpoint_request(
+  p_run_id uuid,
+  p_owner_id uuid,
+  p_worker_id text,
+  p_fencing_token bigint,
+  p_requested_checkpoint_id text,
+  p_reason text
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = ''
+AS $
+DECLARE
+  v_updated integer;
+BEGIN
+  UPDATE training_api.training_status
+  SET requested_resume_checkpoint_id = NULL,
+      last_error = left(coalesce(p_reason, 'Requested checkpoint was unavailable; using the latest verified checkpoint.'), 500),
+      updated_at = pg_catalog.clock_timestamp()
+  WHERE run_id = p_run_id
+    AND owner_id = p_owner_id
+    AND lease_holder = p_worker_id
+    AND fencing_token = p_fencing_token
+    AND lease_expires_at > pg_catalog.clock_timestamp()
+    AND requested_resume_checkpoint_id = p_requested_checkpoint_id;
+
+  GET DIAGNOSTICS v_updated = ROW_COUNT;
+  RETURN pg_catalog.jsonb_build_object('ok', v_updated = 1);
+END;
+$;
+
+REVOKE ALL ON FUNCTION training_api.select_resume_checkpoint(uuid, uuid, text, bigint, text, bigint, bigint, text, text, smallint, bigint, bigint, double precision, double precision, jsonb, jsonb) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION training_api.clear_resume_checkpoint_request(uuid, uuid, text, bigint, text, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION training_api.select_resume_checkpoint(uuid, uuid, text, bigint, text, bigint, bigint, text, text, smallint, bigint, bigint, double precision, double precision, jsonb, jsonb) TO service_role;
+GRANT EXECUTE ON FUNCTION training_api.clear_resume_checkpoint_request(uuid, uuid, text, bigint, text, text) TO service_role;
 
 NOTIFY pgrst, 'reload schema';
