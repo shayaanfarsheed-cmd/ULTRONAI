@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shayaanfarsheed-cmd.github.io/ULTRONAI/schemas/device-command.schema.json",
+  "title": "ULTRON device command envelope",
+  "description": "Strict command contract. Commands are data, never arbitrary executable text.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "device_id",
+    "action",
+    "issued_at",
+    "expires_at",
+    "nonce",
+    "parameters"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "device_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "status",
+        "start",
+        "pause",
+        "resume",
+        "stop"
+      ]
+    },
+    "issued_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "nonce": {
+      "type": "string",
+      "minLength": 32,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9_-]+$"
+    },
+    "fencing_token": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "parameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "memory_limit_mb": {
+          "type": "integer",
+          "minimum": 1024,
+          "maximum": 10240
+        },
+        "checkpoint_on_stop": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "action": {
+            "const": "start"
+          }
+        },
+        "required": [
+          "action"
+        ]
+      },
+      "then": {
+        "required": [
+          "fencing_token"
+        ],
+        "properties": {
+          "parameters": {
+            "required": [
+              "memory_limit_mb"
+            ],
+            "properties": {
+              "run_id": false,
+              "checkpoint_on_stop": false
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "action": {
+            "enum": [
+              "pause",
+              "resume",
+              "stop"
+            ]
+          }
+        },
+        "required": [
+          "action"
+        ]
+      },
+      "then": {
+        "required": [
+          "fencing_token"
+        ],
+        "properties": {
+          "parameters": {
+            "required": [
+              "run_id"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "action": {
+            "const": "status"
+          }
+        },
+        "required": [
+          "action"
+        ]
+      },
+      "then": {
+        "properties": {
+          "parameters": {
+            "maxProperties": 0
+          }
+        }
+      }
+    }
+  ]
+}
