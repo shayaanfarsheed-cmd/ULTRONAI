@@ -62,3 +62,96 @@ python train.py --preflight --model-summary --data-smoke-test --checkpoint-smoke
 node --check dashboard/app.js
 node --check dashboard/config.js
 ```
+
+## Current development status and next-chat handoff
+
+**Last updated:** 2026-11-17 13:35 UTC  
+**Repository:** `shayaanfarsheed-cmd/ULTRONAI`  
+**Working branch:** `main`  
+**Latest commit at handoff:** `7950a9b2eab54fe3584dd8c2a3823011d232b357` — "Add verified secondary backup fallback and retry pending primary commits"
+
+This section is the source of truth for continuing work in a new ChatGPT conversation. Read it before editing files. Continue from the existing code; do not rebuild the project or repeat completed work.
+
+### Overall objective and non-negotiable rules
+
+Build ULTRON as a 3–5 million parameter mathematics Transformer trained from random initialization, using only its own deterministic math-data generator and independent verifier. No pretrained models, pretrained weights, AI APIs, paid compute, or user's laptop. The user works from an iPad/browser. Keep the training workflow resumable across free cloud providers, with a browser dashboard and Supabase coordination.
+
+Work in small stages. Inspect files before editing. After every change, run the relevant tests and then the full suite. Never say a test passed unless its result was actually observed. Do not start live model training or ask the user to paste secrets into chat.
+
+### What already exists
+
+- `servers.json`: editable provider order, links, hardware and provider-limit metadata.
+- `config.json`: editable training, model, checkpoint, heartbeat, quota, coordination and dashboard settings.
+- `train.py` and `train.ipynb`: common training entry points.
+- `ultron_model.py`: from-scratch Transformer; configured and measured at 4,038,478 parameters.
+- `ultron_data.py` and `ultron_verify.py`: deterministic math generation and separate verification.
+- `ultron_checkpoint.py`: local checkpoint creation, checksums and recovery.
+- `ultron_storage.py`: Supabase checkpoint storage plus the newly added private Hugging Face backup store.
+- `ultron_supabase.py`: Supabase status, heartbeat, lease/fencing and checkpoint coordination.
+- `ultron_session.py`: training loop and session orchestration.
+- `ultron_switcher.py`: server selection and switching logic.
+- `dashboard/`: static browser dashboard.
+- `supabase/`: SQL/setup material and backend configuration.
+- `tests/`: automated tests.
+- GitHub Actions workflow: runs repository checks on supported pushes and pull requests.
+
+The Supabase database-side lease functions and private checkpoint bucket were previously installed. Confirm live schema, policies and bucket settings before changing them.
+
+### Work completed immediately before this handoff
+
+The current task is **secondary checkpoint backup and recovery**. The following changes have been committed to `main`:
+
+1. Added `huggingface_hub` to `requirements.txt`.
+2. Added `HuggingFaceCheckpointStore` to `ultron_storage.py`. It requires an existing private Hugging Face model repository, uploads immutable checkpoint folders, stores a manifest receipt, and verifies component sizes and SHA-256 hashes.
+3. Added fake-provider tests for private Hugging Face upload/download round-trip and rejection of a public repository in `tests/test_storage.py`.
+4. Added optional `HF_TOKEN` and `HF_REPO_ID` loading to the training setup. These must come from each platform's secret manager; never hard-code or print them.
+5. Added settings for secondary backup cadence, backup-on-primary-failure, backup-on-handoff, and retention in `config.json`.
+6. Integrated secondary backup candidate discovery and restore into `ultron_session.py`. If a secondary candidate is corrupt, startup should fall back to verified Supabase candidates.
+7. Added retry handling for a checkpoint that has a verified secondary copy but whose Supabase commit failed.
+
+Important commit sequence:
+- `7bef22d95ae873f9e9b8305e90d8e0961a3bfc71` — add Hugging Face Hub dependency.
+- `1675d07ba6b0556c96b70b9ba8708ac90f85a6ee` — add secondary-backup unit tests.
+- `9b2a76c032ea3431c43e33798787c773c69bf425` — integrate backup restore into training startup.
+- `8b141fd03f05f52997cbdf77a7ed4ac34480b9de` — fall back to Supabase if a secondary backup is corrupt.
+- `7950a9b2eab54fe3584dd8c2a3823011d232b357` — retry pending primary commits and back up on primary failure.
+
+### Test status — do not overstate
+
+A previous GitHub Actions run, **before the latest Hugging Face integration**, reported 87/87 unit tests passing, plus Python compilation, dashboard JavaScript checks, JSON/notebook validation, model parameter-count checks, 100/100 generated math examples verified, checkpoint save/restore and CPU smoke tests.
+
+The Hugging Face integration commits above were made after that run. A lookup for workflow runs on the latest commit returned no runs. Therefore:
+
+- The previous 87-test result is historical and does **not** validate the latest changes.
+- The two new Hugging Face tests have been added but are **not yet confirmed passing**.
+- End-to-end training recovery from Hugging Face has **not yet been tested**.
+- No real Hugging Face repository has been created or connected.
+- No live Kaggle, Colab or Lightning training session has been run.
+- Do not claim the system is production-ready.
+
+### Exact next tasks — do these in order
+
+1. **Review the new backup integration carefully.** Re-read the latest versions of `ultron_storage.py`, `ultron_session.py`, `tests/test_storage.py`, `train.py`, `train.ipynb`, `requirements.txt` and `config.json`. Check for import errors, incorrect API arguments, path handling, receipt/manifest mismatches, partial uploads and exception handling.
+2. **Protect the one-writer lease.** A secondary backup is not permission to keep training after the Supabase lease/heartbeat has expired. If Supabase is unreachable, stop before the locally known lease deadline, do not let another worker overlap, and make the offline-recovery behaviour explicit and tested. Never extend a lease only in local memory. Verify fencing tokens before every primary checkpoint commit.
+3. **Run the full CI test suite on the current `main` commit.** Run Python compilation, `python -m unittest discover -s tests -v`, the `train.py` preflight/model/data/checkpoint/training smoke tests, `node --check dashboard/app.js`, `node --check dashboard/config.js`, JSON parsing and notebook structure checks. Capture the actual result and fix failures before continuing.
+4. **Add integration tests** for: restore from a newer verified Hugging Face checkpoint when Supabase's committed pointer is older; fallback to Supabase when the newest Hugging Face checkpoint is corrupt; retry a pending Supabase commit after a temporary outage; stop safely when the lease cannot be renewed; and refuse a stale fencing token.
+5. **Review checkpoint retention and backup policy.** Supabase keeps the configured last three verified checkpoints. The Hugging Face backup currently uses `keep_all`; decide whether this is acceptable for free storage or implement safe retention only after a newer backup has been downloaded and verified. Never delete the only good copy.
+6. **Re-run all tests after every fix**, then inspect the final GitHub Actions result. Update this README with the real test count, commit SHA and remaining limitations.
+7. Only after the backup/recovery tests pass, continue the remaining dashboard deployment, provider setup and iPad handover work. Do not start training automatically.
+
+### Secret setup for the optional secondary backup
+
+The user must create a **private** Hugging Face model repository and add these two secrets in each provider's secret manager:
+
+- `HF_TOKEN`: a Hugging Face token with write access to that private repository.
+- `HF_REPO_ID`: repository identifier in `owner/repository` form.
+
+These are optional until the private repository is configured. The Supabase backend secret remains in provider secret managers only. The website must never receive either secret. Do not request secret values in chat, commit them, print them, or include them in notebook outputs.
+
+### Current operational state
+
+- Dashboard source is committed; GitHub Pages still needs to be enabled and `dashboard/config.js` needs the Supabase publishable/anon key.
+- A Supabase Auth user must exist before a live training run can be created.
+- The user has an iPad and no laptop; all setup instructions must use browser interfaces.
+- Live provider accounts, actual quotas, GPU availability, Hugging Face private storage, browser sign-in and cross-provider recovery still need user-side setup or live verification.
+- Keep automatic starts disabled until platform policy, secrets and safety limits are verified. Guided switching must remain available.
