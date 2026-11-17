@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS training_api.training_status (
     server_statuses jsonb NOT NULL DEFAULT '{}'::jsonb,
     learning_rate double precision,
     last_checkpoint_id text,
+    last_checkpoint_step bigint CHECK (last_checkpoint_step IS NULL OR last_checkpoint_step >= 0),
     last_checkpoint_at timestamptz,
     last_checkpoint_size_bytes bigint CHECK (last_checkpoint_size_bytes IS NULL OR last_checkpoint_size_bytes >= 0),
     last_checkpoint_verified boolean NOT NULL DEFAULT false,
@@ -38,6 +39,8 @@ CREATE TABLE IF NOT EXISTS training_api.training_status (
     updated_at timestamptz NOT NULL DEFAULT now(),
     CHECK ((lease_holder IS NULL) = (lease_expires_at IS NULL))
 );
+
+ALTER TABLE training_api.training_status ADD COLUMN IF NOT EXISTS last_checkpoint_step bigint CHECK (last_checkpoint_step IS NULL OR last_checkpoint_step >= 0);
 
 CREATE TABLE IF NOT EXISTS training_api.server_log (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
