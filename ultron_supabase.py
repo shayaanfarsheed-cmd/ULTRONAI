@@ -362,6 +362,61 @@ class TrainingControlAPI:
         )
         return bool(result.get("ok"))
 
+
+    def select_resume_checkpoint(
+        self,
+        run_id: str,
+        lease_holder: str,
+        fencing_token: int,
+        checkpoint: Mapping[str, Any],
+        training_state: Mapping[str, Any],
+    ) -> bool:
+        result = self.client.rpc(
+            "select_resume_checkpoint",
+            {
+                "p_run_id": run_id,
+                "p_owner_id": self.owner_id,
+                "p_worker_id": lease_holder,
+                "p_fencing_token": int(fencing_token),
+                "p_checkpoint_id": str(checkpoint["checkpoint_id"]),
+                "p_step": int(checkpoint["step"]),
+                "p_size_bytes": int(checkpoint["total_size_bytes"]),
+                "p_manifest_sha256": str(checkpoint["manifest_sha256"]),
+                "p_current_topic": training_state.get("current_topic"),
+                "p_difficulty": int(training_state.get("difficulty", 1)),
+                "p_data_position": int(training_state.get("data_position", 0)),
+                "p_data_epoch": int(training_state.get("data_epoch", 0)),
+                "p_loss": training_state.get("loss"),
+                "p_learning_rate": training_state.get("learning_rate"),
+                "p_accuracy_by_topic": training_state.get("accuracy_by_topic") or {},
+                "p_curriculum_state": training_state.get("curriculum_state") or {},
+            },
+        )
+        if not result.get("ok"):
+            raise LeaseLostError("The selected resume checkpoint could not be committed under the current lease")
+        return True
+
+    def clear_requested_resume_checkpoint(
+        self,
+        run_id: str,
+        lease_holder: str,
+        fencing_token: int,
+        requested_checkpoint_id: str,
+        reason: str,
+    ) -> bool:
+        result = self.client.rpc(
+            "clear_resume_checkpoint_request",
+            {
+                "p_run_id": run_id,
+                "p_owner_id": self.owner_id,
+                "p_worker_id": lease_holder,
+                "p_fencing_token": int(fencing_token),
+                "p_requested_checkpoint_id": requested_checkpoint_id,
+                "p_reason": reason,
+            },
+        )
+        return bool(result.get("ok"))
+
     def mark_dead_if_stale(self, run_id: str, stale_after_seconds: int = 720) -> bool:
         status = self.get_status(run_id)
         if status is None or status.get("state") == "finished":
