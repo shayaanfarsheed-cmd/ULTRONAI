@@ -224,7 +224,7 @@ def build_model_summary(config: Mapping[str, Any]) -> dict[str, Any]:
 
     model = ULTRONTransformer(
         vocab_size=tokenizer.vocab_size,
-        context_length=settings.get("context_length", 128),
+        context_length=settings.get("context_length", 192),
         dimension=settings.get("embedding_dimension", 256),
         layers=settings.get("transformer_layers", 5),
         heads=settings.get("attention_heads", 8),
@@ -252,7 +252,8 @@ def build_data_smoke_report(config: Mapping[str, Any]) -> dict[str, Any]:
 
     training = config.get("training", {})
     curriculum = training.get("curriculum", {})
-    topics = curriculum.get("initial_topics", [])
+    from ultron_data import SUPPORTED_TOPICS
+    topics = list(SUPPORTED_TOPICS)
     seed = int(training.get("seed", 20261117))
     examples = generate_dataset(100, seed=seed, split="train", topics=topics)
     topic_counts: dict[str, int] = {}
