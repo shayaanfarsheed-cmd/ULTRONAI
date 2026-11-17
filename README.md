@@ -8,6 +8,10 @@ The selected hosting is GitHub Pages. The intended workflow is an online dashboa
 
 The architecture and security contract is documented in [`docs/LOCAL_AGENT_ARCHITECTURE.md`](docs/LOCAL_AGENT_ARCHITECTURE.md). This is a design specification only: the Windows agent and Run/Pause/Resume/Stop integration have not yet been implemented, and training has not started.
 
+## Local RAM budget control
+
+The dashboard Settings page now includes a 2–10 GB RAM budget slider (0.5 GB increments), defaulting to 6 GB for the 16 GB Windows laptop. The selected value is currently saved only in the browser where it is changed. It is a preference preview, **not an enforced process limit yet**. The Windows agent must be implemented to receive the setting and enforce it with a Windows Job Object before training can start. See [the local-agent architecture](docs/LOCAL_AGENT_ARCHITECTURE.md).
+
 ## Browser dashboard
 
 The static dashboard is in `dashboard/`. The repository root redirects to it.
