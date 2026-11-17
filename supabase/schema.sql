@@ -163,30 +163,3 @@ GRANT ALL ON training_api.training_status, training_api.server_log, training_api
 
 ALTER DEFAULT PRIVILEGES IN SCHEMA training_api REVOKE ALL ON TABLES FROM anon, authenticated;
 ALTER DEFAULT PRIVILEGES IN SCHEMA training_api GRANT ALL ON TABLES TO service_role;
-
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES (
-    'checkpoints',
-    'checkpoints',
-    false,
-    45000000,
-    ARRAY['application/octet-stream', 'application/json']
-)
-ON CONFLICT (id) DO UPDATE
-SET public = false,
-    file_size_limit = EXCLUDED.file_size_limit,
-    allowed_mime_types = EXCLUDED.allowed_mime_types;
-
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS ultron_checkpoint_owner_read ON storage.objects;
-CREATE POLICY ultron_checkpoint_owner_read
-    ON storage.objects
-    FOR SELECT
-    TO authenticated
-    USING (
-        bucket_id = 'checkpoints'
-        AND (storage.foldername(name))[1] = (SELECT auth.uid())::text
-    );
-
-GRANT SELECT ON storage.objects TO authenticated;
