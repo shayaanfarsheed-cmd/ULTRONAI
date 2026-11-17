@@ -19,7 +19,7 @@ class ConfigurationTests(unittest.TestCase):
         config = json.loads((ROOT / "config.json").read_text(encoding="utf-8"))
         servers = json.loads((ROOT / "servers.json").read_text(encoding="utf-8"))
         self.assertEqual(validate_project_config(config, servers), [])
-        self.assertEqual(len(servers["servers"]), 4)
+        self.assertEqual(len(servers["servers"]), 5)
         self.assertEqual(servers["rotation_rules"]["fallback_server_id"], "github_actions_cpu")
 
     def test_colab_is_manual_until_free_account_eligibility_is_verified(self):
