@@ -59,7 +59,7 @@
   },
   "training": {
     "seed": 20261117,
-    "sequence_length": 128,
+    "sequence_length": 192,
     "evaluation_interval_steps": 500,
     "maximum_training_steps": 100000,
     "learning_rate": 0.0003,
@@ -76,9 +76,23 @@
         "fractions",
         "decimals",
         "percentages",
-        "ratios_and_proportions",
         "integers",
-        "order_of_operations",
+        "order_of_operations"
+      ],
+      "unlock_mastery_accuracy": 0.9,
+      "consecutive_evaluations_required": 3,
+      "held_out_evaluation_required": true,
+      "do_not_train_advanced_topics": true,
+      "elementary_topics": [
+        "whole_number_arithmetic",
+        "fractions",
+        "decimals",
+        "percentages",
+        "integers",
+        "order_of_operations"
+      ],
+      "middle_school_topics": [
+        "ratios_and_proportions",
         "pre_algebra",
         "linear_equations",
         "inequalities",
@@ -87,10 +101,32 @@
         "basic_statistics",
         "basic_probability"
       ],
-      "unlock_mastery_accuracy": 0.9,
-      "consecutive_evaluations_required": 3,
-      "held_out_evaluation_required": true,
-      "do_not_train_advanced_topics": true
+      "stages": [
+        {
+          "name": "elementary",
+          "topics": [
+            "whole_number_arithmetic",
+            "fractions",
+            "decimals",
+            "percentages",
+            "integers",
+            "order_of_operations"
+          ]
+        },
+        {
+          "name": "middle_school",
+          "topics": [
+            "ratios_and_proportions",
+            "pre_algebra",
+            "linear_equations",
+            "inequalities",
+            "exponents_and_roots",
+            "basic_geometry",
+            "basic_statistics",
+            "basic_probability"
+          ]
+        }
+      ]
     }
   },
   "session_management": {
@@ -243,13 +279,13 @@
     "type": "decoder_only_transformer",
     "tokenizer": "character",
     "vocabulary_size": 78,
-    "context_length": 128,
+    "context_length": 192,
     "embedding_dimension": 256,
     "transformer_layers": 5,
     "attention_heads": 8,
     "feedforward_multiplier": 4,
     "dropout": 0.1,
-    "expected_parameter_count": 4022094,
+    "expected_parameter_count": 4038478,
     "tie_input_output_embeddings": false,
     "initialization": "random_normal",
     "parameter_count_minimum": 3000000,
