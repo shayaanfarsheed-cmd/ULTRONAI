@@ -30,6 +30,7 @@ class LeaseResult:
     fencing_token: int | None
     lease_expires_at: str | None
     reason: str
+    session_id: str | None = None
 
 
 def utc_now() -> datetime:
@@ -87,9 +88,10 @@ class SupabaseRESTClient:
             url = f"{url}?{encoded_query}"
         headers = {
             "apikey": self._api_key,
-            "Authorization": f"Bearer {self._api_key}",
             "Accept": "application/json",
         }
+        if not self._api_key.startswith("sb_secret_"):
+            headers["Authorization"] = f"Bearer {self._api_key}"
         if method.upper() in {"GET", "HEAD"}:
             headers["Accept-Profile"] = active_schema
         else:
@@ -113,13 +115,30 @@ class SupabaseRESTClient:
             try:
                 detail = json.loads(raw_error)
                 message = str(detail.get("message") or detail.get("hint") or "Supabase request failed")
+                message = message.replace(self._api_key, "[redacted]")
                 code = detail.get("code")
             except Exception:
                 message = "Supabase request failed"
                 code = None
             raise SupabaseAPIError(error.code, message, code) from None
         except urllib.error.URLError as error:
-            raise SupabaseAPIError(0, f"Supabase connection failed: {error.reason}") from None
+            reason = str(error.reason).replace(self._api_key, "[redacted]")
+            raise SupabaseAPIError(0, f"Supabase connection failed: {reason}") from None
+
+    def rpc(self, function: str, parameters: Mapping[str, Any]) -> dict[str, Any]:
+        if not function.replace("_", "").isalnum():
+            raise ValueError("Invalid RPC function name")
+        result = self.request(
+            "POST",
+            f"rpc/{function}",
+            body=dict(parameters),
+            prefer="return=representation",
+        )
+        if isinstance(result, dict):
+            return result
+        if isinstance(result, list) and len(result) == 1 and isinstance(result[0], dict):
+            return result[0]
+        raise SupabaseAPIError(502, "Supabase RPC returned an unexpected response")
 
     def select(
         self,
@@ -191,11 +210,16 @@ class TrainingControlAPI:
         )
         return rows[0] if rows else None
 
+
     def create_run_id(self) -> str:
-        active = self.find_active_status()
-        if active is not None:
-            return str(active["run_id"])
-        return str(uuid.uuid4())
+        result = self.client.rpc(
+            "get_or_create_active_run",
+            {"p_owner_id": self.owner_id},
+        )
+        run_id = result.get("run_id")
+        if not run_id:
+            raise SupabaseAPIError(502, "Supabase did not return a training run ID")
+        return str(run_id)
 
     def acquire_lease(
         self,
@@ -203,114 +227,32 @@ class TrainingControlAPI:
         server_name: str,
         lease_holder: str,
         ttl_seconds: int = 720,
+        device: str = "cpu",
+        session_limit_seconds: int | None = None,
     ) -> LeaseResult:
-        if ttl_seconds < 60:
-            raise ValueError("Lease duration must be at least 60 seconds")
-        now = utc_now()
-        now_text = iso_utc(now)
-        expiry_text = iso_utc(now + timedelta(seconds=ttl_seconds))
-        status = self.get_status(run_id)
-
-        if status is None:
-            other_lease = self.find_current_lease()
-            if other_lease is not None and other_lease.get("run_id") != run_id:
-                return LeaseResult(
-                    False,
-                    str(other_lease["run_id"]),
-                    other_lease.get("lease_holder"),
-                    int(other_lease.get("fencing_token") or 0),
-                    other_lease.get("lease_expires_at"),
-                    "another run already owns this account's training lease",
-                )
-            row = {
-                "run_id": run_id,
-                "owner_id": self.owner_id,
-                "current_server": server_name,
-                "state": "starting",
-                "lease_holder": lease_holder,
-                "lease_expires_at": expiry_text,
-                "fencing_token": 1,
-                "last_heartbeat_at": now_text,
-                "session_started_at": now_text,
-                "updated_at": now_text,
-            }
-            try:
-                created = self.client.insert("training_status", row)
-            except SupabaseAPIError as error:
-                if error.status_code == 409 or error.code == "23505":
-                    other_lease = self.find_current_lease()
-                    if other_lease is not None:
-                        return LeaseResult(
-                            False,
-                            str(other_lease["run_id"]),
-                            other_lease.get("lease_holder"),
-                            int(other_lease.get("fencing_token") or 0),
-                            other_lease.get("lease_expires_at"),
-                            "another worker acquired the account lease first",
-                        )
-                raise
-            if created:
-                return LeaseResult(True, run_id, lease_holder, 1, expiry_text, "lease acquired for new run")
-            return LeaseResult(False, run_id, None, None, None, "status row creation returned no row")
-
-        if status.get("owner_id") != self.owner_id:
-            raise SupabaseAPIError(403, "Run belongs to a different owner")
-        if status.get("state") == "finished":
-            return LeaseResult(False, run_id, status.get("lease_holder"), int(status.get("fencing_token") or 0), status.get("lease_expires_at"), "run is already finished")
-        if status.get("pause_requested"):
-            return LeaseResult(False, run_id, status.get("lease_holder"), int(status.get("fencing_token") or 0), status.get("lease_expires_at"), "pause has been requested")
-
-        current_holder = status.get("lease_holder")
-        current_expiry = parse_timestamp(status.get("lease_expires_at"))
-        current_token = int(status.get("fencing_token") or 0)
-
-        if current_holder == lease_holder and current_expiry is not None and current_expiry > now:
-            renewed = self.renew_lease(run_id, lease_holder, current_token, ttl_seconds)
-            if renewed:
-                return LeaseResult(True, run_id, lease_holder, current_token, expiry_text, "existing lease renewed")
-
-        if current_expiry is not None and current_expiry > now:
-            return LeaseResult(
-                False,
-                run_id,
-                current_holder,
-                current_token,
-                status.get("lease_expires_at"),
-                "another worker still holds a valid lease",
-            )
-
-        filters = {
-            "run_id": f"eq.{run_id}",
-            "owner_id": f"eq.{self.owner_id}",
-            "fencing_token": f"eq.{current_token}",
-        }
-        if current_expiry is None:
-            filters["lease_expires_at"] = "is.null"
-        else:
-            filters["lease_expires_at"] = f"lt.{now_text}"
-        new_token = current_token + 1
-        values = {
-            "lease_holder": lease_holder,
-            "lease_expires_at": expiry_text,
-            "fencing_token": new_token,
-            "current_server": server_name,
-            "state": "running",
-            "handoff_requested": False,
-            "last_heartbeat_at": now_text,
-            "session_started_at": now_text,
-            "updated_at": now_text,
-        }
-        updated = self.client.patch("training_status", filters, values)
-        if updated:
-            return LeaseResult(True, run_id, lease_holder, new_token, expiry_text, "expired lease taken over with a new fencing token")
-        latest = self.get_status(run_id) or {}
+        if ttl_seconds < 60 or ttl_seconds > 3600:
+            raise ValueError("Lease duration must be between 60 and 3600 seconds")
+        result = self.client.rpc(
+            "acquire_training_lease",
+            {
+                "p_run_id": run_id,
+                "p_owner_id": self.owner_id,
+                "p_server_id": server_name,
+                "p_worker_id": lease_holder,
+                "p_device": device,
+                "p_session_limit_seconds": session_limit_seconds,
+                "p_ttl_seconds": ttl_seconds,
+            },
+        )
+        acquired = bool(result.get("granted"))
         return LeaseResult(
-            False,
-            run_id,
-            latest.get("lease_holder"),
-            int(latest.get("fencing_token") or 0),
-            latest.get("lease_expires_at"),
-            "lease compare-and-set lost a race; this worker must wait",
+            acquired=acquired,
+            run_id=str(result.get("run_id") or run_id),
+            lease_holder=result.get("worker_id") or result.get("lease_holder"),
+            fencing_token=int(result["fencing_token"]) if result.get("fencing_token") is not None else None,
+            lease_expires_at=result.get("lease_expires_at"),
+            reason="lease acquired" if acquired else str(result.get("reason") or "lease unavailable"),
+            session_id=str(result["session_id"]) if result.get("session_id") else None,
         )
 
     def renew_lease(
@@ -321,23 +263,30 @@ class TrainingControlAPI:
         ttl_seconds: int = 720,
         status_values: Mapping[str, Any] | None = None,
     ) -> bool:
-        now = utc_now()
-        now_text = iso_utc(now)
-        expiry_text = iso_utc(now + timedelta(seconds=ttl_seconds))
-        filters = {
-            "run_id": f"eq.{run_id}",
-            "owner_id": f"eq.{self.owner_id}",
-            "lease_holder": f"eq.{lease_holder}",
-            "fencing_token": f"eq.{fencing_token}",
-            "lease_expires_at": f"gt.{now_text}",
-        }
-        values = {
-            "lease_expires_at": expiry_text,
-            "last_heartbeat_at": now_text,
-            "updated_at": now_text,
-        }
-        values.update(dict(status_values or {}))
-        return bool(self.client.patch("training_status", filters, values))
+        if ttl_seconds < 60 or ttl_seconds > 3600:
+            raise ValueError("Lease duration must be between 60 and 3600 seconds")
+        values = dict(status_values or {})
+        result = self.client.rpc(
+            "heartbeat_training_lease",
+            {
+                "p_run_id": run_id,
+                "p_owner_id": self.owner_id,
+                "p_worker_id": lease_holder,
+                "p_fencing_token": int(fencing_token),
+                "p_ttl_seconds": ttl_seconds,
+                "p_current_step": int(values.get("current_step", 0)),
+                "p_loss": values.get("loss"),
+                "p_learning_rate": values.get("learning_rate"),
+                "p_current_topic": values.get("current_topic"),
+                "p_difficulty": int(values.get("difficulty", 1)),
+                "p_data_position": int(values.get("data_position", 0)),
+                "p_data_epoch": int(values.get("data_epoch", 0)),
+                "p_accuracy_by_topic": values.get("accuracy_by_topic") or {},
+                "p_curriculum_state": values.get("curriculum_state") or {},
+                "p_session_time_left_seconds": values.get("session_time_left_seconds"),
+            },
+        )
+        return bool(result.get("ok"))
 
     def commit_checkpoint(
         self,
@@ -347,44 +296,42 @@ class TrainingControlAPI:
         checkpoint_id: str,
         checkpoint_size_bytes: int,
         training_state: Mapping[str, Any],
+        manifest_sha256: str,
         ttl_seconds: int = 720,
     ) -> dict[str, Any]:
         if checkpoint_size_bytes < 1:
             raise ValueError("Checkpoint size must be positive")
-        now = utc_now()
-        now_text = iso_utc(now)
-        expiry_text = iso_utc(now + timedelta(seconds=ttl_seconds))
-        filters = {
-            "run_id": f"eq.{run_id}",
-            "owner_id": f"eq.{self.owner_id}",
-            "lease_holder": f"eq.{lease_holder}",
-            "fencing_token": f"eq.{fencing_token}",
-            "lease_expires_at": f"gt.{now_text}",
+        if len(manifest_sha256) != 64 or any(character not in "0123456789abcdef" for character in manifest_sha256):
+            raise ValueError("Checkpoint manifest SHA-256 must be 64 lowercase hexadecimal characters")
+        result = self.client.rpc(
+            "commit_training_checkpoint",
+            {
+                "p_run_id": run_id,
+                "p_owner_id": self.owner_id,
+                "p_worker_id": lease_holder,
+                "p_fencing_token": int(fencing_token),
+                "p_checkpoint_id": checkpoint_id,
+                "p_step": int(training_state["step"]),
+                "p_size_bytes": int(checkpoint_size_bytes),
+                "p_manifest_sha256": manifest_sha256,
+                "p_current_topic": training_state.get("current_topic"),
+                "p_difficulty": int(training_state.get("difficulty", 1)),
+                "p_data_position": int(training_state.get("data_position", 0)),
+                "p_data_epoch": int(training_state.get("data_epoch", 0)),
+                "p_loss": training_state.get("loss"),
+                "p_learning_rate": training_state.get("learning_rate"),
+                "p_accuracy_by_topic": training_state.get("accuracy_by_topic") or {},
+                "p_curriculum_state": training_state.get("curriculum_state") or {},
+            },
+        )
+        if not result.get("ok"):
+            raise LeaseLostError("Checkpoint pointer was not committed because the lease is no longer valid")
+        return {
+            "last_checkpoint_id": result.get("checkpoint_id"),
+            "last_checkpoint_step": result.get("step"),
+            "last_checkpoint_verified": result.get("verified"),
+            "last_checkpoint_manifest_sha256": result.get("manifest_sha256"),
         }
-        values = {
-            "current_step": int(training_state["step"]),
-            "current_topic": str(training_state["current_topic"]),
-            "difficulty": int(training_state["difficulty"]),
-            "data_position": int(training_state["data_position"]),
-            "data_epoch": int(training_state.get("data_epoch", 0)),
-            "loss": training_state.get("loss"),
-            "accuracy_by_topic": training_state.get("accuracy_by_topic", {}),
-            "curriculum_state": training_state.get("curriculum_state", {}),
-            "learning_rate": training_state.get("learning_rate"),
-            "last_checkpoint_id": checkpoint_id,
-            "last_checkpoint_step": int(training_state["step"]),
-            "last_checkpoint_at": now_text,
-            "last_checkpoint_size_bytes": checkpoint_size_bytes,
-            "last_checkpoint_verified": True,
-            "last_heartbeat_at": now_text,
-            "lease_expires_at": expiry_text,
-            "updated_at": now_text,
-            "state": "running",
-        }
-        updated = self.client.patch("training_status", filters, values)
-        if not updated:
-            raise LeaseLostError("Checkpoint pointer was not committed because this worker no longer owns the lease")
-        return updated[0]
 
     def release_lease(
         self,
@@ -392,23 +339,28 @@ class TrainingControlAPI:
         lease_holder: str,
         fencing_token: int,
         final_state: str = "handoff_needed",
+        end_reason: str | None = None,
     ) -> bool:
         if final_state not in {"handoff_needed", "paused", "finished", "dead"}:
             raise ValueError("Invalid lease release state")
-        filters = {
-            "run_id": f"eq.{run_id}",
-            "owner_id": f"eq.{self.owner_id}",
-            "lease_holder": f"eq.{lease_holder}",
-            "fencing_token": f"eq.{fencing_token}",
+        reason_map = {
+            "handoff_needed": "handoff",
+            "paused": "user_stop",
+            "finished": "finished",
+            "dead": "crashed",
         }
-        values = {
-            "lease_holder": None,
-            "lease_expires_at": None,
-            "state": final_state,
-            "handoff_requested": False,
-            "updated_at": iso_utc(),
-        }
-        return bool(self.client.patch("training_status", filters, values))
+        result = self.client.rpc(
+            "release_training_lease",
+            {
+                "p_run_id": run_id,
+                "p_owner_id": self.owner_id,
+                "p_worker_id": lease_holder,
+                "p_fencing_token": int(fencing_token),
+                "p_end_reason": end_reason or reason_map[final_state],
+                "p_final_state": final_state,
+            },
+        )
+        return bool(result.get("ok"))
 
     def mark_dead_if_stale(self, run_id: str, stale_after_seconds: int = 720) -> bool:
         status = self.get_status(run_id)
@@ -421,16 +373,14 @@ class TrainingControlAPI:
             return False
         if expiry is not None and expiry > now:
             return False
-        observed_heartbeat = status.get("last_heartbeat_at")
         filters = {
             "run_id": f"eq.{run_id}",
             "owner_id": f"eq.{self.owner_id}",
-            "last_heartbeat_at": f"eq.{observed_heartbeat}",
-            "lease_expires_at": f"lt.{iso_utc(now)}",
+            "last_heartbeat_at": f"eq.{status.get('last_heartbeat_at')}",
         }
+        filters["lease_expires_at"] = "is.null" if expiry is None else f"lt.{iso_utc(now)}"
         values = {"state": "dead", "updated_at": iso_utc(now)}
         return bool(self.client.patch("training_status", filters, values))
-
     def start_session(
         self,
         run_id: str,
@@ -438,7 +388,13 @@ class TrainingControlAPI:
         session_id: str | None = None,
         details: Mapping[str, Any] | None = None,
     ) -> str:
-        current_session = session_id or str(uuid.uuid4())
+        if session_id:
+            return session_id
+        status = self.get_status(run_id) or {}
+        active_session_id = status.get("active_session_id")
+        if active_session_id:
+            return str(active_session_id)
+        current_session = str(uuid.uuid4())
         self.client.insert(
             "server_log",
             {
@@ -453,7 +409,6 @@ class TrainingControlAPI:
             },
         )
         return current_session
-
     def end_session(
         self,
         session_id: str,
@@ -660,5 +615,11 @@ def from_environment() -> TrainingControlAPI:
     owner_id = os.environ.get("SUPABASE_OWNER_ID", "").strip()
     if not project_url or not secret_key or not owner_id:
         raise RuntimeError("Set SUPABASE_URL, SUPABASE_SECRET_KEY and SUPABASE_OWNER_ID in the provider's secret manager")
+    if not secret_key.startswith("sb_secret_"):
+        raise RuntimeError("SUPABASE_SECRET_KEY must be a current sb_secret_ key; never use a publishable key for training")
+    try:
+        uuid.UUID(owner_id)
+    except ValueError:
+        raise RuntimeError("SUPABASE_OWNER_ID must be the UUID of your Supabase Auth account") from None
     client = SupabaseRESTClient(project_url, secret_key)
     return TrainingControlAPI(client, owner_id)
