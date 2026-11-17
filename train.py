@@ -11,7 +11,7 @@ from typing import Any, Mapping, Sequence
 
 
 PLATFORM_IDS = ("kaggle", "google_colab", "lightning_ai", "github_actions", "other")
-SECRET_ENV_NAMES = ("SUPABASE_URL", "SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_KEY")
+SECRET_ENV_NAMES = ("SUPABASE_URL", "SUPABASE_SECRET_KEY", "SUPABASE_OWNER_ID", "HF_TOKEN", "HF_REPO_ID")
 
 
 def load_json(path: str | Path) -> dict[str, Any]:
