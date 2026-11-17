@@ -15,7 +15,7 @@ class ModelTests(unittest.TestCase):
         count = self.model.parameter_count()
         self.assertGreaterEqual(count, 3000000)
         self.assertLessEqual(count, 5000000)
-        self.assertEqual(count, 4022094)
+        self.assertEqual(count, 4038478)
 
     def test_forward_shape_and_finite_loss(self):
         tokens = torch.randint(0, self.tokenizer.vocab_size, (2, 24))
@@ -43,7 +43,7 @@ class ModelTests(unittest.TestCase):
             self.tokenizer.encode("12 × 3")
 
     def test_context_length_is_enforced(self):
-        tokens = torch.zeros((1, 129), dtype=torch.long)
+        tokens = torch.zeros((1, 193), dtype=torch.long)
         with self.assertRaises(ValueError):
             self.model(tokens)
 
