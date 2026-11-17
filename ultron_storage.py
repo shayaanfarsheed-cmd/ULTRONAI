@@ -6,6 +6,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from ultron_checkpoint import CheckpointError, LocalCheckpointStore
@@ -367,3 +368,207 @@ class RemoteCheckpointStore:
         if remove_paths:
             self.storage.remove(self.bucket, remove_paths)
         return sorted({item["checkpoint_id"] for item in valid} - keep)
+
+
+class HuggingFaceCheckpointStore:
+    def __init__(
+        self,
+        repo_id: str,
+        token: str,
+        revision: str = "main",
+        api: Any | None = None,
+        download_file: Any | None = None,
+        require_private: bool = True,
+    ) -> None:
+        if not repo_id or "/" not in repo_id:
+            raise ValueError("HF_REPO_ID must be an existing owner/repository model repo")
+        if not token:
+            raise ValueError("HF_TOKEN is required")
+        if api is None or download_file is None:
+            try:
+                from huggingface_hub import HfApi, hf_hub_download
+            except ImportError as error:
+                raise RuntimeError("Install huggingface_hub to enable secondary checkpoint storage") from error
+            if api is None:
+                api = HfApi(token=token)
+            if download_file is None:
+                download_file = hf_hub_download
+        self.repo_id = repo_id
+        self._token = token
+        self.revision = revision
+        self.api = api
+        self._download_file = download_file
+        info = self.api.repo_info(repo_id, repo_type="model", revision=revision, token=token)
+        if require_private and not bool(getattr(info, "private", False)):
+            raise ValueError("The Hugging Face checkpoint repository must be private")
+
+    def __repr__(self) -> str:
+        return f"HuggingFaceCheckpointStore(repo_id={self.repo_id!r}, token=[redacted])"
+
+    @staticmethod
+    def _prefix(owner_id: str, run_id: str) -> str:
+        if "/" in owner_id or "/" in run_id:
+            raise ValueError("Owner and run identifiers must be path-safe")
+        return f"runs/{owner_id}/{run_id}"
+
+    def _download_bytes(self, filename: str) -> bytes:
+        path = self._download_file(
+            repo_id=self.repo_id,
+            filename=filename,
+            repo_type="model",
+            revision=self.revision,
+            token=self._token,
+        )
+        return Path(path).read_bytes()
+
+    def upload_checkpoint(
+        self,
+        local_store: LocalCheckpointStore,
+        checkpoint_id: str,
+        owner_id: str,
+        run_id: str,
+    ) -> dict[str, Any]:
+        valid, manifest = local_store.verify_checkpoint(checkpoint_id)
+        if not valid or manifest is None:
+            raise CheckpointError("Refusing to back up an invalid local checkpoint")
+        folder = local_store._checkpoint_path(checkpoint_id)
+        manifest_data = (folder / "manifest.json").read_bytes()
+        manifest_hash = _sha256_bytes(manifest_data)
+        receipt = {
+            "schema_version": 1,
+            "checkpoint_id": checkpoint_id,
+            "manifest_sha256": manifest_hash,
+            "verified_at": datetime.now(timezone.utc).isoformat(),
+            "files": manifest["files"],
+            "storage_provider": "huggingface_hub_private_model_repo",
+        }
+        receipt_path = folder / "upload_receipt.json"
+        receipt_bytes = json.dumps(receipt, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
+        receipt_path.write_bytes(receipt_bytes)
+        prefix = f"{self._prefix(owner_id, run_id)}/{checkpoint_id}"
+        self.api.upload_folder(
+            repo_id=self.repo_id,
+            folder_path=str(folder),
+            repo_type="model",
+            revision=self.revision,
+            path_in_repo=prefix,
+            commit_message=f"ULTRON checkpoint {checkpoint_id} step {int(manifest['step'])}",
+            token=self._token,
+        )
+        verified = self.verify_remote_checkpoint(owner_id, run_id, checkpoint_id)
+        total_size = sum(int(entry.get("size_bytes", 0)) for entry in manifest["files"].values()) + len(manifest_data)
+        return {
+            "checkpoint_id": checkpoint_id,
+            "object_prefix": prefix,
+            "verified": True,
+            "manifest_sha256": manifest_hash,
+            "total_size_bytes": total_size,
+            "step": int(verified["step"]),
+            "fencing_token": int(verified["fencing_token"]),
+            "provider": "huggingface_hub_private_model_repo",
+        }
+
+    def verify_remote_checkpoint(self, owner_id: str, run_id: str, checkpoint_id: str) -> dict[str, Any]:
+        prefix = f"{self._prefix(owner_id, run_id)}/{checkpoint_id}"
+        manifest_data = self._download_bytes(f"{prefix}/manifest.json")
+        manifest = json.loads(manifest_data.decode("utf-8"))
+        receipt_data = self._download_bytes(f"{prefix}/upload_receipt.json")
+        receipt = json.loads(receipt_data.decode("utf-8"))
+        manifest_hash = _sha256_bytes(manifest_data)
+        if manifest.get("checkpoint_id") != checkpoint_id:
+            raise CheckpointError("Hugging Face manifest checkpoint ID does not match its path")
+        if receipt.get("checkpoint_id") != checkpoint_id or receipt.get("manifest_sha256") != manifest_hash:
+            raise CheckpointError("Hugging Face checkpoint receipt does not match its manifest")
+        if receipt.get("files") != manifest.get("files"):
+            raise CheckpointError("Hugging Face checkpoint receipt file list does not match")
+        state_data = None
+        for name, entry in manifest["files"].items():
+            content = self._download_bytes(f"{prefix}/{name}")
+            if len(content) != int(entry["size_bytes"]) or _sha256_bytes(content) != entry["sha256"]:
+                raise CheckpointError(f"Hugging Face checkpoint component failed verification: {name}")
+            if name == "state.json":
+                state_data = content
+        if state_data is None:
+            raise CheckpointError("Hugging Face checkpoint state file is missing")
+        state_file = json.loads(state_data.decode("utf-8"))
+        saved_state = state_file.get("state", {})
+        if state_file.get("checkpoint_id") != checkpoint_id:
+            raise CheckpointError("Hugging Face checkpoint state ID does not match")
+        if saved_state.get("step") != manifest.get("step"):
+            raise CheckpointError("Hugging Face checkpoint step does not match its manifest")
+        if saved_state.get("lease_holder") != manifest.get("lease_holder"):
+            raise CheckpointError("Hugging Face checkpoint lease holder does not match")
+        if saved_state.get("fencing_token") != manifest.get("fencing_token"):
+            raise CheckpointError("Hugging Face checkpoint fencing token does not match")
+        manifest["manifest_sha256"] = manifest_hash
+        manifest["total_size_bytes"] = sum(
+            int(entry.get("size_bytes", 0)) for entry in manifest["files"].values()
+        ) + len(manifest_data)
+        return manifest
+
+    def list_candidates(
+        self,
+        owner_id: str,
+        run_id: str,
+        maximum_step: int | None = None,
+    ) -> list[dict[str, Any]]:
+        prefix = self._prefix(owner_id, run_id)
+        entries = self.api.list_repo_tree(
+            repo_id=self.repo_id,
+            repo_type="model",
+            revision=self.revision,
+            path_in_repo=prefix,
+            recursive=True,
+            expand=False,
+            token=self._token,
+        )
+        checkpoint_ids: set[str] = set()
+        for entry in entries:
+            path = str(getattr(entry, "path", getattr(entry, "rfilename", "")))
+            relative = path[len(prefix) + 1:] if path.startswith(prefix + "/") else ""
+            if relative:
+                checkpoint_id = relative.split("/", 1)[0]
+                if checkpoint_id.startswith("ckpt-"):
+                    checkpoint_ids.add(checkpoint_id)
+        candidates = []
+        for checkpoint_id in checkpoint_ids:
+            try:
+                candidate = self.verify_remote_checkpoint(owner_id, run_id, checkpoint_id)
+                if maximum_step is None or int(candidate["step"]) <= maximum_step:
+                    candidates.append(candidate)
+            except Exception:
+                continue
+        candidates.sort(key=lambda item: (int(item["step"]), item["checkpoint_id"]), reverse=True)
+        return candidates
+
+    def download_checkpoint(
+        self,
+        owner_id: str,
+        run_id: str,
+        checkpoint_id: str,
+        local_store: LocalCheckpointStore,
+    ) -> dict[str, Any]:
+        prefix = f"{self._prefix(owner_id, run_id)}/{checkpoint_id}"
+        manifest_data = self._download_bytes(f"{prefix}/manifest.json")
+        manifest = json.loads(manifest_data.decode("utf-8"))
+        if manifest.get("checkpoint_id") != checkpoint_id:
+            raise CheckpointError("Hugging Face checkpoint manifest ID mismatch")
+        files = {"manifest.json": manifest_data}
+        for name, entry in manifest["files"].items():
+            content = self._download_bytes(f"{prefix}/{name}")
+            if len(content) != int(entry["size_bytes"]) or _sha256_bytes(content) != entry["sha256"]:
+                raise CheckpointError(f"Hugging Face checkpoint component failed verification: {name}")
+            files[name] = content
+        return local_store.import_checkpoint(checkpoint_id, files)
+
+    @classmethod
+    def from_environment(cls) -> "HuggingFaceCheckpointStore | None":
+        import os
+
+        token = os.environ.get("HF_TOKEN")
+        repo_id = os.environ.get("HF_REPO_ID")
+        if not token and not repo_id:
+            return None
+        if not token or not repo_id:
+            raise ValueError("Set both HF_TOKEN and HF_REPO_ID to enable the private secondary checkpoint backup")
+        return cls(repo_id=repo_id, token=token)
