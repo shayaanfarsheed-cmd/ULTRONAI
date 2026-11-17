@@ -31,10 +31,12 @@ class NotebookTests(unittest.TestCase):
         self.assertIn("ultron_model.py", source)
         self.assertIn("ultron_data.py", source)
         self.assertIn("ultron_verify.py", source)
+        self.assertIn("ultron_checkpoint.py", source)
         self.assertIn("config.json", source)
         self.assertIn("servers.json", source)
         self.assertIn("--model-summary", source)
         self.assertIn("--data-smoke-test", source)
+        self.assertIn("--checkpoint-smoke-test", source)
         self.assertNotIn("SUPABASE_SECRET_KEY", source)
 
 
