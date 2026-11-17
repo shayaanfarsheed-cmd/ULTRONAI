@@ -683,7 +683,7 @@
       $("ramLimitValue").textContent = state.ramLimitGb + " GB";
       const localRamValue = $("deviceRamLimitValue");
       if (localRamValue) localRamValue.textContent = state.ramLimitGb + " GB";
-      $("ramLimitStatus").textContent = "Saved on this browser only. Not yet applied to the Windows laptop; secure agent control is still being built.";
+      $("ramLimitStatus").textContent = "Saved on this browser only. It is not enforced on a connected device yet.";
     }
     $("ownerIdText").textContent = state.user ? state.user.id : "—";
     const review = state.projectConfig.terms_review || {};
@@ -1072,7 +1072,7 @@
       const localRamValue = $("deviceRamLimitValue");
       if (localRamValue) localRamValue.textContent = state.ramLimitGb + " GB";
       try { localStorage.setItem(RAM_LIMIT_KEY, String(state.ramLimitGb)); } catch (_) {}
-      $("ramLimitStatus").textContent = "Saved as " + state.ramLimitGb + " GB on this browser only. It is not yet sent to or enforced by the Windows laptop.";
+      $("ramLimitStatus").textContent = "Saved as " + state.ramLimitGb + " GB on this browser only. It is not yet sent to or enforced by a connected device.";
     });
     $("copyOwnerId").addEventListener("click", copyOwnerId);
     $("copyOwnerIdSettings").addEventListener("click", copyOwnerId);
