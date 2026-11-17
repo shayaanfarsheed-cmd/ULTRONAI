@@ -1,7 +1,8 @@
 ALTER TABLE training_api.training_status
   ADD COLUMN IF NOT EXISTS active_session_id uuid,
   ADD COLUMN IF NOT EXISTS last_checkpoint_manifest_sha256 text,
-  ADD COLUMN IF NOT EXISTS requested_resume_checkpoint_id text;
+  ADD COLUMN IF NOT EXISTS requested_resume_checkpoint_id text,
+  ADD COLUMN IF NOT EXISTS loss_history jsonb NOT NULL DEFAULT '[]'::jsonb;
 
 GRANT UPDATE (requested_resume_checkpoint_id) ON training_api.training_status TO authenticated;
 
@@ -254,6 +255,23 @@ BEGIN
       current_step = greatest(current_step, p_current_step),
       loss = p_loss,
       learning_rate = p_learning_rate,
+      loss_history = CASE
+        WHEN p_loss IS NULL THEN loss_history
+        ELSE (
+          SELECT coalesce(pg_catalog.jsonb_agg(sample ORDER BY ordinal), '[]'::jsonb)
+          FROM (
+            SELECT value AS sample, ordinal
+            FROM pg_catalog.jsonb_array_elements(
+              coalesce(loss_history, '[]'::jsonb)
+              || pg_catalog.jsonb_build_array(
+                pg_catalog.jsonb_build_object('at', v_now, 'step', p_current_step, 'loss', p_loss)
+              )
+            ) WITH ORDINALITY AS samples(value, ordinal)
+            ORDER BY ordinal DESC
+            LIMIT 300
+          ) AS recent
+        )
+      END,
       current_topic = p_current_topic,
       difficulty = greatest(1, p_difficulty),
       data_position = greatest(0, p_data_position),
