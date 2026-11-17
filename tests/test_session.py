@@ -85,8 +85,8 @@ class FakeAPI:
         }
         return LeaseResult(True, run_id, lease_holder, 1, self.status["lease_expires_at"], "acquired")
 
-    def start_session(self, run_id, server_name):
-        self.sessions.append({"run_id": run_id, "server": server_name, "ended": False})
+    def start_session(self, run_id, server_name, session_id=None, details=None):
+        self.sessions.append({"run_id": run_id, "server": server_name, "details": details or {}, "ended": False})
         return "session-1"
 
     def get_status(self, run_id):
