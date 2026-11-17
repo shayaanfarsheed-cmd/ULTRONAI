@@ -137,6 +137,7 @@ class SupabaseLeaseTests(unittest.TestCase):
             },
         )
         self.assertEqual(result["last_checkpoint_id"], "ckpt-0001")
+        self.assertEqual(result["last_checkpoint_step"], 1)
         with self.assertRaises(LeaseLostError):
             self.api.commit_checkpoint(
                 "run-1",
