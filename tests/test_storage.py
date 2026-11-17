@@ -147,6 +147,8 @@ class RemoteCheckpointTests(unittest.TestCase):
                 remote.upload_checkpoint(source, manifest["checkpoint_id"], "owner-1", "run-1")
             candidates = remote.list_remote_candidates("owner-1", "run-1")
             self.assertEqual([item["step"] for item in candidates], [3, 2, 1])
+            committed_candidates = remote.list_remote_candidates("owner-1", "run-1", maximum_step=2)
+            self.assertEqual([item["step"] for item in committed_candidates], [2, 1])
 
 
 if __name__ == "__main__":
