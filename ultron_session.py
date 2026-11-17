@@ -207,6 +207,21 @@ def run_training_session(
     else:
         runtime = dict(runtime_override)
     device = str(runtime["device"])
+    gpu_name = torch.cuda.get_device_name(0) if device == "cuda" and torch.cuda.is_available() else None
+    session_id = api.start_session(
+        run_id,
+        server_name,
+        details={"server_id": server_id, "compute_device": device, "gpu_name": gpu_name},
+    )
+    try:
+        api.update_server_status(
+            run_id,
+            server_id,
+            "running",
+            extra={"compute_device": device, "gpu_name": gpu_name, "last_started_at": session_start_iso},
+        )
+    except Exception:
+        pass
     batch_size = int(runtime["batch_size"])
     cpu_threads = int(runtime.get("cpu_threads", 1))
     torch.set_num_threads(max(1, cpu_threads))
@@ -323,6 +338,7 @@ def run_training_session(
     last_error: str | None = None
     switch_completion_marked = False
     final_state = "finished"
+    force_handoff_reason = "no_gpu" if server and server.get("role") in {"primary_gpu", "backup_gpu"} and device != "cuda" else None
     lease_lost = False
 
     def build_training_state() -> dict[str, Any]:
@@ -411,7 +427,12 @@ def run_training_session(
                     pass
         return renewed
 
-    def finish(final_status: str, reason: str, create_switch: bool = False) -> dict[str, Any]:
+    def finish(
+        final_status: str,
+        reason: str,
+        create_switch: bool = False,
+        switch_reason: str | None = None,
+    ) -> dict[str, Any]:
         nonlocal final_state
         final_state = final_status
         if not lease_lost:
@@ -429,7 +450,7 @@ def run_training_session(
                     run_id,
                     server_name,
                     None,
-                    "handoff_needed",
+                    switch_reason or "handoff_needed",
                     automatic=False,
                     metadata={"step": step, "reason": reason},
                 )
@@ -456,6 +477,14 @@ def run_training_session(
             now = monotonic()
             elapsed = now - session_start
             remaining = session_limit - elapsed
+
+            if force_handoff_reason is not None:
+                try:
+                    save_checkpoint()
+                except LeaseLostError:
+                    lease_lost = True
+                    return finish("dead", "lease_lost_during_no_gpu_handoff")
+                return finish("handoff_needed", "no_gpu", create_switch=True, switch_reason="no_gpu")
 
             if remaining <= safety_margin:
                 try:
