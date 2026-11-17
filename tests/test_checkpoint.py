@@ -149,6 +149,33 @@ class CheckpointTests(unittest.TestCase):
             with self.assertRaises(CheckpointError):
                 store.save(model, optimizer, self._state(2, fencing_token=3, lease_holder="worker-b"), scheduler)
 
+    def test_import_checkpoint_verifies_and_restores_remote_copy(self):
+        with tempfile.TemporaryDirectory() as source_dir, tempfile.TemporaryDirectory() as target_dir:
+            model, optimizer, scheduler = self._make_training_objects()
+            source = LocalCheckpointStore(source_dir)
+            manifest = source.save(model, optimizer, self._state(1), scheduler)
+            source_folder = Path(source_dir) / manifest["checkpoint_id"]
+            files = {item.name: item.read_bytes() for item in source_folder.iterdir() if item.is_file()}
+            target = LocalCheckpointStore(target_dir)
+            imported = target.import_checkpoint(manifest["checkpoint_id"], files)
+            self.assertEqual(imported["step"], 1)
+            self.assertTrue(target.verify_checkpoint(manifest["checkpoint_id"])[0])
+            restored_model, restored_optimizer, restored_scheduler = self._make_training_objects()
+            restored = target.load_latest(restored_model, restored_optimizer, restored_scheduler, restore_rng=False)
+            self.assertEqual(restored["step"], 1)
+
+    def test_import_rejects_corrupt_remote_copy(self):
+        with tempfile.TemporaryDirectory() as source_dir, tempfile.TemporaryDirectory() as target_dir:
+            model, optimizer, scheduler = self._make_training_objects()
+            source = LocalCheckpointStore(source_dir)
+            manifest = source.save(model, optimizer, self._state(1), scheduler)
+            source_folder = Path(source_dir) / manifest["checkpoint_id"]
+            files = {item.name: item.read_bytes() for item in source_folder.iterdir() if item.is_file()}
+            files["model.safetensors"] = b"bad"
+            target = LocalCheckpointStore(target_dir)
+            with self.assertRaises(CheckpointError):
+                target.import_checkpoint(manifest["checkpoint_id"], files)
+
 
 if __name__ == "__main__":
     unittest.main()
