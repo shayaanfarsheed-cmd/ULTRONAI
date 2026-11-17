@@ -320,14 +320,19 @@ def run_training_session(
             if committed_step is None or int(item.get("step", -1)) > int(committed_step)
         ]
         if newer_backups:
-            selected_backup_candidate = newer_backups[0]
-            backup_store.download_checkpoint(
-                api.owner_id,
-                run_id,
-                str(selected_backup_candidate["checkpoint_id"]),
-                local_store,
-            )
-        else:
+            for candidate in newer_backups:
+                try:
+                    backup_store.download_checkpoint(
+                        api.owner_id,
+                        run_id,
+                        str(candidate["checkpoint_id"]),
+                        local_store,
+                    )
+                    selected_backup_candidate = candidate
+                    break
+                except Exception:
+                    continue
+        if selected_backup_candidate is None:
             for candidate in remote_candidates:
                 try:
                     remote_store.download_checkpoint(
