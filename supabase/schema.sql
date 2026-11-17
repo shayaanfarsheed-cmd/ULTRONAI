@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS training_api.training_status (
     loss double precision,
     accuracy_by_topic jsonb NOT NULL DEFAULT '{}'::jsonb,
     curriculum_state jsonb NOT NULL DEFAULT '{}'::jsonb,
+    server_statuses jsonb NOT NULL DEFAULT '{}'::jsonb,
     learning_rate double precision,
     last_checkpoint_id text,
     last_checkpoint_at timestamptz,
@@ -41,7 +42,7 @@ CREATE TABLE IF NOT EXISTS training_api.training_status (
 CREATE TABLE IF NOT EXISTS training_api.server_log (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     owner_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    run_id uuid NOT NULL,
+    run_id uuid,
     FOREIGN KEY (run_id, owner_id) REFERENCES training_api.training_status(run_id, owner_id) ON DELETE CASCADE,
     session_id uuid NOT NULL DEFAULT gen_random_uuid() UNIQUE,
     server_name text NOT NULL,
@@ -62,7 +63,7 @@ CREATE TABLE IF NOT EXISTS training_api.switch_requests (
     FOREIGN KEY (run_id, owner_id) REFERENCES training_api.training_status(run_id, owner_id) ON DELETE CASCADE,
     from_server text,
     to_server text,
-    reason text NOT NULL CHECK (reason IN ('handoff_needed', 'heartbeat_timeout', 'quota', 'no_gpu', 'slow_gpu', 'user_requested', 'failed_start', 'cpu_fallback', 'pause', 'resume')),
+    reason text NOT NULL CHECK (reason IN ('handoff_needed', 'heartbeat_timeout', 'quota', 'no_gpu', 'slow_gpu', 'user_requested', 'failed_start', 'cpu_fallback', 'server_unavailable', 'server_available', 'pause', 'resume')),
     requested_at timestamptz NOT NULL DEFAULT now(),
     result text NOT NULL DEFAULT 'waiting' CHECK (result IN ('waiting', 'started', 'failed', 'done')),
     started_at timestamptz,
@@ -108,6 +109,14 @@ CREATE POLICY training_status_owner_select
     TO authenticated
     USING ((SELECT auth.uid()) IS NOT NULL AND owner_id = (SELECT auth.uid()));
 
+DROP POLICY IF EXISTS training_status_owner_control_update ON training_api.training_status;
+CREATE POLICY training_status_owner_control_update
+    ON training_api.training_status
+    FOR UPDATE
+    TO authenticated
+    USING ((SELECT auth.uid()) IS NOT NULL AND owner_id = (SELECT auth.uid()))
+    WITH CHECK ((SELECT auth.uid()) IS NOT NULL AND owner_id = (SELECT auth.uid()));
+
 DROP POLICY IF EXISTS server_log_owner_select ON training_api.server_log;
 CREATE POLICY server_log_owner_select
     ON training_api.server_log
@@ -148,6 +157,7 @@ CREATE POLICY switch_requests_owner_insert
 
 REVOKE ALL ON ALL TABLES IN SCHEMA training_api FROM anon, authenticated;
 GRANT SELECT ON training_api.training_status, training_api.server_log, training_api.switch_requests TO authenticated;
+GRANT UPDATE (pause_requested, automatic_start_enabled, server_statuses) ON training_api.training_status TO authenticated;
 GRANT INSERT ON training_api.server_log, training_api.switch_requests TO authenticated;
 GRANT ALL ON training_api.training_status, training_api.server_log, training_api.switch_requests TO service_role;
 
