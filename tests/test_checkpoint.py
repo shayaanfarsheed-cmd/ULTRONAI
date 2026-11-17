@@ -164,6 +164,28 @@ class CheckpointTests(unittest.TestCase):
             restored = target.load_latest(restored_model, restored_optimizer, restored_scheduler, restore_rng=False)
             self.assertEqual(restored["step"], 1)
 
+
+    def test_import_existing_older_checkpoint_sets_pointer_without_pruning_it(self):
+        with tempfile.TemporaryDirectory() as source_dir, tempfile.TemporaryDirectory() as target_dir:
+            model, optimizer, scheduler = self._make_training_objects()
+            source = LocalCheckpointStore(source_dir, keep_last=10)
+            target = LocalCheckpointStore(target_dir, keep_last=3)
+            manifests = []
+            for step in range(1, 5):
+                manifests.append(source.save(model, optimizer, self._state(step), scheduler))
+            for manifest in manifests[-3:]:
+                folder = Path(source_dir) / manifest["checkpoint_id"]
+                files = {item.name: item.read_bytes() for item in folder.iterdir() if item.is_file()}
+                target.import_checkpoint(manifest["checkpoint_id"], files)
+            selected = manifests[-3]
+            selected_folder = Path(source_dir) / selected["checkpoint_id"]
+            selected_files = {item.name: item.read_bytes() for item in selected_folder.iterdir() if item.is_file()}
+            target.import_checkpoint(selected["checkpoint_id"], selected_files)
+            pointer = json.loads(target.pointer_path.read_text(encoding="utf-8"))
+            self.assertEqual(pointer["checkpoint_id"], selected["checkpoint_id"])
+            self.assertTrue((Path(target_dir) / selected["checkpoint_id"]).is_dir())
+            self.assertEqual(len(target.list_valid_checkpoints()), 3)
+
     def test_import_rejects_corrupt_remote_copy(self):
         with tempfile.TemporaryDirectory() as source_dir, tempfile.TemporaryDirectory() as target_dir:
             model, optimizer, scheduler = self._make_training_objects()
