@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS training_api.training_status (
     data_epoch bigint NOT NULL DEFAULT 0 CHECK (data_epoch >= 0),
     loss double precision,
     accuracy_by_topic jsonb NOT NULL DEFAULT '{}'::jsonb,
+    loss_history jsonb NOT NULL DEFAULT '[]'::jsonb,
     curriculum_state jsonb NOT NULL DEFAULT '{}'::jsonb,
     server_statuses jsonb NOT NULL DEFAULT '{}'::jsonb,
     learning_rate double precision,
@@ -49,6 +50,7 @@ ALTER TABLE training_api.training_status ADD COLUMN IF NOT EXISTS handoff_reques
 ALTER TABLE training_api.training_status ADD COLUMN IF NOT EXISTS active_session_id uuid;
 ALTER TABLE training_api.training_status ADD COLUMN IF NOT EXISTS last_checkpoint_manifest_sha256 text;
 ALTER TABLE training_api.training_status ADD COLUMN IF NOT EXISTS requested_resume_checkpoint_id text;
+ALTER TABLE training_api.training_status ADD COLUMN IF NOT EXISTS loss_history jsonb NOT NULL DEFAULT '[]'::jsonb;
 
 CREATE TABLE IF NOT EXISTS training_api.server_log (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
