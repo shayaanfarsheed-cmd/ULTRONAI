@@ -4,7 +4,7 @@
     "name": "ULTRON",
     "purpose": "Train an independently implemented mathematics Transformer from random initialization.",
     "stage": 6,
-    "stage_scope": "Training engine, verified local checkpoints, Supabase training schema and remote checkpoint coordination",
+    "stage_scope": "Training session orchestration, Supabase REST lease coordination and private checkpoint recovery",
     "target_parameter_count": {
       "minimum": 3000000,
       "target": 4000000,
@@ -127,7 +127,9 @@
           ]
         }
       ]
-    }
+    },
+    "examples_per_stage": 3000,
+    "evaluation_examples_per_topic": 10
   },
   "session_management": {
     "checkpoint_before_session_limit": true,
@@ -233,7 +235,8 @@
     "row_level_security_required": true,
     "user_reads_own_rows_only": true,
     "notebook_writes_use_backend_secret": true,
-    "website_uses_publishable_key_only": true
+    "website_uses_publishable_key_only": true,
+    "project_url": "https://euhmejpaswmdpsutbtse.supabase.co"
   },
   "security": {
     "backend_secret_prefix": "sb_secret_",
