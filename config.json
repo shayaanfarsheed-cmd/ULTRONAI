@@ -192,8 +192,7 @@
     "only_one_active_lease_holder": true,
     "platform_allowlist": [
       "kaggle",
-      "lightning_ai",
-      "github_actions"
+      "github_actions_cpu"
     ],
     "manual_only_platforms": [
       "google_colab"
