@@ -42,7 +42,8 @@ def get_session_limit_seconds(server: Mapping[str, Any] | None, fallback_seconds
         return fallback_seconds
     limits = server.get("limits", {})
     hours = (
-        limits.get("session_limit_hours")
+        limits.get("training_session_target_hours")
+        or limits.get("session_limit_hours")
         or limits.get("free_studio_restart_hours")
         or limits.get("job_execution_limit_hours")
     )
