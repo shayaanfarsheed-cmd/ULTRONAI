@@ -340,11 +340,23 @@ class LocalCheckpointStore:
 
     def prune(self) -> list[str]:
         valid = self.list_valid_checkpoints()
+        keep_ids = {manifest["checkpoint_id"] for manifest in valid[:self.keep_last]}
+        if self.pointer_path.is_file():
+            try:
+                pointer = json.loads(self.pointer_path.read_text(encoding="utf-8"))
+                pointer_id = pointer.get("checkpoint_id")
+                if pointer_id and any(item["checkpoint_id"] == pointer_id for item in valid):
+                    keep_ids.add(pointer_id)
+            except Exception:
+                pass
         removed = []
-        for manifest in valid[self.keep_last:]:
-            folder = self._checkpoint_path(manifest["checkpoint_id"])
+        for manifest in valid:
+            checkpoint_id = manifest["checkpoint_id"]
+            if checkpoint_id in keep_ids:
+                continue
+            folder = self._checkpoint_path(checkpoint_id)
             shutil.rmtree(folder)
-            removed.append(manifest["checkpoint_id"])
+            removed.append(checkpoint_id)
         return removed
 
     def import_checkpoint(self, checkpoint_id: str, files: Mapping[str, bytes]) -> dict[str, Any]:
@@ -352,6 +364,16 @@ class LocalCheckpointStore:
         if final.exists():
             valid, manifest = self.verify_checkpoint(checkpoint_id)
             if valid and manifest is not None:
+                pointer = {
+                    "checkpoint_id": checkpoint_id,
+                    "step": manifest["step"],
+                    "manifest_sha256": _sha256(final / "manifest.json"),
+                }
+                pointer_temp = self.root / f"latest-{uuid.uuid4().hex}.tmp"
+                _write_json(pointer_temp, pointer)
+                os.replace(pointer_temp, self.pointer_path)
+                _fsync_directory(self.root)
+                self.prune()
                 return manifest
             raise CheckpointError("Refusing to overwrite an existing invalid checkpoint")
         required = {"model.safetensors", "optimizer.safetensors", "rng.safetensors", "state.json", "manifest.json"}
