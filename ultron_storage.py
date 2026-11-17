@@ -303,6 +303,11 @@ class RemoteCheckpointStore:
                     continue
                 if maximum_step is not None and int(manifest.get("step", -1)) > maximum_step:
                     continue
+                manifest["manifest_sha256"] = _sha256_bytes(manifest_data)
+                manifest["total_size_bytes"] = sum(
+                    int(entry.get("size_bytes", 0))
+                    for entry in manifest.get("files", {}).values()
+                ) + len(manifest_data)
                 candidates.append(manifest)
             except Exception:
                 continue
