@@ -1,11 +1,13 @@
 import tempfile
 import unittest
+from pathlib import Path
+from types import SimpleNamespace
 
 import torch
 from torch import nn
 
 from ultron_checkpoint import LocalCheckpointStore
-from ultron_storage import RemoteCheckpointStore, SupabaseStorageClient, SupabaseStorageError
+from ultron_storage import HuggingFaceCheckpointStore, RemoteCheckpointStore, SupabaseStorageClient, SupabaseStorageError
 
 
 class FakeStorage:
@@ -164,6 +166,64 @@ class RemoteCheckpointTests(unittest.TestCase):
             storage.objects[("checkpoints", corrupt_path)] = b"corrupt"
             remote.prune_remote("owner-1", "run-1")
             self.assertIn(("checkpoints", corrupt_path), storage.objects)
+
+
+    def test_private_huggingface_checkpoint_backup_round_trip(self):
+        with tempfile.TemporaryDirectory() as source_dir, tempfile.TemporaryDirectory() as target_dir, tempfile.TemporaryDirectory() as download_dir:
+            model = nn.Linear(4, 2)
+            optimizer = torch.optim.AdamW(model.parameters())
+            model(torch.randn(2, 4)).sum().backward()
+            optimizer.step()
+            source = LocalCheckpointStore(source_dir)
+            manifest = self._save(source, model, optimizer, 7)
+
+            class FakeHFAPI:
+                def __init__(self):
+                    self.files = {}
+                def repo_info(self, repo_id, repo_type, revision, token):
+                    return SimpleNamespace(private=True)
+                def upload_folder(self, repo_id, folder_path, repo_type, revision, path_in_repo, commit_message, token):
+                    for path in Path(folder_path).iterdir():
+                        if path.is_file():
+                            self.files[path_in_repo + "/" + path.name] = path.read_bytes()
+                def list_repo_tree(self, repo_id, repo_type, revision, path_in_repo, recursive, expand, token):
+                    return [SimpleNamespace(path=path_in_repo + "/" + name) for name in sorted(self.files)]
+
+            api = FakeHFAPI()
+            def download_file(repo_id, filename, repo_type, revision, token):
+                destination = Path(download_dir) / filename.replace("/", "_")
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes(api.files[filename])
+                return str(destination)
+
+            backup = HuggingFaceCheckpointStore(
+                "owner/ultron-checkpoints",
+                "hf_test_token",
+                api=api,
+                download_file=download_file,
+            )
+            uploaded = backup.upload_checkpoint(source, manifest["checkpoint_id"], "owner-1", "run-1")
+            self.assertTrue(uploaded["verified"])
+            self.assertEqual(uploaded["step"], 7)
+            candidates = backup.list_candidates("owner-1", "run-1")
+            self.assertEqual([item["step"] for item in candidates], [7])
+            target = LocalCheckpointStore(target_dir)
+            restored = backup.download_checkpoint("owner-1", "run-1", manifest["checkpoint_id"], target)
+            self.assertEqual(restored["step"], 7)
+            self.assertTrue(target.verify_checkpoint(manifest["checkpoint_id"])[0])
+            self.assertNotIn("hf_test_token", repr(backup))
+
+    def test_huggingface_backup_rejects_public_repository(self):
+        class PublicHFAPI:
+            def repo_info(self, repo_id, repo_type, revision, token):
+                return SimpleNamespace(private=False)
+        with self.assertRaises(ValueError):
+            HuggingFaceCheckpointStore(
+                "owner/public-model",
+                "hf_test_token",
+                api=PublicHFAPI(),
+                download_file=lambda **kwargs: "",
+            )
 
     def test_remote_candidate_order_is_newest_first(self):
         with tempfile.TemporaryDirectory() as source_dir:
