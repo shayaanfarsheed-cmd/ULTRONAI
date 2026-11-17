@@ -67,7 +67,7 @@ class RemoteCheckpointTests(unittest.TestCase):
             remote = RemoteCheckpointStore(storage)
             uploaded = remote.upload_checkpoint(source, manifest["checkpoint_id"], "owner-1", "run-1")
             self.assertTrue(uploaded["verified"])
-            self.assertEqual(len(storage.objects), 5)
+            self.assertEqual(len(storage.objects), 6)
             target = LocalCheckpointStore(target_dir)
             downloaded = remote.download_checkpoint("owner-1", "run-1", manifest["checkpoint_id"], target)
             self.assertEqual(downloaded["step"], 1)
@@ -126,10 +126,27 @@ class RemoteCheckpointTests(unittest.TestCase):
                 manifests.append(manifest)
                 remote.upload_checkpoint(source, manifest["checkpoint_id"], "owner-1", "run-1")
             corrupt_id = manifests[0]["checkpoint_id"]
-            corrupt_path = f"owner-1/run-1/{corrupt_id}/model.safetensors"
+            corrupt_path = f"owner-1/run-1/{corrupt_id}/manifest.json"
             storage.objects[("checkpoints", corrupt_path)] = b"corrupt"
             remote.prune_remote("owner-1", "run-1")
             self.assertIn(("checkpoints", corrupt_path), storage.objects)
+
+    def test_remote_candidate_order_is_newest_first(self):
+        with tempfile.TemporaryDirectory() as source_dir:
+            model = nn.Linear(4, 2)
+            optimizer = torch.optim.AdamW(model.parameters())
+            model(torch.randn(2, 4)).sum().backward()
+            optimizer.step()
+            source = LocalCheckpointStore(source_dir, keep_last=10)
+            storage = FakeStorage()
+            remote = RemoteCheckpointStore(storage, keep_last=3)
+            manifests = []
+            for step in range(1, 4):
+                manifest = self._save(source, model, optimizer, step)
+                manifests.append(manifest)
+                remote.upload_checkpoint(source, manifest["checkpoint_id"], "owner-1", "run-1")
+            candidates = remote.list_remote_candidates("owner-1", "run-1")
+            self.assertEqual([item["step"] for item in candidates], [3, 2, 1])
 
 
 if __name__ == "__main__":
