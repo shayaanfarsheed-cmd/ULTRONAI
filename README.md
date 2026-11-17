@@ -48,3 +48,17 @@ The dashboard uses only the publishable/anon key and the signed-in user's JWT. T
 - The notebook has not yet been run on the user's live Kaggle, Colab or Lightning accounts.
 - Secondary Hugging Face checkpoint backup and ONNX release are not yet complete.
 - Provider account quota and GPU availability must be checked in each provider account.
+
+## Automated tests
+
+The repository test workflow runs on pushes and pull requests. It checks the Python modules, deterministic data generator, model, checkpoint recovery, Supabase lease client, dashboard JavaScript, JSON configuration and notebook structure.
+
+For a browser-free local validation environment with Python 3.11 and CPU PyTorch installed:
+
+```bash
+python -m pip install -r requirements.txt
+python -m unittest discover -s tests -v
+python train.py --preflight --model-summary --data-smoke-test --checkpoint-smoke-test --training-smoke-test
+node --check dashboard/app.js
+node --check dashboard/config.js
+```
