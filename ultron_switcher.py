@@ -61,7 +61,7 @@ def calculate_quota_usage(
                 if started is None or started < start:
                     continue
                 seconds = float(log.get("gpu_seconds") or 0)
-                if log.get("ended_at") is None and details.get("compute_device") == "cuda":
+                if log.get("ended_at") is None and (details.get("compute_device") or details.get("device")) == "cuda":
                     seconds = max(seconds, (now - started).total_seconds())
                 used_seconds += max(0.0, seconds)
         used_hours = used_seconds / 3600.0
