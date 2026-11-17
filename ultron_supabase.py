@@ -467,6 +467,40 @@ class TrainingControlAPI:
         }
         return bool(self.client.patch("server_log", filters, values))
 
+    def create_switch_request(
+        self,
+        run_id: str,
+        from_server: str | None,
+        to_server: str | None,
+        reason: str,
+        automatic: bool = False,
+        idempotency_key: str | None = None,
+        metadata: Mapping[str, Any] | None = None,
+    ) -> str:
+        allowed = {
+            "handoff_needed", "heartbeat_timeout", "quota", "no_gpu", "slow_gpu",
+            "user_requested", "failed_start", "cpu_fallback", "server_unavailable",
+            "server_available", "pause", "resume",
+        }
+        if reason not in allowed:
+            raise ValueError("Invalid switch request reason")
+        request_id = str(uuid.uuid4())
+        row = {
+            "id": request_id,
+            "owner_id": self.owner_id,
+            "run_id": run_id,
+            "from_server": from_server,
+            "to_server": to_server,
+            "reason": reason,
+            "requested_at": iso_utc(),
+            "result": "waiting",
+            "automatic": bool(automatic),
+            "idempotency_key": idempotency_key or request_id,
+            "metadata": dict(metadata or {}),
+        }
+        self.client.insert("switch_requests", row)
+        return request_id
+
     def waiting_switch_requests(self, limit: int = 20) -> list[dict[str, Any]]:
         return self.client.select(
             "switch_requests",
