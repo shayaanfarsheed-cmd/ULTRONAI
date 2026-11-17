@@ -1,5 +1,7 @@
 import unittest
+import uuid
 from datetime import timedelta
+
 
 from ultron_supabase import (
     LeaseLostError,
@@ -43,6 +45,210 @@ class FakeClient:
             else:
                 raise AssertionError(expression)
         return True
+
+    def rpc(self, function, params):
+        self.requests.append(("rpc", function, dict(params)))
+        if function == "get_or_create_active_run":
+            owner_id = params["p_owner_id"]
+            active = [row for row in self.rows.values() if row.get("owner_id") == owner_id and row.get("state") != "finished"]
+            if active:
+                active.sort(key=lambda row: row.get("updated_at", ""), reverse=True)
+                return {"run_id": active[0]["run_id"], "owner_id": owner_id, "state": active[0]["state"]}
+            run_id = str(uuid.uuid4())
+            self.rows[run_id] = {
+                "run_id": run_id,
+                "owner_id": owner_id,
+                "state": "paused",
+                "current_step": 0,
+                "fencing_token": 0,
+                "updated_at": iso_utc(),
+            }
+            return {"run_id": run_id, "owner_id": owner_id, "state": "paused"}
+
+        if function == "acquire_training_lease":
+            row = self.rows.get(params["p_run_id"])
+            if row is None or row.get("owner_id") != params["p_owner_id"]:
+                return {"granted": False, "reason": "run_not_found"}
+            now = utc_now()
+            for other in self.rows.values():
+                if other is row or other.get("owner_id") != params["p_owner_id"] or not other.get("lease_holder"):
+                    continue
+                expiry = parse_timestamp(other.get("lease_expires_at"))
+                if expiry and expiry > now:
+                    return {
+                        "granted": False,
+                        "reason": "another_run_lease_held",
+                        "run_id": other["run_id"],
+                        "lease_holder": other["lease_holder"],
+                        "lease_expires_at": other["lease_expires_at"],
+                        "fencing_token": other.get("fencing_token", 0),
+                    }
+                other["lease_holder"] = None
+                other["lease_expires_at"] = None
+                other["active_session_id"] = None
+                other["state"] = "dead"
+            expiry = parse_timestamp(row.get("lease_expires_at"))
+            worker_id = params["p_worker_id"]
+            if row.get("lease_holder") == worker_id and expiry and expiry > now:
+                row["lease_expires_at"] = iso_utc(now + timedelta(seconds=params["p_ttl_seconds"]))
+                return {
+                    "granted": True,
+                    "run_id": row["run_id"],
+                    "worker_id": worker_id,
+                    "fencing_token": row["fencing_token"],
+                    "lease_expires_at": row["lease_expires_at"],
+                    "session_id": row.get("active_session_id"),
+                    "idempotent_retry": True,
+                }
+            if row.get("lease_holder") and expiry and expiry > now:
+                return {
+                    "granted": False,
+                    "reason": "lease_held",
+                    "lease_holder": row["lease_holder"],
+                    "lease_expires_at": row["lease_expires_at"],
+                    "fencing_token": row.get("fencing_token", 0),
+                }
+            token = int(row.get("fencing_token", 0)) + 1
+            session_id = str(uuid.uuid4())
+            expiry_text = iso_utc(now + timedelta(seconds=params["p_ttl_seconds"]))
+            row.update({
+                "current_server": params["p_server_id"],
+                "lease_holder": worker_id,
+                "lease_expires_at": expiry_text,
+                "fencing_token": token,
+                "active_session_id": session_id,
+                "session_started_at": iso_utc(now),
+                "session_limit_seconds": params.get("p_session_limit_seconds"),
+                "session_time_left_seconds": params.get("p_session_limit_seconds"),
+                "last_heartbeat_at": iso_utc(now),
+                "state": "running",
+                "pause_requested": False,
+                "handoff_requested": False,
+                "updated_at": iso_utc(now),
+            })
+            self.logs.append({
+                "owner_id": params["p_owner_id"],
+                "run_id": params["p_run_id"],
+                "session_id": session_id,
+                "server_name": params["p_server_id"],
+                "started_at": iso_utc(now),
+                "ended_at": None,
+                "gpu_seconds": 0,
+                "end_reason": None,
+                "manual": False,
+                "details": {"worker_id": worker_id, "device": params.get("p_device", "cpu")},
+            })
+            return {
+                "granted": True,
+                "run_id": row["run_id"],
+                "worker_id": worker_id,
+                "fencing_token": token,
+                "lease_expires_at": expiry_text,
+                "session_id": session_id,
+                "idempotent_retry": False,
+            }
+
+        if function == "heartbeat_training_lease":
+            row = self.rows.get(params["p_run_id"])
+            expiry = parse_timestamp(row.get("lease_expires_at")) if row else None
+            if (
+                row is None
+                or row.get("owner_id") != params["p_owner_id"]
+                or row.get("lease_holder") != params["p_worker_id"]
+                or int(row.get("fencing_token", 0)) != int(params["p_fencing_token"])
+                or expiry is None
+                or expiry <= utc_now()
+            ):
+                return {"ok": False, "reason": "lease_lost"}
+            now = utc_now()
+            row.update({
+                "lease_expires_at": iso_utc(now + timedelta(seconds=params["p_ttl_seconds"])),
+                "last_heartbeat_at": iso_utc(now),
+                "current_step": max(int(row.get("current_step", 0)), int(params["p_current_step"])),
+                "loss": params.get("p_loss"),
+                "learning_rate": params.get("p_learning_rate"),
+                "current_topic": params.get("p_current_topic"),
+                "difficulty": params.get("p_difficulty"),
+                "data_position": params.get("p_data_position"),
+                "data_epoch": params.get("p_data_epoch"),
+                "accuracy_by_topic": params.get("p_accuracy_by_topic") or {},
+                "curriculum_state": params.get("p_curriculum_state") or {},
+                "session_time_left_seconds": params.get("p_session_time_left_seconds"),
+                "updated_at": iso_utc(now),
+            })
+            return {
+                "ok": True,
+                "pause_requested": bool(row.get("pause_requested")),
+                "handoff_requested": bool(row.get("handoff_requested")),
+                "automatic_start_enabled": bool(row.get("automatic_start_enabled")),
+                "state": row.get("state"),
+                "lease_expires_at": row["lease_expires_at"],
+            }
+
+        if function == "commit_training_checkpoint":
+            row = self.rows.get(params["p_run_id"])
+            expiry = parse_timestamp(row.get("lease_expires_at")) if row else None
+            if (
+                row is None
+                or row.get("owner_id") != params["p_owner_id"]
+                or row.get("lease_holder") != params["p_worker_id"]
+                or int(row.get("fencing_token", 0)) != int(params["p_fencing_token"])
+                or expiry is None
+                or expiry <= utc_now()
+                or (row.get("last_checkpoint_step") is not None and int(params["p_step"]) < int(row["last_checkpoint_step"]))
+            ):
+                return {"ok": False, "reason": "lease_lost_or_checkpoint_regression"}
+            row.update({
+                "last_checkpoint_id": params["p_checkpoint_id"],
+                "last_checkpoint_step": params["p_step"],
+                "last_checkpoint_size_bytes": params["p_size_bytes"],
+                "last_checkpoint_verified": True,
+                "last_checkpoint_manifest_sha256": params["p_manifest_sha256"],
+                "current_step": max(int(row.get("current_step", 0)), int(params["p_step"])),
+                "current_topic": params.get("p_current_topic"),
+                "difficulty": params.get("p_difficulty"),
+                "data_position": params.get("p_data_position"),
+                "data_epoch": params.get("p_data_epoch"),
+                "loss": params.get("p_loss"),
+                "learning_rate": params.get("p_learning_rate"),
+                "accuracy_by_topic": params.get("p_accuracy_by_topic") or {},
+                "curriculum_state": params.get("p_curriculum_state") or {},
+                "last_heartbeat_at": iso_utc(),
+            })
+            return {
+                "ok": True,
+                "checkpoint_id": row["last_checkpoint_id"],
+                "step": row["last_checkpoint_step"],
+                "verified": True,
+                "manifest_sha256": row["last_checkpoint_manifest_sha256"],
+            }
+
+        if function == "release_training_lease":
+            row = self.rows.get(params["p_run_id"])
+            if (
+                row is None
+                or row.get("owner_id") != params["p_owner_id"]
+                or row.get("lease_holder") != params["p_worker_id"]
+                or int(row.get("fencing_token", 0)) != int(params["p_fencing_token"])
+            ):
+                return {"ok": False, "reason": "lease_lost"}
+            session_id = row.get("active_session_id")
+            for log in self.logs:
+                if log.get("session_id") == session_id and log.get("ended_at") is None:
+                    log["ended_at"] = iso_utc()
+                    log["end_reason"] = params["p_end_reason"]
+            row.update({
+                "lease_holder": None,
+                "lease_expires_at": None,
+                "active_session_id": None,
+                "state": params["p_final_state"],
+                "pause_requested": False,
+                "handoff_requested": params["p_final_state"] == "handoff_needed",
+                "updated_at": iso_utc(),
+            })
+            return {"ok": True, "state": row["state"], "current_step": row.get("current_step", 0), "lease_released": True}
+
+        raise AssertionError(f"Unexpected RPC: {function}")
 
     def select(self, table, filters=None, columns="*", limit=None, order=None):
         self.requests.append(("select", table, dict(filters or {})))
@@ -100,6 +306,17 @@ class SupabaseLeaseTests(unittest.TestCase):
     def setUp(self):
         self.client = FakeClient()
         self.api = TrainingControlAPI(self.client, "owner-123")
+        for run_id in ("run-1", "run-2"):
+            self.client.rows[run_id] = {
+                "run_id": run_id,
+                "owner_id": "owner-123",
+                "state": "paused",
+                "current_step": 0,
+                "fencing_token": 0,
+                "updated_at": iso_utc(),
+                "pause_requested": False,
+                "handoff_requested": False,
+            }
 
     def test_first_worker_acquires_new_lease(self):
         result = self.api.acquire_lease("run-1", "Kaggle", "worker-a", ttl_seconds=120)
@@ -147,6 +364,7 @@ class SupabaseLeaseTests(unittest.TestCase):
                 "curriculum_state": {},
                 "learning_rate": 0.0003,
             },
+            manifest_sha256="a" * 64,
         )
         self.assertEqual(result["last_checkpoint_id"], "ckpt-0001")
         self.assertEqual(result["last_checkpoint_step"], 1)
@@ -203,6 +421,7 @@ class SupabaseLeaseTests(unittest.TestCase):
         self.assertNotIn("sb_secret_never-print", repr(client))
         self.assertEqual(captured["request"].get_header("Accept-profile"), "training_api")
         self.assertEqual(captured["request"].get_header("Apikey"), "sb_secret_never-print")
+        self.assertIsNone(captured["request"].get_header("Authorization"))
         self.assertIn("/rest/v1/training_status", captured["request"].full_url)
 
     def test_switch_request_is_completed_on_target_first_heartbeat(self):
