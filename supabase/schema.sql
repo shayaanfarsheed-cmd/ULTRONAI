@@ -7,6 +7,7 @@ GRANT USAGE ON SCHEMA training_api TO authenticated, service_role;
 CREATE TABLE IF NOT EXISTS training_api.training_status (
     run_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     owner_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    UNIQUE (run_id, owner_id),
     current_server text,
     current_step bigint NOT NULL DEFAULT 0 CHECK (current_step >= 0),
     current_topic text,
@@ -40,7 +41,8 @@ CREATE TABLE IF NOT EXISTS training_api.training_status (
 CREATE TABLE IF NOT EXISTS training_api.server_log (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     owner_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    run_id uuid NOT NULL REFERENCES training_api.training_status(run_id) ON DELETE CASCADE,
+    run_id uuid NOT NULL,
+    FOREIGN KEY (run_id, owner_id) REFERENCES training_api.training_status(run_id, owner_id) ON DELETE CASCADE,
     session_id uuid NOT NULL DEFAULT gen_random_uuid() UNIQUE,
     server_name text NOT NULL,
     started_at timestamptz NOT NULL DEFAULT now(),
@@ -56,7 +58,8 @@ CREATE TABLE IF NOT EXISTS training_api.server_log (
 CREATE TABLE IF NOT EXISTS training_api.switch_requests (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     owner_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    run_id uuid REFERENCES training_api.training_status(run_id) ON DELETE CASCADE,
+    run_id uuid,
+    FOREIGN KEY (run_id, owner_id) REFERENCES training_api.training_status(run_id, owner_id) ON DELETE CASCADE,
     from_server text,
     to_server text,
     reason text NOT NULL CHECK (reason IN ('handoff_needed', 'heartbeat_timeout', 'quota', 'no_gpu', 'slow_gpu', 'user_requested', 'failed_start', 'cpu_fallback', 'pause', 'resume')),
