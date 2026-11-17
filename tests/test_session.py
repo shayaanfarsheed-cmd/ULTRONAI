@@ -56,7 +56,7 @@ class FakeAPI:
     def create_run_id(self):
         return "run-1"
 
-    def acquire_lease(self, run_id, server_name, lease_holder, ttl_seconds):
+    def acquire_lease(self, run_id, server_name, lease_holder, ttl_seconds, device="cpu", session_limit_seconds=None):
         if not self.acquired:
             return LeaseResult(False, run_id, "other-worker", 1, iso_utc(utc_now() + timedelta(minutes=5)), "busy")
         now = iso_utc()
@@ -108,13 +108,14 @@ class FakeAPI:
     def controls(self, run_id):
         return {"pause_requested": self.pause, "handoff_requested": self.handoff}
 
-    def commit_checkpoint(self, run_id, lease_holder, fencing_token, checkpoint_id, checkpoint_size_bytes, training_state):
+    def commit_checkpoint(self, run_id, lease_holder, fencing_token, checkpoint_id, checkpoint_size_bytes, training_state, manifest_sha256=None):
         if self.status["lease_holder"] != lease_holder or self.status["fencing_token"] != fencing_token:
             raise RuntimeError("stale lease")
         self.status.update({
             "last_checkpoint_id": checkpoint_id,
             "last_checkpoint_step": training_state["step"],
             "last_checkpoint_verified": True,
+            "last_checkpoint_manifest_sha256": manifest_sha256,
             "current_step": training_state["step"],
         })
         return dict(self.status)
@@ -124,6 +125,14 @@ class FakeAPI:
         self.status["lease_expires_at"] = None
         self.status["state"] = final_state
         self.released.append(final_state)
+        if self.sessions:
+            self.sessions[-1]["ended"] = True
+            self.sessions[-1]["end_reason"] = {
+                "finished": "finished",
+                "handoff_needed": "handoff",
+                "paused": "user_stop",
+                "dead": "crashed",
+            }[final_state]
         return True
 
     def end_session(self, session_id, gpu_seconds, end_reason, details=None):
