@@ -221,3 +221,26 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ULTRON local credentials and secret material
+.env
+.env.*
+!.env.example
+secrets.json
+service-account.json
+kaggle.json
+credentials.json
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Local training artifacts and checkpoints
+checkpoints/
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+*.onnx.tmp
+training_state/
+
