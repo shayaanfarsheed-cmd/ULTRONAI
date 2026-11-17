@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "project": {
+    "name": "ULTRON",
+    "purpose": "Train an independently implemented mathematics model from random initialization.",
+    "stage": 1,
+    "stage_scope": "Configuration files only",
+    "target_parameter_count": {
+      "minimum": 3000000,
+      "target": 4000000,
+      "maximum": 5000000
+    }
+  },
+  "non_negotiable_constraints": {
+    "ai_apis_allowed": false,
+    "pretrained_models_allowed": false,
+    "pretrained_weights_allowed": false,
+    "externally_generated_ai_training_data_allowed": false,
+    "initialize_model_from_random_weights": true,
+    "generate_training_data_with_project_code": true,
+    "independently_verify_generated_training_data": true,
+    "free_compute_only": true,
+    "paid_compute_allowed": false,
+    "store_secrets_in_repository": false
+  },
+  "server_rotation": {
+    "registry_file": "servers.json",
+    "mode": "manual_recommendation",
+    "respect_registry_order": true,
+    "skip_disabled_servers": true,
+    "require_manual_confirmation_before_switch": true,
+    "require_manual_confirmation_before_any_paid_action": true,
+    "paid_actions_allowed": false,
+    "never_bypass_provider_limits": true
+  },
+  "runtime": {
+    "platform_detection": true,
+    "device_preference": "auto",
+    "mixed_precision": "auto",
+    "batch_size": "auto",
+    "dataloader_workers": "auto",
+    "cpu_fallback_enabled": true,
+    "graceful_stop_enabled": true
+  },
+  "training": {
+    "seed": 20261117,
+    "sequence_length": 128,
+    "evaluation_interval_steps": 500,
+    "maximum_training_steps": 100000,
+    "learning_rate": 0.0003,
+    "weight_decay": 0.1,
+    "gradient_clip_norm": 1,
+    "curriculum": {
+      "enabled": true,
+      "unlock_mastery_accuracy": 0.9,
+      "consecutive_evaluations_required": 3,
+      "held_out_evaluation_required": true
+    }
+  },
+  "persistence": {
+    "checkpoint_interval_seconds": 300,
+    "checkpoint_on_graceful_stop": true,
+    "keep_last_valid_checkpoints": 3,
+    "verify_sha256": true,
+    "atomic_checkpoint_commit": true,
+    "retain_previous_checkpoint_until_new_one_verified": true,
+    "fallback_to_previous_valid_checkpoint": true,
+    "resume_optimizer_state": true,
+    "resume_random_number_generator_state": true,
+    "resume_training_position": true,
+    "resume_curriculum_position": true
+  },
+  "monitoring": {
+    "heartbeat_interval_seconds": 60,
+    "stale_run_after_seconds": 720,
+    "dashboard_poll_interval_seconds": 15,
+    "record_session_start_and_end": true,
+    "update_single_status_record_on_heartbeat": true,
+    "never_log_secrets": true
+  },
+  "quota_management": {
+    "warning_threshold_percent": 80,
+    "stop_recommending_server_at_percent": 95,
+    "unknown_quota_policy": "show_unknown_and_require_manual_check",
+    "usage_tracking": "session_logs_and_manual_adjustments",
+    "do_not_assume_provider_quota_api_exists": true
+  },
+  "storage": {
+    "checkpoint_format": "safetensors_plus_json_metadata",
+    "checkpoint_primary_location": "supabase_private_storage",
+    "secondary_backup_location": "huggingface_private_repository",
+    "temporary_runtime_storage_is_authoritative": false,
+    "verify_upload_hash_before_commit": true,
+    "secrets_source": "provider_secret_manager_or_environment",
+    "credentials_must_never_be_committed": true
+  },
+  "dashboard": {
+    "default_language": "en",
+    "mobile_first": true,
+    "offline_state_label": true,
+    "show_next_server_recommendation": true,
+    "show_quota_as_unknown_when_not_measurable": true,
+    "require_authentication_for_private_training_data": true
+  },
+  "release": {
+    "format": "onnx",
+    "filename_pattern": "model{next_unused_number}.onnx",
+    "never_overwrite_existing_release": true,
+    "require_held_out_evaluation_pass": true
+  }
+}
