@@ -15,7 +15,7 @@ import torch
 from ultron_checkpoint import LocalCheckpointStore
 from ultron_data import generate_dataset
 from ultron_model import CharTokenizer, ULTRONTransformer
-from ultron_storage import RemoteCheckpointStore, SupabaseStorageClient
+from ultron_storage import HuggingFaceCheckpointStore, RemoteCheckpointStore, SupabaseStorageClient
 from ultron_supabase import (
     LeaseLostError,
     SupabaseAPIError,
@@ -145,6 +145,7 @@ def run_training_session(
     checkpoint_root: str | Path = "/tmp/ultron-checkpoints",
     api: TrainingControlAPI | None = None,
     remote_store: RemoteCheckpointStore | None = None,
+    backup_store: HuggingFaceCheckpointStore | None = None,
     platform_id: str | None = None,
     runtime_override: Mapping[str, Any] | None = None,
     max_steps_override: int | None = None,
@@ -187,6 +188,11 @@ def run_training_session(
             keep_last=retention,
             maximum_file_bytes=int(float(config.get("persistence", {}).get("max_single_storage_object_mb", 45)) * 1_000_000),
         )
+    if backup_store is None:
+        try:
+            backup_store = HuggingFaceCheckpointStore.from_environment()
+        except Exception as error:
+            raise TrainingSessionError("Private secondary checkpoint backup is configured but could not be initialized: " + type(error).__name__) from None
 
     if runtime_override is None:
         runtime = resolve_runtime_settings(config, platform, torch_module=torch)
@@ -271,37 +277,72 @@ def run_training_session(
     committed_step = initial_status.get("last_checkpoint_step")
     requested_resume_id = initial_status.get("requested_resume_checkpoint_id")
     selected_remote_candidate = None
+    selected_backup_candidate = None
+    remote_candidates = []
     if committed_step is not None:
         try:
-            candidates = remote_store.list_remote_candidates(
+            remote_candidates = remote_store.list_remote_candidates(
                 api.owner_id,
                 run_id,
                 maximum_step=int(committed_step),
             )
         except Exception:
-            candidates = []
-        pointer_id = initial_status.get("last_checkpoint_id")
-        candidates.sort(
-            key=lambda item: (
-                item.get("checkpoint_id") != requested_resume_id,
-                item.get("checkpoint_id") != pointer_id,
-                -int(item.get("step", 0)),
-            )
+            remote_candidates = []
+    pointer_id = initial_status.get("last_checkpoint_id")
+    remote_candidates.sort(
+        key=lambda item: (
+            item.get("checkpoint_id") != requested_resume_id,
+            item.get("checkpoint_id") != pointer_id,
+            -int(item.get("step", 0)),
         )
-        for candidate in candidates:
+    )
+    if requested_resume_id:
+        if committed_step is None:
+            raise TrainingSessionError("A resume checkpoint was requested but the run has no committed checkpoint pointer.")
+        for candidate in remote_candidates:
+            if candidate.get("checkpoint_id") != requested_resume_id:
+                continue
             try:
-                remote_store.download_checkpoint(
-                    api.owner_id,
-                    run_id,
-                    str(candidate["checkpoint_id"]),
-                    local_store,
-                )
+                remote_store.download_checkpoint(api.owner_id, run_id, str(candidate["checkpoint_id"]), local_store)
                 selected_remote_candidate = candidate
                 break
             except Exception:
                 continue
+    else:
+        backup_candidates = []
+        if backup_store is not None:
+            try:
+                backup_candidates = backup_store.list_candidates(api.owner_id, run_id)
+            except Exception:
+                backup_candidates = []
+        newer_backups = [
+            item for item in backup_candidates
+            if committed_step is None or int(item.get("step", -1)) > int(committed_step)
+        ]
+        if newer_backups:
+            selected_backup_candidate = newer_backups[0]
+            backup_store.download_checkpoint(
+                api.owner_id,
+                run_id,
+                str(selected_backup_candidate["checkpoint_id"]),
+                local_store,
+            )
+        else:
+            for candidate in remote_candidates:
+                try:
+                    remote_store.download_checkpoint(
+                        api.owner_id,
+                        run_id,
+                        str(candidate["checkpoint_id"]),
+                        local_store,
+                    )
+                    selected_remote_candidate = candidate
+                    break
+                except Exception:
+                    continue
 
     loaded = local_store.load_latest(model, optimizer, scheduler, restore_rng=True, map_location=device)
+    resume_sync_error = None
     if loaded is not None:
         state = dict(loaded["state"])
         if requested_resume_id:
@@ -316,6 +357,22 @@ def run_training_session(
                 selected_remote_candidate,
                 state,
             )
+        elif selected_backup_candidate is not None:
+            try:
+                remote_store.upload_and_commit(
+                    local_store,
+                    str(loaded["checkpoint_id"]),
+                    api.owner_id,
+                    run_id,
+                    api,
+                    lease_holder,
+                    fencing_token,
+                    state,
+                )
+            except LeaseLostError:
+                raise
+            except Exception as error:
+                resume_sync_error = "Secondary checkpoint restored; primary sync pending: " + type(error).__name__
         step = int(state["step"])
         if state.get("curriculum_state"):
             curriculum.load_state_dict(state["curriculum_state"])
@@ -367,7 +424,7 @@ def run_training_session(
     last_checkpoint = monotonic()
     pending_checkpoint_id: str | None = None
     pending_state: dict[str, Any] | None = None
-    last_error: str | None = None
+    last_error: str | None = resume_sync_error
     switch_completion_marked = False
     final_state = "finished"
     force_handoff_reason = "no_gpu" if server and server.get("role") in {"primary_gpu", "backup_gpu"} and device != "cuda" else None
