@@ -238,5 +238,21 @@
     "filename_pattern": "model{next_unused_number}.onnx",
     "never_overwrite_existing_release": true,
     "require_held_out_evaluation_pass": true
+  },
+  "model": {
+    "type": "decoder_only_transformer",
+    "tokenizer": "character",
+    "vocabulary_size": 76,
+    "context_length": 128,
+    "embedding_dimension": 256,
+    "transformer_layers": 5,
+    "attention_heads": 8,
+    "feedforward_multiplier": 4,
+    "dropout": 0.1,
+    "expected_parameter_count": 4021068,
+    "tie_input_output_embeddings": false,
+    "initialization": "random_normal",
+    "parameter_count_minimum": 3000000,
+    "parameter_count_maximum": 5000000
   }
 }
