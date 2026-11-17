@@ -5,6 +5,7 @@ import json
 import urllib.error
 import urllib.parse
 import urllib.request
+from datetime import datetime, timezone
 from typing import Any, Mapping, Sequence
 
 from ultron_checkpoint import CheckpointError, LocalCheckpointStore
@@ -174,12 +175,26 @@ class RemoteCheckpointStore:
             component_sizes[name] = len(content)
         remote_manifest = self.storage.download(self.bucket, f"{prefix}/{checkpoint_id}/manifest.json")
         local_manifest = (folder / "manifest.json").read_bytes()
-        if _sha256_bytes(remote_manifest) != _sha256_bytes(local_manifest):
+        manifest_hash = _sha256_bytes(local_manifest)
+        if _sha256_bytes(remote_manifest) != manifest_hash:
             raise SupabaseStorageError(500, "Remote checkpoint manifest verification failed")
+        receipt = {
+            "schema_version": 1,
+            "checkpoint_id": checkpoint_id,
+            "manifest_sha256": manifest_hash,
+            "verified_at": datetime.now(timezone.utc).isoformat(),
+            "files": manifest["files"],
+        }
+        receipt_bytes = json.dumps(receipt, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
+        receipt_path = f"{prefix}/{checkpoint_id}/upload_receipt.json"
+        self.storage.upload(self.bucket, receipt_path, receipt_bytes, "application/json")
+        if _sha256_bytes(self.storage.download(self.bucket, receipt_path)) != _sha256_bytes(receipt_bytes):
+            raise SupabaseStorageError(500, "Remote checkpoint upload receipt verification failed")
         return {
             "checkpoint_id": checkpoint_id,
             "object_prefix": f"{prefix}/{checkpoint_id}",
             "verified": True,
+            "verification_mode": "local_hashes_and_remote_upload_receipt; component_hashes_rechecked_on_resume",
             "component_sizes_bytes": component_sizes,
             "total_size_bytes": sum(component_sizes.values()),
             "step": int(manifest["step"]),
@@ -206,6 +221,10 @@ class RemoteCheckpointStore:
         manifest = json.loads(manifest_data.decode("utf-8"))
         if manifest.get("checkpoint_id") != checkpoint_id:
             raise CheckpointError("Remote manifest checkpoint ID does not match its path")
+        receipt_data = self.storage.download(self.bucket, f"{prefix}/{checkpoint_id}/upload_receipt.json")
+        receipt = json.loads(receipt_data.decode("utf-8"))
+        if receipt.get("checkpoint_id") != checkpoint_id or receipt.get("manifest_sha256") != _sha256_bytes(manifest_data):
+            raise CheckpointError("Remote checkpoint upload receipt does not match its manifest")
         state_data = None
         for name, entry in manifest["files"].items():
             content = self.storage.download(self.bucket, f"{prefix}/{checkpoint_id}/{name}")
@@ -250,6 +269,36 @@ class RemoteCheckpointStore:
         self.prune_remote(owner_id, run_id, pinned_ids={checkpoint_id})
         return uploaded
 
+    def list_remote_candidates(self, owner_id: str, run_id: str) -> list[dict[str, Any]]:
+        prefix = self._prefix(owner_id, run_id)
+        top_level = self.storage.list_objects(self.bucket, prefix)
+        checkpoint_ids = set()
+        for item in top_level:
+            name = str(item.get("name", "")).strip("/")
+            if name:
+                first = name.split("/", 1)[0]
+                if first.startswith("ckpt-"):
+                    checkpoint_ids.add(first)
+        candidates = []
+        for checkpoint_id in checkpoint_ids:
+            checkpoint_prefix = f"{prefix}/{checkpoint_id}"
+            try:
+                manifest_data = self.storage.download(self.bucket, f"{checkpoint_prefix}/manifest.json")
+                manifest = json.loads(manifest_data.decode("utf-8"))
+                receipt_data = self.storage.download(self.bucket, f"{checkpoint_prefix}/upload_receipt.json")
+                receipt = json.loads(receipt_data.decode("utf-8"))
+                if manifest.get("checkpoint_id") != checkpoint_id:
+                    continue
+                if receipt.get("checkpoint_id") != checkpoint_id or receipt.get("manifest_sha256") != _sha256_bytes(manifest_data):
+                    continue
+                if receipt.get("files") != manifest.get("files"):
+                    continue
+                candidates.append(manifest)
+            except Exception:
+                continue
+        candidates.sort(key=lambda item: (int(item["step"]), item["checkpoint_id"]), reverse=True)
+        return candidates
+
     def prune_remote(self, owner_id: str, run_id: str, pinned_ids: set[str] | None = None) -> list[str]:
         prefix = self._prefix(owner_id, run_id)
         top_level = self.storage.list_objects(self.bucket, prefix)
@@ -267,15 +316,30 @@ class RemoteCheckpointStore:
             checkpoint_prefix = f"{prefix}/{checkpoint_id}"
             children = self.storage.list_objects(self.bucket, checkpoint_prefix)
             paths = []
+            names = set()
             for child in children:
                 name = str(child.get("name", "")).strip("/")
                 if not name:
                     continue
                 relative = name if not name.startswith(checkpoint_id + "/") else name[len(checkpoint_id) + 1:]
+                names.add(relative)
                 paths.append(f"{checkpoint_prefix}/{relative}")
             object_paths[checkpoint_id] = paths
+            required = set(self.COMPONENTS) | {"upload_receipt.json"}
+            if not required.issubset(names):
+                continue
             try:
-                valid.append(self.verify_remote_checkpoint(owner_id, run_id, checkpoint_id))
+                manifest_data = self.storage.download(self.bucket, f"{checkpoint_prefix}/manifest.json")
+                manifest = json.loads(manifest_data.decode("utf-8"))
+                receipt_data = self.storage.download(self.bucket, f"{checkpoint_prefix}/upload_receipt.json")
+                receipt = json.loads(receipt_data.decode("utf-8"))
+                if manifest.get("checkpoint_id") != checkpoint_id:
+                    continue
+                if receipt.get("checkpoint_id") != checkpoint_id or receipt.get("manifest_sha256") != _sha256_bytes(manifest_data):
+                    continue
+                if receipt.get("files") != manifest.get("files"):
+                    continue
+                valid.append(manifest)
             except Exception:
                 continue
         valid.sort(key=lambda item: (int(item["step"]), item["checkpoint_id"]), reverse=True)
