@@ -1,5 +1,20 @@
 # Supabase setup for ULTRON Training Control
 
+## 0. Publish and configure the browser dashboard
+
+1. Open the repository **Settings → Pages**.
+2. Choose **Deploy from a branch**, branch `main`, folder `/(root)`, then Save.
+3. Wait for deployment and open `https://shayaanfarsheed-cmd.github.io/ULTRONAI/`.
+4. In GitHub, open `dashboard/config.js` and replace `sb_publishable_REPLACE_WITH_YOUR_KEY` with the project's publishable key (or legacy anon key). This key is public and is safe for browser use.
+5. Never put an `sb_secret_...` key in `dashboard/config.js`.
+
+In Supabase, open **Authentication → URL Configuration**:
+- Set the Site URL to `https://shayaanfarsheed-cmd.github.io/ULTRONAI/`.
+- Add `https://shayaanfarsheed-cmd.github.io/ULTRONAI/**` to the allowed redirect URLs.
+- Save.
+
+The dashboard uses Supabase Auth directly and does not load a third-party JavaScript SDK.
+
 Project: `ultron-memory` (`euhmejpaswmdpsutbtse`).
 
 The training database schema and policies are installed. The private checkpoint bucket is also created and verified. The six existing `public` memory tables were not changed.
@@ -57,12 +72,13 @@ Object paths use:
 
 ## 4. Create your Supabase Auth account
 
-The project currently has no Auth users. Before training:
+The project currently has no Auth users. After the dashboard is published and its publishable key is configured:
 
-1. Open **Authentication → Users**.
-2. Create an email/password user, or sign up through the ULTRON dashboard once it is available.
-3. Copy that user's **UID**. This is your `SUPABASE_OWNER_ID`.
-4. Keep the UID as a configuration value; it is not an API secret.
+1. Open the ULTRON dashboard.
+2. Choose **Create account** and register with your email and a password.
+3. Confirm the email if Supabase requires it, then sign in.
+4. In Supabase **Authentication → Users**, copy that user's **UID**. This is your `SUPABASE_OWNER_ID`.
+5. Keep the UID as a configuration value; it is not an API secret.
 
 The notebook uses this UUID to associate its run with your account. The database functions reject unknown owner IDs.
 
