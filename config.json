@@ -40,6 +40,17 @@
     "require_manual_confirmation_for_paid_actions": true,
     "paid_actions_allowed": false
   },
+  "local_training": {
+    "memory_limit_gb_default": 6,
+    "memory_limit_gb_minimum": 2,
+    "memory_limit_gb_maximum": 10,
+    "memory_limit_step_gb": 0.5,
+    "reserve_system_memory_gb": 6,
+    "enforcement": "windows_job_object",
+    "enforce_before_training_process_starts": true,
+    "limit_scope": "entire_training_job",
+    "gpu_vram_is_separate": true
+  },
   "runtime": {
     "platform_detection": true,
     "supported_platforms": [
