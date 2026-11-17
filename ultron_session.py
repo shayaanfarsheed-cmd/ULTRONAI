@@ -517,6 +517,13 @@ def run_training_session(
                             lease_lost = True
                             return finish("dead", "lease_lost_during_pause")
                         return finish("paused", "pause_requested")
+                    if controls.get("handoff_requested"):
+                        try:
+                            save_checkpoint()
+                        except LeaseLostError:
+                            lease_lost = True
+                            return finish("dead", "lease_lost_during_handoff")
+                        return finish("handoff_needed", "handoff_requested")
                     if pending_checkpoint_id is not None and pending_state is not None:
                         try:
                             remote_store.upload_and_commit(
