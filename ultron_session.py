@@ -466,14 +466,40 @@ def run_training_session(
         final_state = final_status
         if not lease_lost:
             try:
-                api.release_lease(run_id, lease_holder, fencing_token, final_status)
+                released = api.release_lease(run_id, lease_holder, fencing_token, final_status)
             except Exception:
-                pass
+                released = False
+            if released:
+                try:
+                    if reason == "quota":
+                        api.update_server_status(run_id, server_id, "out_of_quota", reason="Provider quota threshold reached.")
+                    elif reason == "no_gpu":
+                        cooldown = int(config.get("switching", {}).get("failed_server_cooldown_seconds", 21600))
+                        api.update_server_status(
+                            run_id,
+                            server_id,
+                            "unavailable_until",
+                            reason="No free GPU was available for this session.",
+                            unavailable_until=iso_utc(utc_now() + timedelta(seconds=cooldown)),
+                        )
+                    elif final_status == "dead":
+                        cooldown = int(config.get("switching", {}).get("failed_server_cooldown_seconds", 21600))
+                        api.update_server_status(
+                            run_id,
+                            server_id,
+                            "kicked_out",
+                            reason=reason,
+                            kicked_out_until=iso_utc(utc_now() + timedelta(seconds=cooldown)),
+                        )
+                    else:
+                        api.update_server_status(run_id, server_id, "ready", reason="Session released its training lease.")
+                except Exception:
+                    pass
         if create_switch:
             try:
                 api.create_switch_request(
                     run_id,
-                    server_name,
+                    server_id,
                     None,
                     switch_reason or "handoff_needed",
                     automatic=False,
