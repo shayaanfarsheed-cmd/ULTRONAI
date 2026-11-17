@@ -347,6 +347,45 @@ class LocalCheckpointStore:
             removed.append(manifest["checkpoint_id"])
         return removed
 
+    def import_checkpoint(self, checkpoint_id: str, files: Mapping[str, bytes]) -> dict[str, Any]:
+        final = self._checkpoint_path(checkpoint_id)
+        if final.exists():
+            valid, manifest = self.verify_checkpoint(checkpoint_id)
+            if valid and manifest is not None:
+                return manifest
+            raise CheckpointError("Refusing to overwrite an existing invalid checkpoint")
+        required = {"model.safetensors", "optimizer.safetensors", "rng.safetensors", "state.json", "manifest.json"}
+        if not required.issubset(files):
+            raise CheckpointError("Imported checkpoint is missing required files")
+        temporary = self.root / f"{checkpoint_id}.import.tmp"
+        temporary.mkdir(parents=False, exist_ok=False)
+        for name, data in files.items():
+            if Path(name).name != name or not isinstance(data, bytes):
+                raise CheckpointError("Imported checkpoint contains an invalid file entry")
+            if len(data) > self.maximum_file_bytes:
+                raise CheckpointError(f"Imported checkpoint component exceeds size limit: {name}")
+            path = temporary / name
+            with path.open("wb") as handle:
+                handle.write(data)
+                handle.flush()
+                os.fsync(handle.fileno())
+        valid, manifest = self._verify_folder(temporary, checkpoint_id)
+        if not valid or manifest is None:
+            raise CheckpointError("Downloaded checkpoint failed its verification pass")
+        os.replace(temporary, final)
+        _fsync_directory(self.root)
+        pointer = {
+            "checkpoint_id": checkpoint_id,
+            "step": manifest["step"],
+            "manifest_sha256": _sha256(final / "manifest.json"),
+        }
+        pointer_temp = self.root / f"latest-{uuid.uuid4().hex}.tmp"
+        _write_json(pointer_temp, pointer)
+        os.replace(pointer_temp, self.pointer_path)
+        _fsync_directory(self.root)
+        self.prune()
+        return manifest
+
     def _candidate_ids(self) -> list[str]:
         candidates = []
         if self.pointer_path.is_file():
