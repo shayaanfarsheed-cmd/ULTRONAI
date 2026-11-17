@@ -199,7 +199,6 @@ def run_training_session(
     fencing_token = int(lease_result.fencing_token or 0)
     lease_deadline = monotonic() + lease_ttl
     session_start = monotonic()
-    session_id = api.start_session(run_id, server_name)
     session_start_iso = iso_utc()
     gpu_seconds = 0.0
 
