@@ -52,6 +52,21 @@ class DataPipelineTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             generate_example("advanced_calculus", random.Random(1))
 
+    def test_ratio_verifier_rejects_wrong_simplification(self):
+        example = generate_example("ratios_and_proportions", random.Random(88), sample_index=88)
+        corrupted = dict(example)
+        corrupted["answer"] = "999:999"
+        corrupted["steps"] = list(example["steps"][:-1]) + ["Step 2: The simplest ratio is 999:999."]
+        self.assertFalse(verify_example(corrupted))
+
+    def test_inequality_verifier_rejects_reversed_direction(self):
+        example = generate_example("inequalities", random.Random(89), sample_index=89)
+        corrupted = dict(example)
+        relation = "<" if ">" in example["answer"] else ">"
+        corrupted["answer"] = example["answer"].replace("<", relation).replace(">", relation)
+        corrupted["steps"] = list(example["steps"][:-1]) + [f"Step 2: The solution is {corrupted['answer']}."]
+        self.assertFalse(verify_example(corrupted))
+
 
 if __name__ == "__main__":
     unittest.main()
