@@ -33,5 +33,7 @@ jobs:
         run: python -m unittest discover -s tests -v
       - name: Verify model parameter count
         run: python train.py --model-summary
+      - name: Verify generated mathematics data
+        run: python train.py --data-smoke-test
       - name: Run platform preflight
         run: python train.py --preflight
