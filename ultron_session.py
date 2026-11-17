@@ -467,8 +467,21 @@ def run_training_session(
         nonlocal final_state
         final_state = final_status
         if not lease_lost:
+            end_reason = (
+                "quota" if reason in {"quota", "quota_near_limit"} else
+                "finished" if final_status == "finished" else
+                "user_stop" if final_status == "paused" else
+                "crashed" if final_status == "dead" else
+                "handoff"
+            )
             try:
-                released = api.release_lease(run_id, lease_holder, fencing_token, final_status)
+                released = api.release_lease(
+                    run_id,
+                    lease_holder,
+                    fencing_token,
+                    final_status,
+                    end_reason=end_reason,
+                )
             except Exception:
                 released = False
             if released:
