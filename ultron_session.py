@@ -266,15 +266,21 @@ def run_training_session(
 
     initial_status = api.get_status(run_id) or {}
     committed_step = initial_status.get("last_checkpoint_step")
+    requested_resume_id = initial_status.get("requested_resume_checkpoint_id")
+    selected_remote_candidate = None
     if committed_step is not None:
-        candidates = remote_store.list_remote_candidates(
-            api.owner_id,
-            run_id,
-            maximum_step=int(committed_step),
-        )
+        try:
+            candidates = remote_store.list_remote_candidates(
+                api.owner_id,
+                run_id,
+                maximum_step=int(committed_step),
+            )
+        except Exception:
+            candidates = []
         pointer_id = initial_status.get("last_checkpoint_id")
         candidates.sort(
             key=lambda item: (
+                item.get("checkpoint_id") != requested_resume_id,
                 item.get("checkpoint_id") != pointer_id,
                 -int(item.get("step", 0)),
             )
@@ -287,6 +293,7 @@ def run_training_session(
                     str(candidate["checkpoint_id"]),
                     local_store,
                 )
+                selected_remote_candidate = candidate
                 break
             except Exception:
                 continue
@@ -294,6 +301,18 @@ def run_training_session(
     loaded = local_store.load_latest(model, optimizer, scheduler, restore_rng=True, map_location=device)
     if loaded is not None:
         state = dict(loaded["state"])
+        if requested_resume_id:
+            if selected_remote_candidate is None or selected_remote_candidate.get("checkpoint_id") != requested_resume_id:
+                raise TrainingSessionError(
+                    "The requested resume checkpoint could not be verified. Training was stopped without starting from a different checkpoint."
+                )
+            api.select_resume_checkpoint(
+                run_id,
+                lease_holder,
+                fencing_token,
+                selected_remote_candidate,
+                state,
+            )
         step = int(state["step"])
         if state.get("curriculum_state"):
             curriculum.load_state_dict(state["curriculum_state"])
@@ -306,6 +325,10 @@ def run_training_session(
         resume_stream_state = state.get("batch_stream")
         last_saved_step = step
     else:
+        if committed_step is not None:
+            raise TrainingSessionError(
+                "A committed checkpoint exists, but no valid local or remote copy could be restored. Refusing to start fresh."
+            )
         state = {}
         step = 0
         accuracy_by_topic = {}
