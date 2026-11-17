@@ -43,4 +43,9 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_REF_NAME: main
-        run: python ultron_switcher.py --config config.json --servers servers.json --repository-root .
+        run: |
+          if [[ -z "$SUPABASE_URL" || -z "$SUPABASE_SECRET_KEY" || -z "$SUPABASE_OWNER_ID" || -z "$KAGGLE_USERNAME" || -z "$KAGGLE_KEY" || -z "$KAGGLE_KERNEL_SLUG" ]]; then
+            echo "::notice::Switcher skipped safely: required Supabase or Kaggle repository configuration is not present."
+            exit 0
+          fi
+          python ultron_switcher.py --config config.json --servers servers.json --repository-root .
