@@ -631,10 +631,11 @@
     container.innerHTML = state.servers.map(function (server, index) {
       const status = serverState(server);
       const quota = quotaUsage(server);
-      const quotaText = quota.percent == null ? quota.label : quota.label + " · " + formatNumber(quota.percent, 0) + "%";
+      const quotaText = quota.percent == null ? quota.label : quota.label + " · " + formatNumber(quota.percent, 0) + "%" + (quota.percent >= 80 ? " · WARNING" : "");
       const statusMap = state.status && state.status.server_statuses ? state.status.server_statuses : {};
       const saved = statusMap[server.id] || {};
-      const untilValue = saved.unavailable_until ? new Date(saved.unavailable_until).toISOString().slice(0,16) : "";
+      const untilDate = saved.unavailable_until ? new Date(saved.unavailable_until) : null;
+      const untilValue = untilDate && !Number.isNaN(untilDate.getTime()) ? new Date(untilDate.getTime() - untilDate.getTimezoneOffset() * 60000).toISOString().slice(0,16) : "";
       const startUrl = server.notebook_open_url || server.notebook_url || server.documentation_url || "#";
       const limitText = server.limits && server.limits.session_limit_hours ? server.limits.session_limit_hours + "h session" :
         (server.limits && server.limits.job_execution_limit_hours ? server.limits.job_execution_limit_hours + "h job" : "Session varies");
@@ -701,6 +702,12 @@
   function renderAll() {
     renderNextAction();
     renderMetrics();
+    const hasRun = Boolean(state.status && state.status.run_id);
+    const finished = state.status && state.status.state === "finished";
+    $("switchNowButton").disabled = !hasRun || finished;
+    $("pauseButton").disabled = !hasRun || !state.status || state.status.state !== "running";
+    $("resumeButton").disabled = !hasRun || Boolean(finished);
+    $("safeResumeButton").disabled = !hasRun || !state.status || state.status.last_checkpoint_step == null;
     renderMastery();
     drawChart();
     renderServers();
