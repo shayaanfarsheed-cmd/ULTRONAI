@@ -35,7 +35,7 @@ class DeviceCommandContractTests(unittest.TestCase):
         self.assertIn("fencing_token", rule["required"])
         self.assertIn("memory_limit_mb", rule["properties"]["parameters"]["required"])
         self.assertEqual(
-            rule["properties"]["parameters"]["properties"]["memory_limit_mb"]["maximum"],
+            self.schema["properties"]["parameters"]["properties"]["memory_limit_mb"]["maximum"],
             10240,
         )
 
