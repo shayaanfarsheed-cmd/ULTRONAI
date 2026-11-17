@@ -12,7 +12,7 @@ class NotebookTests(unittest.TestCase):
         self.assertEqual(notebook["nbformat"], 4)
         self.assertEqual(notebook["metadata"]["kernelspec"]["name"], "python3")
         code_cells = [cell for cell in notebook["cells"] if cell["cell_type"] == "code"]
-        self.assertEqual(len(code_cells), 2)
+        self.assertEqual(len(code_cells), 4)
         for index, cell in enumerate(code_cells):
             compile("".join(cell["source"]), f"train.ipynb-cell-{index}", "exec")
 
@@ -33,13 +33,20 @@ class NotebookTests(unittest.TestCase):
         self.assertIn("ultron_verify.py", source)
         self.assertIn("ultron_checkpoint.py", source)
         self.assertIn("ultron_training.py", source)
+        self.assertIn("ultron_supabase.py", source)
+        self.assertIn("ultron_storage.py", source)
+        self.assertIn("ultron_session.py", source)
         self.assertIn("config.json", source)
         self.assertIn("servers.json", source)
         self.assertIn("--model-summary", source)
         self.assertIn("--data-smoke-test", source)
         self.assertIn("--checkpoint-smoke-test", source)
         self.assertIn("--training-smoke-test", source)
-        self.assertNotIn("SUPABASE_SECRET_KEY", source)
+        self.assertIn("SUPABASE_SECRET_KEY", source)
+        self.assertIn("SUPABASE_OWNER_ID", source)
+        self.assertIn("secret manager", source)
+        self.assertNotRegex(source, r"sb_secret_[A-Za-z0-9]{20,}")
+        self.assertIn('"--train"', source)
 
 
 if __name__ == "__main__":
