@@ -460,6 +460,7 @@ GRANT EXECUTE ON FUNCTION training_api.commit_training_checkpoint(uuid, uuid, te
 GRANT EXECUTE ON FUNCTION training_api.release_training_lease(uuid, uuid, text, bigint, text, text) TO service_role;
 
 
+
 CREATE OR REPLACE FUNCTION training_api.select_resume_checkpoint(
   p_run_id uuid,
   p_owner_id uuid,
@@ -482,17 +483,15 @@ RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY INVOKER
 SET search_path = ''
-AS $
+AS $ultron$
 DECLARE
   v_row training_api.training_status%ROWTYPE;
   v_now timestamptz := pg_catalog.clock_timestamp();
 BEGIN
-  IF p_checkpoint_id IS NULL OR p_checkpoint_id !~ '^ckpt-[a-zA-Z0-9-]{8,80}
-
+  IF p_checkpoint_id IS NULL OR p_checkpoint_id !~ '^ckpt-[a-zA-Z0-9-]{8,80}$'
      OR p_step IS NULL OR p_step < 0
      OR p_size_bytes IS NULL OR p_size_bytes < 1
-     OR p_manifest_sha256 IS NULL OR p_manifest_sha256 !~ '^[0-9a-f]{64}
- THEN
+     OR p_manifest_sha256 IS NULL OR p_manifest_sha256 !~ '^[0-9a-f]{64}$' THEN
     RAISE EXCEPTION 'invalid resume checkpoint metadata';
   END IF;
 
@@ -530,7 +529,7 @@ BEGIN
 
   RETURN pg_catalog.jsonb_build_object('ok', true, 'checkpoint_id', v_row.last_checkpoint_id, 'step', v_row.last_checkpoint_step);
 END;
-$;
+$ultron$;
 
 CREATE OR REPLACE FUNCTION training_api.clear_resume_checkpoint_request(
   p_run_id uuid,
@@ -544,7 +543,7 @@ RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY INVOKER
 SET search_path = ''
-AS $
+AS $ultron$
 DECLARE
   v_updated integer;
 BEGIN
@@ -562,7 +561,7 @@ BEGIN
   GET DIAGNOSTICS v_updated = ROW_COUNT;
   RETURN pg_catalog.jsonb_build_object('ok', v_updated = 1);
 END;
-$;
+$ultron$;
 
 REVOKE ALL ON FUNCTION training_api.select_resume_checkpoint(uuid, uuid, text, bigint, text, bigint, bigint, text, text, smallint, bigint, bigint, double precision, double precision, jsonb, jsonb) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION training_api.clear_resume_checkpoint_request(uuid, uuid, text, bigint, text, text) FROM PUBLIC, anon, authenticated;
