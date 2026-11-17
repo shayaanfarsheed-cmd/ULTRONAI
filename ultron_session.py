@@ -156,6 +156,7 @@ def run_training_session(
     if server is None:
         server = next((item for item in servers.get("servers", []) if item.get("provider") == platform), None)
     server_name = str(server.get("name")) if server else platform
+    server_id = str(server.get("id")) if server else platform
     session_limit = get_session_limit_seconds(server)
     safety_margin = int(config.get("session_management", {}).get("session_safety_margin_minutes", 10) * 60)
     coordination = config.get("coordination", {})
@@ -321,6 +322,7 @@ def run_training_session(
     pending_checkpoint_id: str | None = None
     pending_state: dict[str, Any] | None = None
     last_error: str | None = None
+    switch_completion_marked = False
     final_state = "finished"
     lease_lost = False
 
@@ -379,7 +381,7 @@ def run_training_session(
             return False
 
     def update_heartbeat() -> bool:
-        nonlocal last_heartbeat, lease_deadline
+        nonlocal last_heartbeat, lease_deadline, switch_completion_marked
         elapsed = monotonic() - session_start
         remaining = max(0, int(session_limit - elapsed))
         values = {
@@ -402,6 +404,12 @@ def run_training_session(
         if renewed:
             last_heartbeat = monotonic()
             lease_deadline = last_heartbeat + lease_ttl
+            if not switch_completion_marked:
+                try:
+                    api.mark_switch_requests_done(run_id, server_id)
+                    switch_completion_marked = True
+                except Exception:
+                    pass
         return renewed
 
     def finish(final_status: str, reason: str, create_switch: bool = False) -> dict[str, Any]:
