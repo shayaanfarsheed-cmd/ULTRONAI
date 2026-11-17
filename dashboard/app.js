@@ -28,7 +28,8 @@
     stale: false,
     refreshing: false,
     checkpointBusy: false,
-    quota: {}
+    quota: {},
+    projectConfig: {}
   };
 
   function escapeHtml(value) {
@@ -209,7 +210,8 @@
     $("authMessage").textContent = state.authMode === "signup" ? "Creating your account…" : "Signing in…";
     try {
       if (state.authMode === "signup") {
-        const data = await authRequest("signup", {email: email, password: password});
+        const redirect = encodeURIComponent(window.location.origin + window.location.pathname);
+        const data = await authRequest("signup?redirect_to=" + redirect, {email: email, password: password});
         if (data.access_token) {
           saveSession(sessionFromResponse(data));
           showDashboard();
@@ -255,6 +257,8 @@
       state.servers = (data.servers || []).filter(function (server) { return server.enabled !== false; }).sort(function (a, b) {
         return Number(a.order || 999) - Number(b.order || 999);
       });
+      const configResponse = await fetch("../config.json", {cache: "no-store"});
+      if (configResponse.ok) state.projectConfig = await configResponse.json();
     } catch (error) {
       state.servers = [];
       showNotice("Server registry unavailable: " + error.message, "warn");
@@ -672,6 +676,15 @@
   function renderSettings() {
     $("autoStartToggle").checked = Boolean(state.status && state.status.automatic_start_enabled);
     $("ownerIdText").textContent = state.user ? state.user.id : "—";
+    const review = state.projectConfig.terms_review || {};
+    const intervalDays = Number(review.reminder_interval_days || 90);
+    const lastReview = review.last_reviewed_date || "2026-11-17";
+    const lastDate = new Date(lastReview + "T00:00:00Z");
+    const dueDate = new Date(lastDate.getTime() + intervalDays * 86400000);
+    const overdue = Date.now() >= dueDate.getTime();
+    $("termsReviewStatus").textContent = overdue
+      ? "Terms review is due. Last reviewed " + lastReview + "; please re-check the provider links below."
+      : "Last reviewed " + lastReview + ". Next review due " + dueDate.toISOString().slice(0,10) + ".";
     $("termsLinks").innerHTML = state.servers.map(function (server) {
       const url = server.terms_url || server.documentation_url;
       if (!url) return "";
