@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS training_api.training_status (
     lease_expires_at timestamptz,
     fencing_token bigint NOT NULL DEFAULT 0 CHECK (fencing_token >= 0),
     pause_requested boolean NOT NULL DEFAULT false,
+    handoff_requested boolean NOT NULL DEFAULT false,
     automatic_start_enabled boolean NOT NULL DEFAULT false,
     last_error text,
     created_at timestamptz NOT NULL DEFAULT now(),
@@ -41,6 +42,7 @@ CREATE TABLE IF NOT EXISTS training_api.training_status (
 );
 
 ALTER TABLE training_api.training_status ADD COLUMN IF NOT EXISTS last_checkpoint_step bigint CHECK (last_checkpoint_step IS NULL OR last_checkpoint_step >= 0);
+ALTER TABLE training_api.training_status ADD COLUMN IF NOT EXISTS handoff_requested boolean NOT NULL DEFAULT false;
 
 CREATE TABLE IF NOT EXISTS training_api.server_log (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -160,7 +162,7 @@ CREATE POLICY switch_requests_owner_insert
 
 REVOKE ALL ON ALL TABLES IN SCHEMA training_api FROM anon, authenticated;
 GRANT SELECT ON training_api.training_status, training_api.server_log, training_api.switch_requests TO authenticated;
-GRANT UPDATE (pause_requested, automatic_start_enabled, server_statuses) ON training_api.training_status TO authenticated;
+GRANT UPDATE (pause_requested, handoff_requested, automatic_start_enabled, server_statuses) ON training_api.training_status TO authenticated;
 GRANT INSERT ON training_api.server_log, training_api.switch_requests TO authenticated;
 GRANT ALL ON training_api.training_status, training_api.server_log, training_api.switch_requests TO service_role;
 
