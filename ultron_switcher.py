@@ -264,7 +264,7 @@ def _auto_start_allowed(
     max_per_day = int(switching.get("maximum_automatic_starts_per_day", 3))
     if len(starts) >= max_per_day:
         return False, "Daily automatic-start safety limit reached."
-    cooldown = int(switching.get("automatic_start_cooldown_seconds", 1200))
+    cooldown = int(switching.get("cooldown_between_automatic_starts_seconds", switching.get("automatic_start_cooldown_seconds", 1200)))
     timestamps = [parse_timestamp(row.get("started_at") or row.get("requested_at")) for row in starts]
     timestamps = [item for item in timestamps if item is not None]
     if timestamps and (now - max(timestamps)).total_seconds() < cooldown:
