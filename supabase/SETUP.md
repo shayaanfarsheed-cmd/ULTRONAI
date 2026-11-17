@@ -95,10 +95,10 @@ For GitHub Actions, add `SUPABASE_URL` as a repository variable if desired, and 
 
 - RLS is enabled on all three `training_api` tables.
 - Authenticated users can read only rows whose `owner_id` equals `auth.uid()`.
-- The dashboard can update only the training control fields granted in SQL.
+- The dashboard can update only the training control fields granted in SQL, including a requested checkpoint ID. The notebook validates the requested checkpoint under its active lease before moving the committed pointer.
 - Authenticated users can insert only their own manual server-log entries and waiting manual switch requests.
 - The backend secret key uses the `service_role` database role and bypasses RLS.
-- The five lease/checkpoint RPC functions are executable only by `service_role`; they use `SECURITY INVOKER`, not `SECURITY DEFINER`.
+- The seven lease/checkpoint/resume RPC functions are executable only by `service_role`; they use `SECURITY INVOKER`, not `SECURITY DEFINER`.
 - Existing `public` memory tables and policies were left unchanged.
 
 The SQL for the functions is in `supabase/lease-functions.sql`.
