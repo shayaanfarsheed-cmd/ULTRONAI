@@ -41,12 +41,13 @@ class FakeStorage:
 
 
 class FakeAPI:
-    def __init__(self, acquired=True, pause=False, renew=True):
+    def __init__(self, acquired=True, pause=False, renew=True, handoff=False):
         self.owner_id = "owner-1"
         self.client = type("Client", (), {"project_url": "https://example.supabase.co", "_api_key": "not-a-real-key"})()
         self.status = None
         self.acquired = acquired
         self.pause = pause
+        self.handoff = handoff
         self.renew = renew
         self.released = []
         self.sessions = []
@@ -105,7 +106,7 @@ class FakeAPI:
         return True
 
     def controls(self, run_id):
-        return {"pause_requested": self.pause}
+        return {"pause_requested": self.pause, "handoff_requested": self.handoff}
 
     def commit_checkpoint(self, run_id, lease_holder, fencing_token, checkpoint_id, checkpoint_size_bytes, training_state):
         if self.status["lease_holder"] != lease_holder or self.status["fencing_token"] != fencing_token:
@@ -300,6 +301,25 @@ class TrainingSessionTests(unittest.TestCase):
         self.assertEqual(second["state"], "finished")
         self.assertEqual(second["step"], 2)
         self.assertNotEqual(api.status["last_checkpoint_id"], newest_id)
+
+    def test_handoff_request_saves_and_releases_lease(self):
+        api = FakeAPI(handoff=True)
+        remote = RemoteCheckpointStore(FakeStorage(), keep_last=3)
+        with tempfile.TemporaryDirectory() as folder:
+            result = run_training_session(
+                self._config(),
+                self._servers(),
+                checkpoint_root=folder,
+                api=api,
+                remote_store=remote,
+                platform_id="kaggle",
+                runtime_override={"device": "cpu", "batch_size": 2, "cpu_threads": 1, "mixed_precision": "none"},
+                model_factory=self._model_factory,
+            )
+        self.assertEqual(result["state"], "handoff_needed")
+        self.assertEqual(result["reason"], "handoff_requested")
+        self.assertEqual(api.released[-1], "handoff_needed")
+        self.assertEqual(api.status["last_checkpoint_step"], 0)
 
 
 if __name__ == "__main__":
