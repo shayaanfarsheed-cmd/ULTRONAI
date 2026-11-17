@@ -429,7 +429,13 @@ class TrainingControlAPI:
         values = {"state": "dead", "updated_at": iso_utc(now)}
         return bool(self.client.patch("training_status", filters, values))
 
-    def start_session(self, run_id: str, server_name: str, session_id: str | None = None) -> str:
+    def start_session(
+        self,
+        run_id: str,
+        server_name: str,
+        session_id: str | None = None,
+        details: Mapping[str, Any] | None = None,
+    ) -> str:
         current_session = session_id or str(uuid.uuid4())
         self.client.insert(
             "server_log",
@@ -441,7 +447,7 @@ class TrainingControlAPI:
                 "started_at": iso_utc(),
                 "gpu_seconds": 0,
                 "manual": False,
-                "details": {},
+                "details": dict(details or {}),
             },
         )
         return current_session
