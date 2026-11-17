@@ -84,7 +84,7 @@ class TrainingEngineTests(unittest.TestCase):
         self.assertIn("whole_number_arithmetic", metrics)
         self.assertEqual(metrics["whole_number_arithmetic"]["total"], 2)
         self.assertGreaterEqual(metrics["whole_number_arithmetic"]["accuracy"], 0.0)
-        self.assertFalse(model.training)
+        self.assertTrue(model.training)
 
     def test_curriculum_waits_for_three_held_out_mastery_evaluations(self):
         controller = CurriculumController(
