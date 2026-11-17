@@ -53,8 +53,9 @@ class SupabaseStorageClient:
         url = f"{self.project_url}/storage/v1/{path.lstrip('/')}"
         headers = {
             "apikey": self._api_key,
-            "Authorization": f"Bearer {self._api_key}",
         }
+        if not self._api_key.startswith("sb_secret_"):
+            headers["Authorization"] = f"Bearer {self._api_key}"
         payload: bytes | None
         if isinstance(body, Mapping):
             payload = json.dumps(body, separators=(",", ":"), allow_nan=False).encode("utf-8")
@@ -74,11 +75,13 @@ class SupabaseStorageClient:
             try:
                 detail = json.loads(raw)
                 message = str(detail.get("message") or detail.get("error") or "Storage request failed")
+                message = message.replace(self._api_key, "[redacted]")
             except Exception:
                 message = "Storage request failed"
             raise SupabaseStorageError(error.code, message) from None
         except urllib.error.URLError as error:
-            raise SupabaseStorageError(0, f"Storage connection failed: {error.reason}") from None
+            reason = str(error.reason).replace(self._api_key, "[redacted]")
+            raise SupabaseStorageError(0, f"Storage connection failed: {reason}") from None
 
     @staticmethod
     def _object_path(bucket: str, path: str) -> str:
@@ -194,7 +197,8 @@ class RemoteCheckpointStore:
             "checkpoint_id": checkpoint_id,
             "object_prefix": f"{prefix}/{checkpoint_id}",
             "verified": True,
-            "verification_mode": "local_hashes_and_remote_upload_receipt; component_hashes_rechecked_on_resume",
+            "manifest_sha256": manifest_hash,
+            "verification_mode": "local_hashes_and_remote_manifest_receipt; component_hashes_rechecked_on_resume",
             "component_sizes_bytes": component_sizes,
             "total_size_bytes": sum(component_sizes.values()),
             "step": int(manifest["step"]),
@@ -265,6 +269,7 @@ class RemoteCheckpointStore:
             checkpoint_id,
             uploaded["total_size_bytes"],
             training_state,
+            manifest_sha256=uploaded["manifest_sha256"],
         )
         try:
             self.prune_remote(owner_id, run_id, pinned_ids={checkpoint_id})
