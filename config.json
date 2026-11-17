@@ -106,7 +106,7 @@
     "checkpoint_interval_seconds": 300,
     "checkpoint_on_graceful_stop": true,
     "keep_last_valid_checkpoints": 3,
-    "max_single_storage_object_mb": 40,
+    "max_single_storage_object_mb": 45,
     "verify_sha256": true,
     "immutable_checkpoint_objects": true,
     "atomic_manifest_commit": true,
