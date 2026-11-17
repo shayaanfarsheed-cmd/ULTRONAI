@@ -16,7 +16,7 @@
 
   const $ = function (id) { return document.getElementById(id); };
   const state = {
-    authMode: "login",
+    publicMode: true,
     session: null,
     user: null,
     status: null,
@@ -145,7 +145,6 @@
     if (!response.ok) {
       if (response.status === 401) {
         saveSession(null);
-        showAuth("Your session expired. Sign in again.");
       }
       const message = data && (data.message || data.hint || data.error) ? (data.message || data.hint || data.error) : "Database request failed (" + response.status + ").";
       throw new Error(message);
@@ -172,83 +171,6 @@
       throw new Error(data.message || data.error || "Storage request failed (" + response.status + ").");
     }
     return binary ? response.arrayBuffer() : response.json().catch(function () { return null; });
-  }
-
-  function showAuth(message) {
-    $("authPanel").hidden = false;
-    $("dashboardPanel").hidden = true;
-    $("logoutButton").hidden = true;
-    setConnection("NOT CONNECTED", "");
-    if (message) $("authMessage").textContent = message;
-  }
-
-  function showDashboard() {
-    $("authPanel").hidden = true;
-    $("dashboardPanel").hidden = false;
-    $("logoutButton").hidden = false;
-    $("accountEmail").textContent = state.user && state.user.email ? state.user.email : "Signed-in account";
-    $("ownerIdText").textContent = state.user ? state.user.id : "—";
-  }
-
-  function setAuthMode(mode) {
-    state.authMode = mode;
-    document.querySelectorAll("[data-auth-mode]").forEach(function (button) {
-      button.classList.toggle("active", button.getAttribute("data-auth-mode") === mode);
-    });
-    $("authSubmit").textContent = mode === "signup" ? "Create account" : "Sign in";
-    $("authPassword").autocomplete = mode === "signup" ? "new-password" : "current-password";
-    $("authMessage").textContent = "";
-  }
-
-  async function submitAuth(event) {
-    event.preventDefault();
-    if (!isConfigured()) {
-      $("authMessage").textContent = "Add your Supabase publishable/anon key to dashboard/config.js first.";
-      return;
-    }
-    const email = $("authEmail").value.trim();
-    const password = $("authPassword").value;
-    $("authSubmit").disabled = true;
-    $("authMessage").textContent = state.authMode === "signup" ? "Creating your account…" : "Signing in…";
-    try {
-      if (state.authMode === "signup") {
-        const redirect = encodeURIComponent(window.location.origin + window.location.pathname);
-        const data = await authRequest("signup?redirect_to=" + redirect, {email: email, password: password});
-        if (data.access_token) {
-          saveSession(sessionFromResponse(data));
-          showDashboard();
-          await refreshData();
-        } else {
-          $("authMessage").textContent = "Account created. Check your email to confirm the address, then sign in.";
-        }
-      } else {
-        const data = await authRequest("token?grant_type=password", {email: email, password: password});
-        saveSession(sessionFromResponse(data));
-        showDashboard();
-        await refreshData();
-      }
-    } catch (error) {
-      $("authMessage").textContent = error.message;
-    } finally {
-      $("authSubmit").disabled = false;
-    }
-  }
-
-  async function logout() {
-    try {
-      if (state.session && state.session.access_token && isConfigured()) {
-        await fetch(AUTH_ROOT + "logout", {
-          method: "POST",
-          headers: {"apikey": PUBLISHABLE_KEY, "Authorization": "Bearer " + state.session.access_token}
-        });
-      }
-    } catch (_) {}
-    saveSession(null);
-    state.status = null;
-    state.logs = [];
-    state.switches = [];
-    state.checkpoints = [];
-    showAuth("You have signed out.");
   }
 
   async function loadServerRegistry() {
@@ -653,7 +575,7 @@
           '<div class="quota-line"><div class="quota-top"><span>Quota usage</span><span>' + escapeHtml(quota.percent == null ? "Not measurable" : formatNumber(quota.percent, 1) + "%") + '</span></div><div class="quota-track"><div class="quota-fill" style="width:' + (quota.percent == null ? 0 : Math.max(0, Math.min(100, quota.percent))) + '%"></div></div></div>' +
           '<div class="server-sub">' + escapeHtml(server.status_reason || server.limits && server.limits.quota_notes || "") + '</div>' +
         '</div>' +
-        '<div class="server-actions"><a class="secondary-button button-link" href="' + escapeHtml(startUrl) + '" target="_blank" rel="noopener">Open server ↗</a><button class="quiet-button" type="button" data-server-ready="' + escapeHtml(server.id) + '">Mark ready</button><input type="datetime-local" aria-label="Unavailable until for ' + escapeHtml(server.name) + '" value="' + escapeHtml(untilValue) + '" data-server-until="' + escapeHtml(server.id) + '"><button class="quiet-button" type="button" data-server-unavailable="' + escapeHtml(server.id) + '">Set unavailable</button></div>' +
+        '<div class="server-actions"><a class="secondary-button button-link" href="' + escapeHtml(startUrl) + '" target="_blank" rel="noopener">Open server ↗</a><button class="quiet-button" type="button" data-server-ready="' + escapeHtml(server.id) + '" disabled>Mark ready</button><input type="datetime-local" aria-label="Unavailable until for ' + escapeHtml(server.name) + '" value="' + escapeHtml(untilValue) + '" data-server-until="' + escapeHtml(server.id) + '" disabled><button class="quiet-button" type="button" data-server-unavailable="' + escapeHtml(server.id) + '" disabled>Set unavailable</button></div>' +
       '</article>';
     }).join("");
     const select = $("manualServer");
@@ -676,7 +598,8 @@
   }
 
   function renderSettings() {
-    $("autoStartToggle").checked = Boolean(state.status && state.status.automatic_start_enabled);
+    $("autoStartToggle").checked = false;
+    $("autoStartToggle").disabled = state.publicMode;
     const ramSlider = $("ramLimitSlider");
     if (ramSlider) {
       ramSlider.value = String(state.ramLimitGb);
@@ -727,10 +650,10 @@
     renderMetrics();
     const hasRun = Boolean(state.status && state.status.run_id);
     const finished = state.status && state.status.state === "finished";
-    $("switchNowButton").disabled = !hasRun || finished;
-    $("pauseButton").disabled = !hasRun || !state.status || state.status.state !== "running";
-    $("resumeButton").disabled = !hasRun || Boolean(finished);
-    $("safeResumeButton").disabled = !hasRun || !state.status || state.status.last_checkpoint_step == null;
+    $("switchNowButton").disabled = state.publicMode || !hasRun || finished;
+    $("pauseButton").disabled = state.publicMode || !hasRun || !state.status || state.status.state !== "running";
+    $("resumeButton").disabled = state.publicMode || !hasRun || Boolean(finished);
+    $("safeResumeButton").disabled = state.publicMode || !hasRun || !state.status || state.status.last_checkpoint_step == null;
     renderMastery();
     drawChart();
     renderServers();
@@ -1046,11 +969,6 @@
   }
 
   function bindEvents() {
-    $("authForm").addEventListener("submit", submitAuth);
-    document.querySelectorAll("[data-auth-mode]").forEach(function (button) {
-      button.addEventListener("click", function () { setAuthMode(button.getAttribute("data-auth-mode")); });
-    });
-    $("logoutButton").addEventListener("click", logout);
     $("themeToggle").addEventListener("click", function () {
       applyTheme(document.body.getAttribute("data-theme") === "dark" ? "light" : "dark");
       drawChart();
@@ -1064,7 +982,7 @@
     $("resumeButton").addEventListener("click", function () { resumeTraining().catch(function (error) { showNotice(error.message, "error"); }); });
     $("safeResumeButton").addEventListener("click", function () { safeResume().catch(function (error) { showCheckpointNotice(error.message, "error"); }); });
     $("verifyCheckpointsButton").addEventListener("click", function () { safeResume().catch(function (error) { showCheckpointNotice(error.message, "error"); }); });
-    $("autoStartToggle").addEventListener("change", function () { toggleAutomaticStart($("autoStartToggle").checked).catch(function (error) { showNotice(error.message, "error"); }); });
+    $("autoStartToggle").disabled = true;
     $("ramLimitSlider").addEventListener("input", function () {
       const selected = Math.max(2, Math.min(10, Number($("ramLimitSlider").value)));
       state.ramLimitGb = Math.round(selected * 2) / 2;
@@ -1074,15 +992,8 @@
       try { localStorage.setItem(RAM_LIMIT_KEY, String(state.ramLimitGb)); } catch (_) {}
       $("ramLimitStatus").textContent = "Saved as " + state.ramLimitGb + " GB on this browser only. It is not yet sent to or enforced by a connected device.";
     });
-    $("copyOwnerId").addEventListener("click", copyOwnerId);
-    $("copyOwnerIdSettings").addEventListener("click", copyOwnerId);
-    $("manualHoursForm").addEventListener("submit", function (event) { addManualHours(event).catch(function (error) { showNotice(error.message, "error"); }); });
-    $("serverList").addEventListener("click", function (event) {
-      const ready = event.target.closest("[data-server-ready]");
-      const unavailable = event.target.closest("[data-server-unavailable]");
-      if (ready) markServerReady(ready.getAttribute("data-server-ready")).catch(function (error) { showNotice(error.message, "error"); });
-      if (unavailable) markServerUnavailable(unavailable.getAttribute("data-server-unavailable")).catch(function (error) { showNotice(error.message, "error"); });
-    });
+
+
     $("checkpointList").addEventListener("click", function (event) {
       const button = event.target.closest("[data-checkpoint-verify], [data-checkpoint-download], [data-checkpoint-resume]");
       if (button) handleCheckpointAction(button).catch(function (error) { showCheckpointNotice(error.message, "error"); });
@@ -1102,32 +1013,13 @@
       }
     } catch (_) {}
     bindEvents();
-    if (!isConfigured()) {
-      $("configWarning").hidden = false;
-      $("configWarning").textContent = "Supabase connection is not configured. Add the publishable/anon key to dashboard/config.js. Never add the backend secret key here.";
-    }
     await loadServerRegistry();
-    const saved = loadSavedSession();
-    if (saved && saved.access_token) {
-      saveSession(saved);
-      try {
-        await ensureSession();
-        if (state.user) {
-          showDashboard();
-          await refreshData();
-        } else {
-          showAuth();
-        }
-      } catch (_) {
-        saveSession(null);
-        showAuth("Your saved login expired. Sign in again.");
-      }
-    } else {
-      showAuth();
-    }
-    setInterval(function () {
-      if (state.user && !document.hidden) refreshData();
-    }, POLL_MS);
+    state.user = null;
+    state.session = null;
+    setConnection("PUBLIC MODE", "connected");
+    $("lastUpdated").textContent = "Public dashboard · private training data is protected";
+    showNotice("Public read-only mode. Account-specific training history, checkpoints, device pairing and training controls remain locked. No login or sign-up is required.", "warn");
+    renderAll();
   }
 
   document.addEventListener("DOMContentLoaded", init);
