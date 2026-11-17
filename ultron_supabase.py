@@ -295,6 +295,7 @@ class TrainingControlAPI:
             "fencing_token": new_token,
             "current_server": server_name,
             "state": "running",
+            "handoff_requested": False,
             "last_heartbeat_at": now_text,
             "session_started_at": now_text,
             "updated_at": now_text,
@@ -404,6 +405,7 @@ class TrainingControlAPI:
             "lease_holder": None,
             "lease_expires_at": None,
             "state": final_state,
+            "handoff_requested": False,
             "updated_at": iso_utc(),
         }
         return bool(self.client.patch("training_status", filters, values))
@@ -628,12 +630,25 @@ class TrainingControlAPI:
             values,
         ))
 
+    def request_handoff(self, run_id: str, handoff: bool = True) -> bool:
+        return bool(self.client.patch(
+            "training_status",
+            {"run_id": f"eq.{run_id}", "owner_id": f"eq.{self.owner_id}"},
+            {"handoff_requested": bool(handoff), "updated_at": iso_utc()},
+        ))
+
     def controls(self, run_id: str) -> dict[str, Any]:
         status = self.get_status(run_id)
         if status is None:
-            return {"pause_requested": False, "automatic_start_enabled": False, "server_statuses": {}}
+            return {
+                "pause_requested": False,
+                "handoff_requested": False,
+                "automatic_start_enabled": False,
+                "server_statuses": {},
+            }
         return {
             "pause_requested": bool(status.get("pause_requested")),
+            "handoff_requested": bool(status.get("handoff_requested")),
             "automatic_start_enabled": bool(status.get("automatic_start_enabled")),
             "server_statuses": status.get("server_statuses") or {},
         }
