@@ -1091,10 +1091,6 @@
       }
     } catch (_) {}
     bindEvents();
-    if (!isConfigured()) {
-      $("configWarning").hidden = false;
-      $("configWarning").textContent = "Supabase connection is not configured. Add the publishable/anon key to dashboard/config.js. Never add the backend secret key here.";
-    }
     await loadServerRegistry();
     state.user = null;
     state.session = null;
