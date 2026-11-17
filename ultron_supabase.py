@@ -501,6 +501,90 @@ class TrainingControlAPI:
         self.client.insert("switch_requests", row)
         return request_id
 
+    def switch_requests_since(self, since_iso: str, limit: int = 200) -> list[dict[str, Any]]:
+        return self.client.select(
+            "switch_requests",
+            {"owner_id": f"eq.{self.owner_id}", "requested_at": f"gte.{since_iso}"},
+            limit=limit,
+            order="requested_at.desc",
+        )
+
+    def server_logs_since(self, since_iso: str, limit: int = 1000) -> list[dict[str, Any]]:
+        return self.client.select(
+            "server_log",
+            {"owner_id": f"eq.{self.owner_id}", "started_at": f"gte.{since_iso}"},
+            limit=limit,
+            order="started_at.desc",
+        )
+
+    def assign_switch_target(self, request_id: str, server_id: str, metadata: Mapping[str, Any] | None = None) -> bool:
+        values: dict[str, Any] = {"to_server": server_id}
+        if metadata is not None:
+            values["metadata"] = dict(metadata)
+        return bool(self.client.patch(
+            "switch_requests",
+            {"id": f"eq.{request_id}", "owner_id": f"eq.{self.owner_id}"},
+            values,
+        ))
+
+    def mark_switch_requests_done(self, run_id: str, server_id: str) -> int:
+        rows = self.client.select(
+            "switch_requests",
+            {
+                "owner_id": f"eq.{self.owner_id}",
+                "run_id": f"eq.{run_id}",
+                "to_server": f"eq.{server_id}",
+                "result": "in.(waiting,started)",
+            },
+            limit=50,
+            order="requested_at.asc",
+        )
+        completed = 0
+        for row in rows:
+            if self.update_switch_request(
+                str(row["id"]),
+                "done",
+                started_at=row.get("started_at") or iso_utc(),
+                completed_at=iso_utc(),
+            ):
+                completed += 1
+        return completed
+
+    def update_server_status(
+        self,
+        run_id: str,
+        server_id: str,
+        status: str,
+        reason: str | None = None,
+        unavailable_until: str | None = None,
+        kicked_out_until: str | None = None,
+        extra: Mapping[str, Any] | None = None,
+    ) -> bool:
+        allowed = {"unknown", "ready", "running", "out_of_quota", "kicked_out", "unavailable_until"}
+        if status not in allowed:
+            raise ValueError("Invalid server status")
+        row = self.get_status(run_id)
+        if row is None:
+            return False
+        states = dict(row.get("server_statuses") or {})
+        current = dict(states.get(server_id) or {})
+        current["status"] = status
+        current["updated_at"] = iso_utc()
+        if reason is not None:
+            current["reason"] = reason
+        if unavailable_until is not None:
+            current["unavailable_until"] = unavailable_until
+        if kicked_out_until is not None:
+            current["kicked_out_until"] = kicked_out_until
+        if extra:
+            current.update(dict(extra))
+        states[server_id] = current
+        return bool(self.client.patch(
+            "training_status",
+            {"run_id": f"eq.{run_id}", "owner_id": f"eq.{self.owner_id}"},
+            {"server_statuses": states, "updated_at": iso_utc()},
+        ))
+
     def waiting_switch_requests(self, limit: int = 20) -> list[dict[str, Any]]:
         return self.client.select(
             "switch_requests",
@@ -516,6 +600,8 @@ class TrainingControlAPI:
         failure_reason: str | None = None,
         started_at: str | None = None,
         completed_at: str | None = None,
+        to_server: str | None = None,
+        metadata: Mapping[str, Any] | None = None,
     ) -> bool:
         if result not in {"waiting", "started", "failed", "done"}:
             raise ValueError("Invalid switch request result")
@@ -526,6 +612,10 @@ class TrainingControlAPI:
             values["started_at"] = started_at
         if completed_at is not None:
             values["completed_at"] = completed_at
+        if to_server is not None:
+            values["to_server"] = to_server
+        if metadata is not None:
+            values["metadata"] = dict(metadata)
         return bool(self.client.patch(
             "switch_requests",
             {"id": f"eq.{request_id}", "owner_id": f"eq.{self.owner_id}"},
