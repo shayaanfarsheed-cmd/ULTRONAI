@@ -29,9 +29,12 @@ class NotebookTests(unittest.TestCase):
         self.assertIn("raw.githubusercontent.com", source)
         self.assertIn("train.py", source)
         self.assertIn("ultron_model.py", source)
+        self.assertIn("ultron_data.py", source)
+        self.assertIn("ultron_verify.py", source)
         self.assertIn("config.json", source)
         self.assertIn("servers.json", source)
         self.assertIn("--model-summary", source)
+        self.assertIn("--data-smoke-test", source)
         self.assertNotIn("SUPABASE_SECRET_KEY", source)
 
 
