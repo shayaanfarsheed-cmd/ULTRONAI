@@ -8,6 +8,13 @@ from decimal import Decimal, InvalidOperation
 from typing import Any, Mapping
 
 
+def _independent_gcd(left: int, right: int) -> int:
+    first, second = abs(left), abs(right)
+    while second:
+        first, second = second, first % second
+    return first
+
+
 def _normalize(numerator: int, denominator: int = 1) -> tuple[int, int]:
     if denominator == 0:
         raise ZeroDivisionError("Division by zero")
@@ -149,7 +156,7 @@ def verify_example_detailed(example: Mapping[str, Any]) -> tuple[bool, str]:
             if not match:
                 return False, "Ratio question format is invalid"
             left, right = map(int, match.groups())
-            divisor = math.gcd(left, right)
+            divisor = _independent_gcd(left, right)
             expected = f"{left // divisor}:{right // divisor}"
             return answer == expected, "Ratio is simplified" if answer == expected else "Ratio is not simplified correctly"
 
