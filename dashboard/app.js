@@ -1069,7 +1069,7 @@
       const selected = Math.max(2, Math.min(10, Number($("ramLimitSlider").value)));
       state.ramLimitGb = Math.round(selected * 2) / 2;
       $("ramLimitValue").textContent = state.ramLimitGb + " GB";
-      const localRamValue = $("localRamLimitValue");
+      const localRamValue = $("deviceRamLimitValue");
       if (localRamValue) localRamValue.textContent = state.ramLimitGb + " GB";
       try { localStorage.setItem(RAM_LIMIT_KEY, String(state.ramLimitGb)); } catch (_) {}
       $("ramLimitStatus").textContent = "Saved as " + state.ramLimitGb + " GB on this browser only. It is not yet sent to or enforced by the Windows laptop.";
