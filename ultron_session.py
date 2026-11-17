@@ -185,9 +185,23 @@ def run_training_session(
             maximum_file_bytes=int(float(config.get("persistence", {}).get("max_single_storage_object_mb", 45)) * 1_000_000),
         )
 
+    if runtime_override is None:
+        runtime = resolve_runtime_settings(config, platform, torch_module=torch)
+    else:
+        runtime = dict(runtime_override)
+    device = str(runtime["device"])
+    gpu_name = torch.cuda.get_device_name(0) if device == "cuda" and torch.cuda.is_available() else None
+
     run_id = api.create_run_id()
-    lease_holder = f"{platform}:{uuid.uuid4().hex[:16]}"
-    lease_result = api.acquire_lease(run_id, server_name, lease_holder, lease_ttl)
+    lease_holder = f"{platform}:{uuid.uuid4().hex}"
+    lease_result = api.acquire_lease(
+        run_id,
+        server_name,
+        lease_holder,
+        lease_ttl,
+        device=device,
+        session_limit_seconds=session_limit,
+    )
     if not lease_result.acquired:
         return {
             "state": "waiting_for_lease",
@@ -201,14 +215,7 @@ def run_training_session(
     session_start = monotonic()
     session_start_iso = iso_utc()
     gpu_seconds = 0.0
-
-    if runtime_override is None:
-        runtime = resolve_runtime_settings(config, platform, torch_module=torch)
-    else:
-        runtime = dict(runtime_override)
-    device = str(runtime["device"])
-    gpu_name = torch.cuda.get_device_name(0) if device == "cuda" and torch.cuda.is_available() else None
-    session_id = api.start_session(
+    session_id = lease_result.session_id or api.start_session(
         run_id,
         server_name,
         details={"server_id": server_id, "compute_device": device, "gpu_name": gpu_name},
@@ -308,7 +315,6 @@ def run_training_session(
 
     if curriculum.is_finished:
         api.release_lease(run_id, lease_holder, fencing_token, "finished")
-        api.end_session(session_id, gpu_seconds, "finished")
         return {"state": "finished", "run_id": run_id, "step": step, "reason": "curriculum already mastered"}
 
     stream = _make_training_stream(config, tokenizer, curriculum, seed, batch_size)
@@ -440,10 +446,6 @@ def run_training_session(
                 api.release_lease(run_id, lease_holder, fencing_token, final_status)
             except Exception:
                 pass
-        try:
-            api.end_session(session_id, gpu_seconds, reason)
-        except Exception:
-            pass
         if create_switch:
             try:
                 api.create_switch_request(
