@@ -59,6 +59,13 @@ class DashboardStaticTests(unittest.TestCase):
         self.assertIn("generation !== state.authGeneration", javascript)
         self.assertIn("localStorage.removeItem(CACHE_PREFIX + previousUserId)", javascript)
 
+    def test_expired_or_revoked_owner_session_returns_to_guest_mode(self):
+        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
+        self.assertIn("function expireOwnerSession()", javascript)
+        self.assertIn("expireOwnerSession();", javascript)
+        self.assertIn('if (response.status === 401) expireOwnerSession();', javascript)
+        self.assertIn("Your owner session expired. Please sign in again.", javascript)
+
     def test_signin_clears_password_and_signout_is_local_first(self):
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
         self.assertIn('const password = passwordInput.value;\n    passwordInput.value = "";', javascript)
