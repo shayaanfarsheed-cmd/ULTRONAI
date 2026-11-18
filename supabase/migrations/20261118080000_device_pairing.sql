@@ -3,7 +3,7 @@ create table if not exists public.ultron_devices (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references auth.users(id) on delete cascade,
   device_name text not null check (char_length(device_name) between 1 and 80),
-  platform text not null check (platform in ('windows','macos','linux','ios','ipados','android','other')),
+  platform text not null check (platform in ('windows','macos','linux','other')),
   capabilities jsonb not null default '{}'::jsonb,
   token_hash text not null unique check (token_hash ~ '^[a-f0-9]{64}$'),
   status text not null default 'paired' check (status in ('paired','revoked')),
@@ -47,7 +47,7 @@ begin
      or p_token_hash !~ '^[a-f0-9]{64}$'
      or nullif(pg_catalog.btrim(p_device_name), '') is null
      or pg_catalog.char_length(p_device_name) > 80
-     or p_platform is null or p_platform not in ('windows','macos','linux','ios','ipados','android','other')
+     or p_platform is null or p_platform not in ('windows','macos','linux','other')
      or pg_catalog.jsonb_typeof(coalesce(p_capabilities, '{}'::jsonb)) <> 'object'
      or pg_catalog.octet_length(coalesce(p_capabilities, '{}'::jsonb)::text) > 4096 then
     raise exception 'invalid pairing request';
