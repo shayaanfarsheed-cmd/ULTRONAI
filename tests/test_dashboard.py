@@ -222,6 +222,9 @@ class DashboardStaticTests(unittest.TestCase):
         self.assertIn('new Blob([bytes], {type: "application/octet-stream"})', javascript)
         self.assertIn("ULTRON will not execute uploaded files", (DASHBOARD / "index.html").read_text(encoding="utf-8"))
         self.assertIn("DATA_LIBRARY_MAX_BYTES = 20 * 1024 * 1024", javascript)
+        self.assertIn("if (binary) return response.arrayBuffer();", javascript)
+        api_request = javascript.split("async function apiRequest", 1)[1].split("async function storageRequest", 1)[0]
+        self.assertNotIn("binary", api_request)
 
 
 if __name__ == "__main__":
