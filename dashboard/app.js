@@ -31,6 +31,7 @@
     checkpoints: [],
     dataFiles: [],
     dataLibraryBusy: false,
+    askBusy: false,
     currentView: "overview",
     lastUpdated: null,
     stale: false,
@@ -908,6 +909,7 @@
       servers: ["SERVERS", "Free compute servers"],
       checkpoints: ["CHECKPOINTS", "Verified checkpoints"],
       data: ["DATA LIBRARY", "Owner data library"],
+      ask: ["ASK ULTRON", "Ask questions about your data"],
       settings: ["SETTINGS", "System settings"],
       devices: ["LOCAL TRAINING", "Local training"]
     };
@@ -1085,12 +1087,17 @@
     box.hidden = !message;
   }
 
-  function safeDataFileName(value) {
-    const name = String(value || "").trim();
-    if (!/^[A-Za-z0-9][A-Za-z0-9._ -]{0,179}$/.test(name) || name === "." || name === ".." || name.startsWith(".")) {
-      throw new Error("Use a simple file name (1–180 characters), without folders or hidden-file names.");
-    }
-    return name;
+  function safeDataRelativePath(value) {
+    const path = String(value || "").replace(/\\/g, "/").trim();
+    const parts = path.split("/");
+    if (!path || path.length > 900 || parts.length > 12 || parts.some(function (part) {
+      return !/^[A-Za-z0-9][A-Za-z0-9._ -]{0,179}$/.test(part) || part === "." || part === ".." || part.startsWith(".");
+    })) throw new Error("Use safe file and folder names with up to 12 folder levels; hidden names are not allowed.");
+    return parts.join("/");
+  }
+
+  function dataObjectPath(relativePath) {
+    return objectPath([state.user.id].concat(safeDataRelativePath(relativePath).split("/")));
   }
 
   async function dataLibraryRequest(path, method, body, fileBlob, binary) {
@@ -1134,7 +1141,7 @@
       return;
     }
     container.innerHTML = state.dataFiles.map(function (file) {
-      const name = safeDataFileName(file.name);
+      const name = safeDataRelativePath(file.name);
       const size = Number(file.metadata && file.metadata.size || file.size || 0);
       const updated = file.updated_at || file.created_at || "";
       return '<article class="data-file-card"><div class="data-file-main"><strong>' + escapeHtml(name) + '</strong><small>' + escapeHtml(formatNumber(size / 1048576, 2)) + ' MB · ' + escapeHtml(formatDateTime(updated)) + '</small></div><div class="data-file-actions"><button class="secondary-button" type="button" data-data-download="' + escapeHtml(name) + '">Download</button><button class="quiet-button" type="button" data-data-delete="' + escapeHtml(name) + '">Delete</button></div></article>';
@@ -1149,44 +1156,189 @@
     }
     const generation = state.authGeneration;
     const ownerId = state.user.id;
-    const listed = await dataLibraryRequest("object/list/" + DATA_LIBRARY_BUCKET, "POST", {
-      prefix: ownerId, limit: 500, offset: 0, sortBy: {column: "name", order: "asc"}
-    }, false);
+    const allFiles = [];
+    async function walkFolder(prefix, depth) {
+      if (depth > 12 || allFiles.length >= 500) return;
+      const listed = await dataLibraryRequest("object/list/" + DATA_LIBRARY_BUCKET, "POST", {
+        prefix: prefix, limit: 500, offset: 0, sortBy: {column: "name", order: "asc"}
+      }, false);
+      for (const item of (Array.isArray(listed) ? listed : [])) {
+        if (!item || typeof item.name !== "string" || !item.name || item.name === "." || item.name === "..") continue;
+        const parent = prefix.slice(ownerId.length + 1);
+        const relative = parent ? parent + "/" + item.name : item.name;
+        if (!item.id && !item.metadata) await walkFolder(prefix + "/" + item.name, depth + 1);
+        else { try { allFiles.push(Object.assign({}, item, {name: safeDataRelativePath(relative)})); } catch (_) {} }
+        if (allFiles.length >= 500) break;
+      }
+    }
+    await walkFolder(ownerId, 0);
     if (generation !== state.authGeneration || !hasVerifiedOwnerSession() || state.user.id !== ownerId) return [];
-    state.dataFiles = (Array.isArray(listed) ? listed : []).filter(function (item) {
-      return item && typeof item.name === "string" && item.name && item.name.indexOf("/") === -1 && item.name !== "." && item.name !== "..";
-    }).sort(function (a, b) { return a.name.localeCompare(b.name); });
+    state.dataFiles = allFiles.sort(function (a, b) { return a.name.localeCompare(b.name); });
     $("dataSyncStatus").textContent = "Cloud library · " + state.dataFiles.length + " file(s) · last synced " + new Date().toLocaleTimeString();
     renderDataLibrary();
     return state.dataFiles;
   }
 
-  async function uploadDataFile() {
-    if (!hasVerifiedOwnerSession()) throw new Error("Sign in to the verified owner account before uploading.");
-    const input = $("dataFileInput");
-    const file = input.files && input.files[0];
-    if (!file) throw new Error("Choose a file first.");
-    if (file.size < 1 || file.size > DATA_LIBRARY_MAX_BYTES) throw new Error("Files must be between 1 byte and 20 MiB.");
-    const name = safeDataFileName(file.name);
-    const button = $("dataUploadButton");
-    if (state.dataLibraryBusy) return;
-    state.dataLibraryBusy = true;
+
+  const ASK_TEXT_EXTENSIONS = [".txt", ".md", ".csv", ".json", ".lean", ".toml", ".yaml", ".yml", ".py", ".js", ".ts", ".html", ".xml", ".log"];
+  const ASK_MAX_TOTAL_BYTES = 15 * 1024 * 1024;
+  const ASK_MAX_FILE_BYTES = 5 * 1024 * 1024;
+
+  function splitAskPassages(text, fileName) {
+    const clean = String(text || "").replace(/\r/g, "").replace(/[\t ]+/g, " ").trim();
+    if (!clean) return [];
+    const passages = [];
+    const size = 1100;
+    const overlap = 140;
+    for (let start = 0; start < clean.length; start += size - overlap) {
+      const content = clean.slice(start, start + size).trim();
+      if (content.length >= 35) passages.push({fileName: fileName, text: content});
+      if (start + size >= clean.length) break;
+    }
+    return passages;
+  }
+
+  async function readDataLibraryForQuestions() {
+    if (!hasVerifiedOwnerSession()) throw new Error("Sign in to the verified owner account to ask questions about private data.");
+    const files = await loadDataLibrary();
+    const passages = [];
+    let totalBytes = 0;
+    let skipped = 0;
+    for (const file of files) {
+      const name = safeDataRelativePath(file.name);
+      const lower = name.toLowerCase();
+      if (!ASK_TEXT_EXTENSIONS.some(function (extension) { return lower.endsWith(extension); })) {
+        skipped += 1;
+        continue;
+      }
+      const size = Number(file.metadata && file.metadata.size || file.size || 0);
+      if (!Number.isFinite(size) || size < 1 || size > ASK_MAX_FILE_BYTES || totalBytes + size > ASK_MAX_TOTAL_BYTES) {
+        skipped += 1;
+        continue;
+      }
+      try {
+        const bytes = await dataLibraryRequest("object/authenticated/" + DATA_LIBRARY_BUCKET + "/" + dataObjectPath(name), "GET", null, false, true);
+        const text = new TextDecoder("utf-8", {fatal: true}).decode(bytes);
+        totalBytes += bytes.byteLength;
+        passages.push.apply(passages, splitAskPassages(text, name));
+      } catch (_) {
+        skipped += 1;
+      }
+    }
+    return {passages: passages, skipped: skipped, totalBytes: totalBytes};
+  }
+
+  function rankAskPassages(question, passages) {
+    const stopWords = new Set(["the","and","for","that","with","this","from","what","when","where","which","who","why","how","does","did","are","was","were","can","could","would","should","about","into","have","has","had","you","your","its","their","them","then","than","not","but","all","any","use","using"]);
+    const terms = String(question || "").toLowerCase().match(/[a-z0-9_]{2,}/g) || [];
+    const uniqueTerms = Array.from(new Set(terms.filter(function (term) { return !stopWords.has(term); })));
+    if (!uniqueTerms.length) return [];
+    return passages.map(function (passage) {
+      const content = passage.text.toLowerCase();
+      const words = content.match(/[a-z0-9_]{2,}/g) || [];
+      const frequencies = new Map();
+      words.forEach(function (word) { frequencies.set(word, (frequencies.get(word) || 0) + 1); });
+      let score = 0;
+      let matched = 0;
+      uniqueTerms.forEach(function (term) {
+        const count = frequencies.get(term) || 0;
+        if (count > 0) {
+          matched += 1;
+          score += Math.min(count, 5) * 2;
+        }
+      });
+      const phrase = String(question || "").trim().toLowerCase();
+      if (phrase.length > 5 && content.includes(phrase)) score += 8;
+      if (matched > 1) score += matched;
+      return {fileName: passage.fileName, text: passage.text, score: score, matched: matched};
+    }).filter(function (item) { return item.score > 0; })
+      .sort(function (a, b) { return b.score - a.score; }).slice(0, 5);
+  }
+
+  async function askUltron(question) {
+    if (!hasVerifiedOwnerSession()) throw new Error("Owner sign-in is required.");
+    const query = String(question || "").trim();
+    if (query.length < 3) throw new Error("Enter a question with at least 3 characters.");
+    if (query.length > 500) throw new Error("Keep the question under 500 characters.");
+    if (state.askBusy) return;
+    state.askBusy = true;
+    const button = $("askSubmitButton");
+    const output = $("askResults");
     button.disabled = true;
+    output.textContent = "Reading your private text files and searching for evidence…";
     try {
-      await dataLibraryRequest("object/" + DATA_LIBRARY_BUCKET + "/" + objectPath([state.user.id, name]), "POST", file, true);
-      input.value = "";
-      showDataLibraryNotice("Uploaded " + name + ". Other signed-in browsers will see it on their next sync.", "success");
-      await loadDataLibrary();
+      const library = await readDataLibraryForQuestions();
+      if (!library.passages.length) {
+        output.textContent = "I couldn't find any readable text files. Supported formats: TXT, Markdown, CSV, JSON, Lean, TOML, YAML, Python, JavaScript, TypeScript, HTML, XML and LOG. PDF and other binary formats aren't supported yet.";
+        return;
+      }
+      const matches = rankAskPassages(query, library.passages);
+      if (!matches.length) {
+        output.textContent = "I couldn't find evidence for that question in the readable files. Try different words or add a relevant file to the Data Library.";
+        return;
+      }
+      const intro = document.createElement("p");
+      intro.className = "ask-answer-intro";
+      intro.textContent = "I found these relevant passages in your data. The results below are quoted evidence, not a generated answer.";
+      const list = document.createElement("div");
+      list.className = "ask-evidence-list";
+      matches.forEach(function (match) {
+        const card = document.createElement("article");
+        card.className = "ask-evidence-card";
+        const source = document.createElement("strong");
+        source.textContent = match.fileName;
+        const excerpt = document.createElement("p");
+        excerpt.textContent = match.text;
+        card.appendChild(source);
+        card.appendChild(excerpt);
+        list.appendChild(card);
+      });
+      output.replaceChildren(intro, list);
+      $("askStatus").textContent = "Searched " + library.passages.length + " passages from " + new Set(library.passages.map(function (item) { return item.fileName; })).size + " file(s)." + (library.skipped ? " Skipped " + library.skipped + " unsupported, unreadable or oversized file(s)." : "");
     } finally {
-      state.dataLibraryBusy = false;
+      state.askBusy = false;
       button.disabled = false;
     }
   }
 
+  async function uploadDataFile() {
+    if (!hasVerifiedOwnerSession()) throw new Error("Sign in to the verified owner account before uploading.");
+    const fileInput = $("dataFileInput");
+    const folderInput = $("dataFolderInput");
+    const selected = [];
+    Array.from(fileInput.files || []).forEach(function (file) { selected.push({file: file, path: file.name}); });
+    Array.from(folderInput.files || []).forEach(function (file) { selected.push({file: file, path: file.webkitRelativePath || file.name}); });
+    if (!selected.length) throw new Error("Choose files or select a dataset folder first.");
+    if (selected.length > 500) throw new Error("A single upload can contain at most 500 files.");
+    let totalBytes = 0;
+    selected.forEach(function (entry) {
+      if (entry.file.size < 1 || entry.file.size > DATA_LIBRARY_MAX_BYTES) throw new Error(entry.path + " must be between 1 byte and 20 MiB.");
+      entry.path = safeDataRelativePath(entry.path);
+      totalBytes += entry.file.size;
+    });
+    if (totalBytes > 500 * 1024 * 1024) throw new Error("This selection exceeds 500 MiB. Split it into smaller folders.");
+    const button = $("dataUploadButton");
+    if (state.dataLibraryBusy) return;
+    state.dataLibraryBusy = true;
+    button.disabled = true;
+    let uploaded = 0;
+    try {
+      for (const entry of selected) {
+        await dataLibraryRequest("object/" + DATA_LIBRARY_BUCKET + "/" + dataObjectPath(entry.path), "POST", entry.file, true);
+        uploaded += 1;
+        showDataLibraryNotice("Uploading " + uploaded + " of " + selected.length + " files…", "info");
+      }
+      fileInput.value = "";
+      folderInput.value = "";
+      showDataLibraryNotice("Uploaded " + uploaded + " file(s), preserving folder paths.", "success");
+      await loadDataLibrary();
+    } finally { state.dataLibraryBusy = false; button.disabled = false; }
+  }
+
   async function downloadDataFile(name) {
     if (!hasVerifiedOwnerSession()) throw new Error("Owner sign-in is required.");
-    const safeName = safeDataFileName(name);
-    const bytes = await dataLibraryRequest("object/authenticated/" + DATA_LIBRARY_BUCKET + "/" + objectPath([state.user.id, safeName]), "GET", null, false, true);
+    const safeName = safeDataRelativePath(name);
+    const bytes = await dataLibraryRequest("object/authenticated/" + DATA_LIBRARY_BUCKET + "/" + dataObjectPath(safeName), "GET", null, false, true);
     const blob = new Blob([bytes], {type: "application/octet-stream"});
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
@@ -1200,7 +1352,7 @@
 
   async function deleteDataFile(name) {
     if (!hasVerifiedOwnerSession()) throw new Error("Owner sign-in is required.");
-    const safeName = safeDataFileName(name);
+    const safeName = safeDataRelativePath(name);
     if (!window.confirm("Delete " + safeName + " from the shared ULTRON data library? This affects every browser.")) return;
     await dataLibraryRequest("object/" + DATA_LIBRARY_BUCKET, "DELETE", {prefixes: [state.user.id + "/" + safeName]}, false);
     showDataLibraryNotice("Deleted " + safeName + " from the cloud library.", "success");
@@ -1262,6 +1414,10 @@
     });
     $("dataRefreshButton").addEventListener("click", function () {
       loadDataLibrary().catch(function (error) { showDataLibraryNotice(error.message, "error"); });
+    });
+    $("askQuestionForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+      askUltron($("askQuestionInput").value).catch(function (error) { $("askResults").textContent = error.message; });
     });
     $("dataFileList").addEventListener("click", function (event) {
       const button = event.target.closest("[data-data-download], [data-data-delete]");

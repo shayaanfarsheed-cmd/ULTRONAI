@@ -526,3 +526,20 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible) { outline: none; }
 .data-file-actions { display: flex; flex-wrap: wrap; gap: 7px; }
 .data-file-actions button { min-height: 38px; }
 @media (max-width: 520px) { .data-upload-form { grid-template-columns: 1fr; } .data-file-card { align-items: flex-start; flex-direction: column; } .data-file-actions { width: 100%; } .data-file-actions button { flex: 1; } }
+
+
+/* Ask ULTRON: owner-only evidence retrieval */
+.ask-question-form { display: grid; gap: 12px; margin-top: 14px; }
+.ask-question-form label { color: var(--soft); font-size: 12px; font-weight: 800; }
+.ask-question-form textarea { width: 100%; min-height: 92px; resize: vertical; color: var(--text); background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px; font: inherit; }
+.ask-question-form button { justify-self: start; }
+.ask-results { display: grid; gap: 12px; }
+.ask-answer-intro { color: var(--soft); font-size: 13px; line-height: 1.6; }
+.ask-evidence-list { display: grid; gap: 10px; }
+.ask-evidence-card { border: 1px solid var(--line); border-radius: 12px; padding: 14px; background: var(--surface); }
+.ask-evidence-card strong { display: block; margin-bottom: 8px; color: var(--accent); font-size: 12px; overflow-wrap: anywhere; }
+.ask-evidence-card p { margin: 0; color: var(--text); font-size: 13px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (max-width: 520px) { .ask-question-form button { width: 100%; } }
+
+.data-upload-form { grid-template-columns: minmax(0, 1fr); }
+.data-upload-form input[type="file"] { min-width: 0; max-width: 100%; }
