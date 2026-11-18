@@ -200,3 +200,14 @@ All earlier pairing implementation notes later in this README are historical onl
 - PR #24's initial CI runs exposed one stale assertion in `tests/test_dashboard.py` that expected the removed `autoStartToggle` handler. The test now verifies that the obsolete control is absent from both dashboard HTML and JavaScript, while confirming guest messaging says training remains disabled. Re-run all required CI checks against the new PR head before considering merge.
 - **No real training has started.** After PR #24 passes review and merges, verify GitHub Pages deployment and the live dashboard. Then implement a local-only dummy-worker runtime with explicit local Start/Stop, verified resource-limit semantics, safe checkpointing, and regression tests. Do not begin real model training until that prototype is validated and the user separately approves it.
 - This status section supersedes older README passages that describe enabling device pairing or remotely controlling a worker; those are obsolete and must not be followed.
+
+
+## Ask ULTRON — document-grounded questions (in progress)
+
+- A separate Ask ULTRON dashboard view is being added on branch `feature/ask-ultron-data-qa`.
+- The first version searches owner-only files in the private `data-library` bucket after verifying the owner session. It retrieves text passages and displays matching evidence with source filenames.
+- Supported text formats: TXT, Markdown, CSV, JSON, Lean, TOML, YAML, Python, JavaScript, TypeScript, HTML, XML, and LOG. PDF and other binary formats are not supported in this first version.
+- Safety limits: maximum 5 MiB per file and 15 MiB total downloaded per search. Uploaded content is decoded as UTF-8 text only; it is never executed.
+- This is deterministic local retrieval, not a trained ULTRON neural answer model. It does not use an external AI API, start training, or invent a synthesized answer. It reports relevant source passages or says no evidence was found.
+- No Supabase schema or production Storage policy changes are part of this feature.
+- Keep the feature owner-only. Guests must not list, download, or search private files.
