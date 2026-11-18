@@ -1,127 +1,207 @@
 # ULTRON Device Control Plane Contract
 
-Status: proposal only. This document defines the first backend contract for review. It does not create tables, deploy functions, change Supabase policies, pair a device, or start training.
+**Status: design proposal only.** This document does not create database objects, deploy functions, change Supabase policies, pair a device, start training, or enable dashboard controls.
 
-## Scope
+## 1. Current product boundary
 
-The control plane connects the static GitHub Pages dashboard to desktop agents on Windows, macOS and Linux. The dashboard remains usable from iPad, iPhone and Android browsers. Mobile devices are control/monitoring clients by default, not training workers.
+The public GitHub Pages dashboard intentionally has no login or sign-up UI. It is an unauthenticated public interface and must not expose owner-specific device data or privileged device commands.
 
-The first implementation must use Supabase Auth for the human user and narrowly scoped Edge Functions for privileged operations. No browser or agent receives a Supabase service-role/secret key.
+Consequently, the current public dashboard cannot securely create owner-bound pairing challenges or issue privileged commands. Device pairing and Run/Pause/Resume/Stop remain unavailable until a separately reviewed owner-authorization design exists and the user explicitly approves its implementation. Do not reintroduce login UI or infer consent to do so from this proposal.
 
-## Proposed private data model
+The iPad, iPhone, Android and other browsers are dashboard clients, not local training agents. Desktop agents must initiate outbound HTTPS connections only.
 
-All tables belong in a non-exposed schema (proposed: `device_control`). Do not add these objects to the existing exposed `training_api` schema or reuse its dashboard-writable tables.
+## 2. Security principals and trust boundaries
 
-### `devices`
+- **Human owner:** authenticated by a future, explicitly approved owner-authorization mechanism. Never accept an owner ID supplied by the browser as proof of identity.
+- **Device agent:** authenticated with a per-device high-entropy credential. It can access only its own device and command queue.
+- **Backend:** validates owner identity, device identity, command state, expiry and lease fencing. It is the authority for ownership and command transitions.
+- **Public browser:** untrusted. It receives no service-role key, device credential, pairing secret, or privileged write capability.
 
-- `id`: UUID primary key.
-- `owner_id`: UUID, references the authenticated owner.
-- `display_name`: bounded plain text, length 1–80.
-- `platform`: enum: `windows`, `macos`, `linux`.
-- `architecture`: bounded value such as `x86_64` or `arm64`.
-- `agent_version`: semantic version string.
-- `credential_hash`: hash of a high-entropy random device credential; never return it after pairing.
-- `status`: `pending`, `online`, `offline`, `revoked`.
-- `last_seen_at`, `created_at`, `revoked_at`: server timestamps.
+No browser or agent may receive a Supabase service-role/secret key.
 
-### `pairing_challenges`
+## 3. Proposed private data model
 
-- `id`: UUID primary key; `owner_id`: authenticated owner.
-- `challenge_hash`: hash of a cryptographically random, one-time pairing secret.
-- `expires_at`: short expiry (maximum 10 minutes).
-- `consumed_at`: nullable; set atomically on successful pairing.
-- Store no plaintext pairing secret. Pairing must be single-use and race-safe.
+If a backend is approved later, all control-plane tables belong in a non-exposed schema such as device_control, not the exposed training_api schema.
 
-### `commands`
+### devices
 
-- `id`: UUID primary key; `device_id` and `owner_id`.
-- `action`: enum: `status`, `start`, `pause`, `resume`, `stop`.
-- `parameters`: validated JSON matching `schemas/device-command.schema.json`.
-- `issued_at`, `expires_at`, `claimed_at`, `completed_at`.
-- `nonce`: unique random idempotency value.
-- `fencing_token`: lease generation required for run-affecting actions.
-- `result_code`: bounded enum; do not store arbitrary agent logs in this field.
+- UUID primary key and owner UUID.
+- Display name length 1–80; platform allowlist windows, macos, linux.
+- Bounded architecture and validated semantic agent version.
+- Credential hash: keyed SHA-256/HMAC digest of a 256-bit random credential; never store or return plaintext after initial issuance.
+- Status: pending, online, offline, revoked.
+- Server-generated last_seen_at, created_at and revoked_at timestamps.
 
-### `device_heartbeats`
+### pairing_challenges
 
-- `device_id`, `observed_at`, `agent_version`, `platform`, `architecture`.
-- Bounded capability fields: available memory, CPU count, training state, and enforcement support.
-- Telemetry is untrusted agent input: validate types and ranges, cap payload size, and never treat a self-reported capability as proof that resource enforcement works.
+- UUID primary key and owner UUID.
+- Hash of a 256-bit cryptographically random, one-time secret.
+- Expiry no later than 10 minutes after server issuance.
+- Nullable consumed_at, set atomically.
+- Unique challenge identifier; no plaintext secret persisted.
 
-## Authorization boundaries
+### commands
 
-1. Dashboard requests require a valid Supabase user JWT. The Edge Function derives `owner_id` from that JWT; it never trusts an owner ID supplied in request JSON.
-2. A user may view and control only devices whose `owner_id` matches the JWT subject.
-3. Device polling requires a per-device high-entropy credential. Store only a one-way credential hash server-side and compare in constant time.
-4. The device credential can claim only commands for its own device. It cannot list devices, create pairing challenges, or access another device.
-5. Pairing, command creation, credential rotation and revocation are server-side operations. No direct browser table writes.
-6. Use rate limits for pairing attempts, polling, and command creation. Return generic authentication errors that do not disclose whether a device or challenge exists.
-7. Revocation is immediate: reject future polls and command claims; the agent must stop any active run if its authenticated session is revoked or lease is lost.
+- UUID primary key, device UUID, owner UUID.
+- Allowlisted action and schema-validated parameters.
+- Server-generated issued_at, expires_at, claimed_at, claim_expires_at and completion timestamps.
+- Random nonce with unique constraint on (device_id, nonce).
+- Idempotency key unique per device.
+- Monotonic fencing token for run-affecting actions.
+- Bounded result code and bounded result payload (maximum 4 KiB).
 
-## Pairing protocol
+### Required constraints and indexes
 
-1. Signed-in dashboard calls `create-pairing-challenge`.
-2. The function creates a cryptographically random secret, stores only its hash, and returns the secret once with an expiry no longer than 10 minutes.
-3. The user transfers the one-time code to the desktop agent locally. Do not put it in a URL, analytics, logs, or support screenshots.
-4. Agent exchanges the code over HTTPS. The server atomically consumes the challenge, creates a device row, and returns a new random device credential once.
-5. Agent stores the credential in the operating system's protected secret store. The server stores only its hash.
-6. Reuse, expiry, failed owner binding, or concurrent consumption must fail closed. Provide a dashboard revoke action.
+- Foreign keys from commands to devices and from devices/challenges to owners.
+- CHECK (expires_at > issued_at).
+- CHECK (expires_at <= issued_at + INTERVAL '120 seconds') for commands.
+- Pairing challenge expiry no greater than 10 minutes.
+- Unique (device_id, nonce) and (device_id, idempotency_key).
+- Index pending commands by (device_id, issued_at).
+- Index device ownership by (owner_id, id).
+- Partial unique index allowing at most one active claimed/executing command per device.
+- All timestamps generated by the backend/database, not trusted from the client.
 
-## Agent polling and command execution
+These are design requirements, not deployed SQL.
 
-- Agent initiates outbound HTTPS polling; no inbound listener, port forwarding, remote desktop, or public local web server.
-- Poll response contains at most one claimed command for that device.
-- Every command has a UUID, nonce, short expiry, and a server-issued fencing token for run-affecting actions.
-- Agent validates the command schema, device identity, expiry, nonce, current state, and lease before dispatch.
-- The only executable actions are the fixed enum: `status`, `start`, `pause`, `resume`, `stop`.
-- No arbitrary shell strings, PowerShell, Python snippets, executable paths, URLs, package installs, or user-supplied scripts are accepted.
-- `start` launches only the repository's fixed ULTRON training entry point from a configured installation directory.
-- Pause/resume/stop target the active run ID. Stop is graceful first; a bounded timeout may trigger termination of the owned process tree.
-- Commands are idempotent. Re-delivery of a completed command returns the recorded result and never executes it twice.
-- The agent acknowledges bounded result codes, not secrets or unbounded logs.
+## 4. Database grants and RLS design
 
-## Single-writer and resource safety
+Before deployment, the migration review must include exact SQL and negative tests. The minimum intended boundary is:
 
-- All training workers, local and cloud, continue to use one authoritative lease and monotonically increasing fencing token.
-- The agent must verify the current lease immediately before launch and periodically renew it.
-- If lease renewal fails or the fencing token is superseded, the agent stops training and refuses new run commands.
-- Memory preference is not enforcement. A start request is rejected unless the requested budget is within measured available memory and strict platform enforcement is confirmed.
-- Windows uses a Job Object with the child assigned before execution. Linux uses cgroups v2 or a verified systemd scope. macOS remains training-ineligible until a strict, tested cap is available.
-- A device may be paired and online while remaining training-ineligible.
-- Mobile browsers do not advertise local compute capacity or enforce a desktop RAM limit.
+1. The device_control schema is not included in Supabase/PostgREST exposed schemas.
+2. Revoke schema usage and table privileges from PUBLIC, anon, and authenticated.
+3. Grant only the minimum required schema/table/function privileges to the backend execution role.
+4. Enable RLS on every control-plane table as defense in depth. Do not add broad client policies.
+5. Do not expose direct browser table writes or direct agent database access.
+6. Every backend operation derives the owner from a verified identity token, then scopes queries and mutations to that owner. A request-body owner_id is never authoritative.
+7. Any SECURITY DEFINER function must use a fixed safe search_path, have execute revoked from public/client roles, and expose only narrowly scoped operations.
+8. Never place a service-role key in GitHub Pages, browser storage, notebooks, agent configuration, logs, or command payloads.
+9. Add negative tests proving anon, authenticated users without an approved owner flow, and one owner cannot access another owner's records.
 
-## Required Edge Function surface
+Supabase service-role access bypasses RLS; therefore the Edge Function/RPC layer must still perform explicit owner scoping. RLS alone is not the authorization design.
 
-Proposed function names; no functions are deployed:
+## 5. Owner authorization and pairing
 
-| Function | Caller | Responsibility |
-|---|---|---|
-| `create-pairing-challenge` | User JWT | Create one-time challenge |
-| `complete-device-pairing` | Agent + challenge | Consume challenge, issue device credential |
-| `list-my-devices` | User JWT | Return owner's safe device metadata |
-| `revoke-device` | User JWT | Revoke owned device and credential |
-| `create-device-command` | User JWT | Validate ownership, state, action and lease |
-| `claim-device-command` | Device credential | Claim one unexpired command for that device |
-| `ack-device-command` | Device credential | Acknowledge bounded result for that device |
-| `post-device-heartbeat` | Device credential | Validate and record bounded telemetry |
+The existing public dashboard has no login/sign-up. Do not silently add one.
 
-Every function must validate method, content type, body size, authentication, authorization, input schema and rate limits. CORS is not an authorization mechanism.
+A future pairing design must first choose and approve an owner-authorization mechanism compatible with the product's no-login requirement, or obtain explicit approval to change that requirement. Until then, pairing is disabled.
 
-## Security and acceptance tests before deployment
+If an approved owner flow is later implemented:
 
-- A user cannot list, pair, command or revoke another user's device.
-- Expired and replayed pairing challenges fail, including concurrent redemption.
-- Plaintext device credentials never appear in database rows, logs, browser storage, or function responses after initial issuance.
-- Revoked credentials cannot poll or acknowledge commands.
-- An agent cannot claim another device's command.
-- Unknown actions and extra command properties are rejected.
-- Expired, duplicate, malformed and stale-fencing-token commands do not execute.
-- A second worker cannot start while a valid lease exists.
-- Losing the lease stops the worker before another training step is committed.
-- A failed or unsupported memory-enforcement adapter refuses start.
+1. The backend creates a 256-bit random pairing secret and stores only a keyed digest.
+2. The secret expires within 10 minutes and is returned exactly once.
+3. The user transfers it locally to the agent; never place it in URLs, analytics, logs, screenshots, or browser local storage.
+4. Pairing redemption is a single atomic transaction that consumes the challenge, binds the owner, creates the device, and issues a new random device credential once.
+5. Concurrent redemption attempts must yield exactly one success.
+6. The agent stores its credential in the operating system's protected secret store.
+7. Revocation invalidates the credential immediately. Lost credentials require revocation and fresh pairing; no plaintext recovery.
+
+For 256-bit random credentials, a keyed SHA-256/HMAC digest with a server-held pepper is suitable; a slow password hash is not required for high-entropy random secrets. Compare digests in constant time. Keep the pepper only in the provider's secret manager.
+
+## 6. Command schema and time policy
+
+The authoritative schema is schemas/device-command.schema.json (JSON Schema draft 2020-12). It allowlists only status, start, pause, resume, and stop. Arbitrary shell commands, scripts, executable paths, URLs, package installs, and user-supplied code are prohibited.
+
+Runtime policy:
+- Server generates issued_at and expires_at.
+- Maximum command lifetime: 120 seconds.
+- Maximum accepted future clock skew for issued_at: 30 seconds.
+- Reject missing timezone, malformed timestamps, expires_at <= issued_at, expired commands, and lifetimes over 120 seconds.
+- Reject duplicate nonces using persistent server-side uniqueness, not an in-memory agent cache alone.
+- Run-affecting actions require the exact current fencing token.
+- Results are bounded to 4 KiB and use enumerated result codes; never return arbitrary logs or secrets.
+
+The pure Python validator in ultron_device_contract.py enforces schema, time and supplied fencing/replay checks. It is not an authentication system, distributed replay store, database transaction, or substitute for authoritative server validation.
+
+## 7. Atomic command state machine
+
+Allowed lifecycle:
+
+pending → claimed → executing → succeeded | failed
+
+Expired pending commands transition to expired; revoked-device commands transition to revoked.
+
+- Claim is a single database transaction using row locking (for example, FOR UPDATE SKIP LOCKED) and device scoping.
+- At most one active claim/execution per device.
+- Claim lease: 30 seconds. A command still in claimed may return to pending after claim expiry only if execution was never started.
+- Before execution, the agent durably records the command ID and executing state.
+- A crash after execution begins must be reconciled against the fixed ULTRON process/run identity. Never blindly re-dispatch an executing command after a lost acknowledgement.
+- Exactly-once execution cannot be guaranteed across process crashes and network failures. Use idempotent operations, durable local journaling, unique command IDs, and safe reconciliation.
+- Acknowledgement is idempotent: a repeat with the same terminal result is accepted; a conflicting terminal result is rejected.
+- Duplicate delivery of a terminal command returns the recorded result and never re-executes it.
+
+## 8. Credential lifecycle and revocation
+
+- Generate at least 256 bits of cryptographically secure randomness; encode base64url without padding.
+- Store only a keyed digest server-side; reveal plaintext once.
+- Rotate by issuing a new credential and atomically invalidating the old credential. No indefinite overlap.
+- Revoke immediately on owner request, suspected compromise, or device decommission.
+- Redact authorization headers, pairing secrets, tokens and credential digests from application logs and telemetry.
+- If the OS secret store is lost, revoke and pair again; do not write credentials to plaintext config files.
+
+## 9. Lease fencing and fail-stop behaviour
+
+- A training worker holds one authoritative lease with a monotonically increasing fencing token.
+- Validate current ownership and exact token immediately before process launch.
+- Validate again before every checkpoint commit and other externally visible side effect.
+- Heartbeat uncertainty, database outage, revocation, expired lease, or superseded token means fail closed: no new training step may be committed and no new run may start.
+- An agent must not extend a lease in local memory or continue offline beyond the server-authoritative expiry.
+- Shutdown target: request graceful stop immediately; terminate the owned process tree within 10 seconds if it does not stop.
+- Server-side checkpoint writes must independently reject stale fencing tokens, even if an agent is compromised or buggy.
+
+## 10. OS memory enforcement
+
+A dashboard slider is a preference, not an OS memory limit.
+
+- **Windows:** create the training process suspended, assign it to a Job Object with process-memory limits and kill-on-job-close semantics, verify assignment/limits, then resume. Child processes must remain in the job.
+- **Linux:** require cgroups v2; configure and read back memory.max and relevant swap limits; verify process membership before launch.
+- **macOS:** training-ineligible until equivalent strict enforcement is implemented and tested.
+- If the platform, permissions, or enforcement verification is unavailable, reject start.
+- Self-reported device capabilities are not proof of enforcement.
+
+## 11. Local agent trust boundary
+
+- Agent initiates outbound HTTPS only; no inbound listener, port forwarding, remote shell, or public local web server.
+- Fixed installation directory and fixed training entry point.
+- Signed releases and verified updates; reject unsigned or invalid packages.
+- Protected installation/configuration permissions; detect unauthorized replacement where possible.
+- Secure local IPC with OS access controls.
+- Safe process ownership and process-tree termination.
+- No arbitrary shell or script execution.
+- Mobile browsers remain monitoring/control clients, never local training agents.
+
+## 12. Required backend function surface (not deployed)
+
+Potential operations, subject to approval:
+- Create/complete pairing challenge.
+- List only the requesting owner's safe device metadata.
+- Revoke an owned device.
+- Create a command after ownership, state, schema and lease validation.
+- Atomically claim one unexpired command for one device.
+- Acknowledge a bounded result idempotently.
+- Post bounded heartbeat telemetry.
+
+Every operation validates method, content type, body size, authentication, authorization, schema, rate limits, ownership and state transitions. CORS is not authorization.
+
+## 13. Acceptance tests before any deployment
+
+- Anonymous public dashboard cannot list devices, pair, issue commands, or write control-plane rows.
+- Cross-owner list, command and revoke attempts fail.
+- Concurrent pairing redemption has one winner.
+- Expired/replayed pairing secrets fail.
+- Plaintext credentials never persist or appear in logs.
+- Revoked credentials cannot poll or acknowledge.
+- One device cannot claim another device's command.
+- Expired, duplicate, malformed and stale-fencing commands never execute.
+- Concurrent claim attempts cannot produce two active commands for one device.
+- Crash after claim and crash after execution are handled without blind re-execution.
+- Duplicate acknowledgement is idempotent; conflicting acknowledgement fails.
+- Lease loss stops the worker within the defined deadline.
+- Stale tokens cannot commit checkpoints.
+- Unsupported/unverified memory enforcement refuses start.
 - No arbitrary command text reaches a process API.
-- Dashboard tests confirm controls remain disabled until a trusted backend and eligible agent are present.
+- Public dashboard remains no-login and privileged controls remain unavailable.
 
-## Approval gate
+## 14. Approval gate
 
-This contract is documentation only. Before any Supabase migration or Edge Function is created, review the proposed schema, exact RLS/grant model, function authentication flow, credential hashing/rotation strategy, and negative tests. Obtain explicit approval for those backend changes. Existing memory tables and policies remain untouched.
+This remains a documentation/schema/local-validation proposal. No Supabase migrations, schema changes, RLS/grant changes, Edge Functions, production secrets, pairing, agent deployment, live training, or dashboard control unlocks are authorized by this document. Obtain explicit approval before any such change.

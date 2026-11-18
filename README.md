@@ -16,6 +16,49 @@ The dashboard Settings page now includes a 2–10 GB RAM budget slider (0.5 GB i
 
 The static dashboard is in `dashboard/`. The repository root redirects to it.
 
+## Current status — 2026-11-18 (PRs #7, #8 and #9 merged)
+
+**This section supersedes older operational and handoff notes below wherever they conflict.**
+
+- **Repository:** `shayaanfarsheed-cmd/ULTRONAI`
+- **Latest main merge:** PR #9 squash merge `576ff758bb60391a816d1d2fb2e24d7c0fe63a81` (includes the PR #7 lease fix follow-up).
+- **PR #8:** [Remove public read-only messaging and personal training history](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/8) — merged as `8e3bbfb62732de5cb47229572cac14b37cdc3d37`.
+- **PR #7:** [Fail closed when training heartbeat errors approach lease expiry](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/7) — merged as `2515754cefe458937fb4bd764d7e6ad58198065c`. Reviewed the heartbeat failure path and regression tests before merging.
+- **PR #7 reviewed head:** `13aec6a1d13a161793fb56ce3baee178e749c811`.
+- **PR #7 CI on reviewed head:** Test Suite run `44213583636` passed; Preflight run `44213583634` passed; Training Prototype Validation run `44213583655` passed. Every listed job step completed successfully.
+- **PR #9:** [Save checkpoints locally during Supabase heartbeat outages](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/9) — merged as `576ff758bb60391a816d1d2fb2e24d7c0fe63a81`.
+- **PR #9 reviewed head:** `ac830806008d9d97d7b32a330e64f4aba09e3514`.
+- **PR #9 CI on reviewed head:** Test Suite run `44215478054` passed; Preflight run `44215477870` passed; Training Prototype Validation run `44215477893` passed. All three workflows completed successfully.
+- **PR #9 changes:** `ultron_session.py` now saves locally only on a near-expiry `SupabaseAPIError`, marks the lease lost, and stops without remote checkpoint commit or lease release. `tests/test_session.py` adds regression coverage for this exact outage path.
+- **PR #4:** secure device-control contract remains open/unmerged; review separately before any merge.
+- **No live training or provider jobs have been started.**
+
+### Public dashboard requirements and current behaviour
+
+- The dashboard is public; no login or sign-up is required.
+- Personal/account-specific training history is not displayed or fetched in public mode.
+- Public-read-only-mode labels and the old History view have been removed.
+- Checkpoint access, device pairing, automatic starts, and training controls remain unavailable/locked.
+- The RAM slider is a browser-local preference only; it is not an enforced OS process limit until a secure device agent exists.
+
+### PR #7 heartbeat and checkpoint protection
+
+- The training loop treats unexpected heartbeat/control errors as failures and throttles retries to the configured heartbeat interval.
+- Both generic heartbeat/control failures and `SupabaseAPIError` database outages now save the latest state to local storage only near lease expiry, do not attempt a remote checkpoint commit or release, mark the lease lost, and stop.
+- Regression tests cover local checkpoint preservation/no remote commit on a near-expiry heartbeat failure and retry throttling.
+- The PR changed `ultron_session.py`, `tests/test_session.py`, and README handoff documentation. No Supabase schema, credentials, dashboard, provider configuration, or live training jobs were changed by PR #7.
+
+### Exact next tasks for the next chat
+
+1. Verify `main` contains merge commit `576ff758bb60391a816d1d2fb2e24d7c0fe63a81`; PR #9's three CI workflows passed on reviewed head `ac830806008d9d97d7b32a330e64f4aba09e3514`.
+2. Review PR #4's secure device-control contract separately; do not merge or deploy it without explicit user approval.
+3. Inspect and implement the secure Windows local agent only after reviewing PR #4's contract. Keep outbound HTTPS polling, one-time pairing, OS secret storage, command allowlist, lease fencing, and OS-enforced RAM limits.
+4. Confirm GitHub Pages deployment and manually verify the public dashboard: no login/sign-up, no personal history, and checkpoint/device/training controls remain locked.
+5. Preserve the training objective: from-scratch 3–5M parameter mathematics Transformer, deterministic generated math data, independent verifier, no pretrained weights/models, no AI APIs, and no paid compute.
+6. Do not start live training/provider jobs, pair devices, alter Supabase schema, or expose secrets without explicit approval.
+7. Before ending any future chat/context handoff, update this README with actual main SHA, PR states, CI results, deployment state, and exact next actions.
+
+
 Before the dashboard can sign in, edit `dashboard/config.js` and replace `sb_publishable_REPLACE_WITH_YOUR_KEY` with the Supabase publishable/anon key for the `ultron-memory` project. This key is public by design. Never put an `sb_secret_...` key in this file.
 
 To publish with GitHub Pages:
@@ -72,6 +115,47 @@ python train.py --preflight --model-summary --data-smoke-test --checkpoint-smoke
 node --check dashboard/app.js
 node --check dashboard/config.js
 ```
+
+## Mandatory next-chat handoff rule (current)
+
+**This section supersedes the older handoff notes further below.** At the end of every ChatGPT work session, before the conversation context is closed or handed to a new chat, update this README with a concise, factual handoff. Do not assume the next chat can see the previous conversation.
+
+Every handoff must record:
+- Date/time (UTC), repository, active branch, latest commit SHA, and open PR number/link.
+- What changed in this session and the exact files touched.
+- Tests and CI runs with their actual results; clearly label anything still running, failed, or not yet verified.
+- Current deployment/runtime state and known limitations.
+- The next tasks in priority order, including the exact first file or test to inspect.
+- Outstanding user decisions/approvals. Never imply approval to merge or start training.
+- Secret names and where they belong (provider secret manager only), never secret values.
+
+Before finishing a chat, verify the current GitHub branch/commit/PR and CI state, then update this section. In the next chat, read this section first, inspect the referenced commit and files, and continue from that state. Do not repeat completed work or overwrite newer changes. If no code changed, still update the handoff date and next action when the project state or test status changed.
+
+### Latest handoff — 2026-11-18
+
+- **Handoff timestamp:** 2026-11-18 01:25 UTC
+- **Repository:** `shayaanfarsheed-cmd/ULTRONAI`
+- **Main merge commit:** `576ff758bb60391a816d1d2fb2e24d7c0fe63a81` (PR #9).
+- **PR #9:** merged after code review and all three CI workflows passed on exact head `ac830806008d9d97d7b32a330e64f4aba09e3514`.
+- **PR #9 CI:** Test Suite `44215478054` success; Preflight `44215477870` success; Training Prototype Validation `44215477893` success.
+- **Fix:** Supabase database heartbeat failures now persist locally only near lease expiry, set `lease_lost`, and stop without remote checkpoint commit or lease release. Regression test `test_database_heartbeat_error_saves_locally_without_remote_commit` added.
+- **PR #7 and PR #8:** remain merged. **PR #4:** remains open/unmerged and requires separate security review.
+- **Training status:** no live training/provider job started; no Supabase schema or secret changes.
+- **PR #8:** merged; public dashboard history/login cleanup.
+- **PR #4:** remains open/unmerged and needs a separate security review.
+- **Latest validated PR #7 head:** `13aec6a1d13a161793fb56ce3baee178e749c811`.
+- **CI:** all three PR #7 workflows passed on that exact head: runs `44213583636`, `44213583634`, and `44213583655`. All job steps succeeded.
+- **Files changed by PR #7:** `ultron_session.py` and `tests/test_session.py`; README was also updated for the handoff.
+- **Training status:** no live training/provider job started; no Supabase schema or secret changes made.
+
+#### Next actions
+
+1. Verify the latest `main` SHA and post-merge CI runs after PR #7.
+2. Review PR #4 separately; do not merge or deploy it without explicit approval.
+3. Continue secure Windows agent implementation only after the device-control contract review.
+4. Confirm GitHub Pages deployment and public-dashboard locked-control behaviour.
+5. Keep secrets in provider secret managers only. Never request or record secret values.
+6. Update this README again before any future chat handoff.
 
 ## Current development status and next-chat handoff
 
@@ -165,3 +249,37 @@ These are optional until the private repository is configured. The Supabase back
 - The user has an iPad and no laptop; all setup instructions must use browser interfaces.
 - Live provider accounts, actual quotas, GPU availability, Hugging Face private storage, browser sign-in and cross-provider recovery still need user-side setup or live verification.
 - Keep automatic starts disabled until platform policy, secrets and safety limits are verified. Guided switching must remain available.
+
+
+## PR #4 security review and repair plan — 2026-11-18
+
+**PR:** [#4 — Define secure ULTRON device control contract](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/4)  
+**Reviewed head:** `1bac6ba86b60576f19cc70ffd1504c049f2ef1d4`  
+**Status:** Open, not merged. Contract/schema/tests only; no device-control backend or agent is deployed.
+
+### Review conclusion
+
+The proposal has good foundational boundaries: no arbitrary shell/script commands, owner-bound authorization, one-time pairing, outbound-only agent polling, per-device credentials, lease fencing, and explicit OS memory-enforcement requirements. It is not implementation-ready yet. The existing six tests mostly inspect schema structure and do not execute the JSON Schema against valid and adversarial command instances.
+
+Key gaps to resolve before implementation:
+1. Define the complete database security model: exact table columns/constraints/indexes, non-exposed schema grants, service-role-only writes, Edge Function JWT verification, and negative cross-owner tests. The current proposal says "private schema" but does not spell out the actual grants/RLS model.
+2. Define atomic command claiming and idempotency: transaction/locking semantics, claim lease/timeout, retry behaviour, duplicate acknowledgement, ordering, and what happens when an agent crashes after claiming but before execution/acknowledgement.
+3. Define command time semantics: server-authoritative expiry, maximum command lifetime, issued/expiry relationship, clock-skew tolerance, stale/replayed command rejection, and bounded result payloads.
+4. Define credential lifecycle: token entropy/encoding, cryptographic hash choice for high-entropy secrets, one-time display, rotation, overlap/revocation behaviour, recovery after OS key-store loss, and redaction from all logs.
+5. Tighten lease fencing: authoritative lease validation and token comparison immediately before process launch and before every checkpoint/side effect; local agent must stop on lease uncertainty, revocation, stale token, or heartbeat timeout. Specify the stop deadline and crash recovery.
+6. Make resource enforcement testable: Windows Job Object assignment before child execution (including descendants), Linux cgroup v2 delegation/limits, explicit rejection when unavailable, measured memory headroom, and platform-specific integration tests. macOS stays ineligible until an enforceable cap is proven.
+7. Specify the local agent trust boundary: signed/reproducible releases, update verification/rollback, installation-directory permissions, process ownership, safe termination, secure local IPC, and protection against another local user altering the executable/config.
+8. Add actual JSON Schema validator tests for each action and invalid cases. Validate UUID/date-time formats, action-specific parameter combinations, unknown fields, boundary values, and expiry policy. The schema alone cannot enforce dynamic facts such as expiry relative to server time or current fencing token.
+
+### Ordered repair plan
+
+1. **Contract hardening (docs/schema/tests only):** write explicit database grants/RLS and Edge Function auth requirements; define atomic state transitions for pairing and command claim/ack; define token lifecycle, time bounds, lease-loss behaviour, and platform eligibility. Replace structural-only tests with validator-driven positive and negative fixtures.
+2. **Threat model and state-machine review:** document attacker capabilities (malicious browser, stolen pairing code, stolen device credential, compromised local user, replayed network request, stale worker); draw pairing, command, revocation, lease and shutdown state transitions. Add failure-injection tests.
+3. **Backend design review (no deployment yet):** produce migration SQL and Edge Function contracts separately, including least-privilege grants, owner scoping, rate limits, audit events, atomic SQL/RPC operations, and secret redaction. Review all SQL and function code before requesting approval.
+4. **Approval gate:** request explicit approval before any Supabase migration, Edge Function deployment, RLS/grant change, or secret configuration. Keep the public dashboard controls disabled until end-to-end security tests pass.
+5. **Agent prototype:** begin with status-only polling and a fake command server. Add Windows first with OS secret storage, signed package/update verification, fixed training entry point, Job Object memory cap, and lease-loss fail-stop behaviour. Do not enable start until tests prove enforcement.
+6. **Platform expansion:** add Linux only after cgroup v2 enforcement tests; keep macOS and mobile browsers as monitoring/control clients until their enforcement and runtime constraints are independently proven.
+7. **End-to-end validation:** test cross-user isolation, concurrent pairing redemption, credential theft/revocation, command replay/expiry, claim crashes, stale fencing tokens, duplicate delivery, process-tree termination, memory-limit refusal, and recovery after agent restart. Run all repository CI on the refreshed PR head.
+8. **Merge decision:** update PR #4 against current `main`, incorporate contract/test fixes, run CI, review the final diff, then merge only after all checks pass and explicit approval.
+
+**Do not do yet:** no Supabase schema changes, Edge Functions, device pairing, agent installation, live training, or unlocking dashboard controls. PR #4 should remain unmerged until the contract and executable tests are hardened.
