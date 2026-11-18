@@ -16,16 +16,20 @@ The dashboard Settings page now includes a 2–10 GB RAM budget slider (0.5 GB i
 
 The static dashboard is in `dashboard/`. The repository root redirects to it.
 
-## Current status — 2026-11-18 (PR #7 and PR #8 merged)
+## Current status — 2026-11-18 (PRs #7, #8 and #9 merged)
 
 **This section supersedes older operational and handoff notes below wherever they conflict.**
 
 - **Repository:** `shayaanfarsheed-cmd/ULTRONAI`
-- **Latest main merge:** PR #7 squash merge `2515754cefe458937fb4bd764d7e6ad58198065c`.
+- **Latest main merge:** PR #9 squash merge `576ff758bb60391a816d1d2fb2e24d7c0fe63a81` (includes the PR #7 lease fix follow-up).
 - **PR #8:** [Remove public read-only messaging and personal training history](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/8) — merged as `8e3bbfb62732de5cb47229572cac14b37cdc3d37`.
 - **PR #7:** [Fail closed when training heartbeat errors approach lease expiry](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/7) — merged as `2515754cefe458937fb4bd764d7e6ad58198065c`. Reviewed the heartbeat failure path and regression tests before merging.
 - **PR #7 reviewed head:** `13aec6a1d13a161793fb56ce3baee178e749c811`.
 - **PR #7 CI on reviewed head:** Test Suite run `44213583636` passed; Preflight run `44213583634` passed; Training Prototype Validation run `44213583655` passed. Every listed job step completed successfully.
+- **PR #9:** [Save checkpoints locally during Supabase heartbeat outages](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/9) — merged as `576ff758bb60391a816d1d2fb2e24d7c0fe63a81`.
+- **PR #9 reviewed head:** `ac830806008d9d97d7b32a330e64f4aba09e3514`.
+- **PR #9 CI on reviewed head:** Test Suite run `44215478054` passed; Preflight run `44215477870` passed; Training Prototype Validation run `44215477893` passed. All three workflows completed successfully.
+- **PR #9 changes:** `ultron_session.py` now saves locally only on a near-expiry `SupabaseAPIError`, marks the lease lost, and stops without remote checkpoint commit or lease release. `tests/test_session.py` adds regression coverage for this exact outage path.
 - **PR #4:** secure device-control contract remains open/unmerged; review separately before any merge.
 - **No live training or provider jobs have been started.**
 
@@ -40,13 +44,13 @@ The static dashboard is in `dashboard/`. The repository root redirects to it.
 ### PR #7 heartbeat and checkpoint protection
 
 - The training loop treats unexpected heartbeat/control errors as failures and throttles retries to the configured heartbeat interval.
-- If the last locally known lease window is near expiry, the worker saves the latest state to local storage only, does not attempt a remote checkpoint commit, marks the lease lost, and stops.
+- Both generic heartbeat/control failures and `SupabaseAPIError` database outages now save the latest state to local storage only near lease expiry, do not attempt a remote checkpoint commit or release, mark the lease lost, and stop.
 - Regression tests cover local checkpoint preservation/no remote commit on a near-expiry heartbeat failure and retry throttling.
 - The PR changed `ultron_session.py`, `tests/test_session.py`, and README handoff documentation. No Supabase schema, credentials, dashboard, provider configuration, or live training jobs were changed by PR #7.
 
 ### Exact next tasks for the next chat
 
-1. Verify current `main` contains merge commit `2515754cefe458937fb4bd764d7e6ad58198065c` and check the latest post-merge GitHub Actions runs.
+1. Verify `main` contains merge commit `576ff758bb60391a816d1d2fb2e24d7c0fe63a81`; PR #9's three CI workflows passed on reviewed head `ac830806008d9d97d7b32a330e64f4aba09e3514`.
 2. Review PR #4's secure device-control contract separately; do not merge or deploy it without explicit user approval.
 3. Inspect and implement the secure Windows local agent only after reviewing PR #4's contract. Keep outbound HTTPS polling, one-time pairing, OS secret storage, command allowlist, lease fencing, and OS-enforced RAM limits.
 4. Confirm GitHub Pages deployment and manually verify the public dashboard: no login/sign-up, no personal history, and checkpoint/device/training controls remain locked.
@@ -129,10 +133,14 @@ Before finishing a chat, verify the current GitHub branch/commit/PR and CI state
 
 ### Latest handoff — 2026-11-18
 
-- **Handoff timestamp:** 2026-11-18 01:22 UTC
+- **Handoff timestamp:** 2026-11-18 01:25 UTC
 - **Repository:** `shayaanfarsheed-cmd/ULTRONAI`
-- **Main merge commit:** `2515754cefe458937fb4bd764d7e6ad58198065c` (PR #7).
-- **PR #7:** merged; reviewed code and regression tests before merge.
+- **Main merge commit:** `576ff758bb60391a816d1d2fb2e24d7c0fe63a81` (PR #9).
+- **PR #9:** merged after code review and all three CI workflows passed on exact head `ac830806008d9d97d7b32a330e64f4aba09e3514`.
+- **PR #9 CI:** Test Suite `44215478054` success; Preflight `44215477870` success; Training Prototype Validation `44215477893` success.
+- **Fix:** Supabase database heartbeat failures now persist locally only near lease expiry, set `lease_lost`, and stop without remote checkpoint commit or lease release. Regression test `test_database_heartbeat_error_saves_locally_without_remote_commit` added.
+- **PR #7 and PR #8:** remain merged. **PR #4:** remains open/unmerged and requires separate security review.
+- **Training status:** no live training/provider job started; no Supabase schema or secret changes.
 - **PR #8:** merged; public dashboard history/login cleanup.
 - **PR #4:** remains open/unmerged and needs a separate security review.
 - **Latest validated PR #7 head:** `13aec6a1d13a161793fb56ce3baee178e749c811`.
