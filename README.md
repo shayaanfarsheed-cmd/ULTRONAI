@@ -35,7 +35,7 @@ ULTRON is an independently implemented mathematics Transformer training project.
 
 The selected hosting is GitHub Pages. The intended workflow is an online dashboard on GitHub Pages, a single restricted owner identity for private control, Guest Mode for public visitors, and compatible device agents that make outbound HTTPS connections. Desktop training workers are platform-specific; iPad and mobile browsers are dashboard clients. The owner/guest authentication flow and device agents are not implemented yet.
 
-The architecture and security contract is documented in [`docs/LOCAL_AGENT_ARCHITECTURE.md`](docs/LOCAL_AGENT_ARCHITECTURE.md). This is a design specification only: the Windows agent and Run/Pause/Resume/Stop integration have not yet been implemented, and training has not started.
+The architecture and security contract is documented in [`docs/LOCAL_AGENT_ARCHITECTURE.md`](docs/LOCAL_AGENT_ARCHITECTURE.md). This is a design specification only: the device agents and Run/Pause/Resume/Stop integration have not yet been implemented, and training has not started.
 
 ## Local RAM budget control
 
@@ -81,7 +81,7 @@ The static dashboard is in `dashboard/`. The repository root redirects to it.
 
 1. Verify `main` contains merge commit `576ff758bb60391a816d1d2fb2e24d7c0fe63a81`; PR #9's three CI workflows passed on reviewed head `ac830806008d9d97d7b32a330e64f4aba09e3514`.
 2. Review PR #4's secure device-control contract separately; do not merge or deploy it without explicit user approval.
-3. Inspect and implement the secure Windows local agent only after reviewing PR #4's contract. Keep outbound HTTPS polling, one-time pairing, OS secret storage, command allowlist, lease fencing, and OS-enforced RAM limits.
+3. Resolve the owner/guest authorization design and review the device-generic agent contract before implementation. Keep outbound HTTPS polling, one-time pairing, OS secret storage, command allowlist, lease fencing, and OS-enforced RAM limits.
 4. Confirm GitHub Pages deployment and manually verify the public dashboard: no login/sign-up, no personal history, and checkpoint/device/training controls remain locked.
 5. Preserve the training objective: from-scratch 3–5M parameter mathematics Transformer, deterministic generated math data, independent verifier, no pretrained weights/models, no AI APIs, and no paid compute.
 6. Do not start live training/provider jobs, pair devices, alter Supabase schema, or expose secrets without explicit approval.
@@ -106,13 +106,13 @@ Add these values to each provider's secret manager, never to source files or not
 
 - `SUPABASE_URL`
 - `SUPABASE_SECRET_KEY` (current `sb_secret_...` key)
-- `SUPABASE_OWNER_ID` (your Supabase Auth user UUID)
+- `SUPABASE_OWNER_ID` (server-side owner UUID; not a browser credential)
 
-The dashboard uses only the publishable/anon key and the signed-in user's JWT. The notebook and switcher use the backend secret.
+The future owner dashboard may use a publishable key plus a verified owner session. The notebook and worker use backend secrets only from a trusted secret manager.
 
 ## Training entry points
 
-- `train.ipynb`: browser notebook launcher for Kaggle, Colab and other notebook platforms.
+- `train.ipynb`: browser notebook launcher for supported notebook platforms; Kaggle is excluded from the active provider plan.
 - `train.py`: shared training entry point.
 - `ultron_model.py`: model architecture.
 - `ultron_data.py` and `ultron_verify.py`: deterministic mathematics generation and independent verification.
@@ -249,7 +249,7 @@ The Hugging Face integration commits above were made after that run. A lookup fo
 - The two new Hugging Face tests have been added but are **not yet confirmed passing**.
 - End-to-end training recovery from Hugging Face has **not yet been tested**.
 - No real Hugging Face repository has been created or connected.
-- No live Kaggle, Colab or Lightning training session has been run.
+- No live provider training session has been run.
 - Do not claim the system is production-ready.
 
 ### Exact next tasks — do these in order
@@ -296,7 +296,7 @@ Key gaps to resolve before implementation:
 3. Define command time semantics: server-authoritative expiry, maximum command lifetime, issued/expiry relationship, clock-skew tolerance, stale/replayed command rejection, and bounded result payloads.
 4. Define credential lifecycle: token entropy/encoding, cryptographic hash choice for high-entropy secrets, one-time display, rotation, overlap/revocation behaviour, recovery after OS key-store loss, and redaction from all logs.
 5. Tighten lease fencing: authoritative lease validation and token comparison immediately before process launch and before every checkpoint/side effect; local agent must stop on lease uncertainty, revocation, stale token, or heartbeat timeout. Specify the stop deadline and crash recovery.
-6. Make resource enforcement testable: Windows Job Object assignment before child execution (including descendants), Linux cgroup v2 delegation/limits, explicit rejection when unavailable, measured memory headroom, and platform-specific integration tests. macOS stays ineligible until an enforceable cap is proven.
+6. Make resource enforcement testable: Windows Job Object assignment and Linux cgroup v2 delegation/limits, explicit rejection when unavailable, measured memory headroom, and platform-specific integration tests. macOS stays ineligible until an enforceable cap is proven.
 7. Specify the local agent trust boundary: signed/reproducible releases, update verification/rollback, installation-directory permissions, process ownership, safe termination, secure local IPC, and protection against another local user altering the executable/config.
 8. Add actual JSON Schema validator tests for each action and invalid cases. Validate UUID/date-time formats, action-specific parameter combinations, unknown fields, boundary values, and expiry policy. The schema alone cannot enforce dynamic facts such as expiry relative to server time or current fencing token.
 
@@ -306,7 +306,7 @@ Key gaps to resolve before implementation:
 2. **Threat model and state-machine review:** document attacker capabilities (malicious browser, stolen pairing code, stolen device credential, compromised local user, replayed network request, stale worker); draw pairing, command, revocation, lease and shutdown state transitions. Add failure-injection tests.
 3. **Backend design review (no deployment yet):** produce migration SQL and Edge Function contracts separately, including least-privilege grants, owner scoping, rate limits, audit events, atomic SQL/RPC operations, and secret redaction. Review all SQL and function code before requesting approval.
 4. **Approval gate:** request explicit approval before any Supabase migration, Edge Function deployment, RLS/grant change, or secret configuration. Keep the public dashboard controls disabled until end-to-end security tests pass.
-5. **Agent prototype:** begin with status-only polling and a fake command server. Add Windows first with OS secret storage, signed package/update verification, fixed training entry point, Job Object memory cap, and lease-loss fail-stop behaviour. Do not enable start until tests prove enforcement.
+5. **Agent prototype:** begin with status-only polling and a fake command server. Add platform-specific agents only after their OS credential storage, signed update verification, fixed training entry point, enforceable memory cap, and lease-loss fail-stop behaviour are proven. Do not enable start until tests prove enforcement.
 6. **Platform expansion:** add Linux only after cgroup v2 enforcement tests; keep macOS and mobile browsers as monitoring/control clients until their enforcement and runtime constraints are independently proven.
 7. **End-to-end validation:** test cross-user isolation, concurrent pairing redemption, credential theft/revocation, command replay/expiry, claim crashes, stale fencing tokens, duplicate delivery, process-tree termination, memory-limit refusal, and recovery after agent restart. Run all repository CI on the refreshed PR head.
 8. **Merge decision:** update PR #4 against current `main`, incorporate contract/test fixes, run CI, review the final diff, then merge only after all checks pass and explicit approval.
