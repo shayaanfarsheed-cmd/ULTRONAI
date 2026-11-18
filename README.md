@@ -33,13 +33,13 @@ ULTRON is an independently implemented mathematics Transformer training project.
 
 ## Online website-controlled local training
 
-The selected hosting is GitHub Pages. The intended workflow is an online dashboard on GitHub Pages, Supabase for authenticated control and coordination, and a Windows local agent that makes outbound HTTPS connections and starts the fixed ULTRON training entry point only after local preflight and lease checks. This allows an iPad browser to control a paired Windows computer without exposing an inbound port.
+The selected hosting is GitHub Pages. The intended workflow is an online dashboard on GitHub Pages, a single restricted owner identity for private control, Guest Mode for public visitors, and compatible device agents that make outbound HTTPS connections. Desktop training workers are platform-specific; iPad and mobile browsers are dashboard clients. The owner/guest authentication flow and device agents are not implemented yet.
 
 The architecture and security contract is documented in [`docs/LOCAL_AGENT_ARCHITECTURE.md`](docs/LOCAL_AGENT_ARCHITECTURE.md). This is a design specification only: the Windows agent and Run/Pause/Resume/Stop integration have not yet been implemented, and training has not started.
 
 ## Local RAM budget control
 
-The dashboard Settings page now includes a 2–10 GB RAM budget slider (0.5 GB increments), defaulting to 6 GB for the 16 GB Windows laptop. The selected value is currently saved only in the browser where it is changed. It is a preference preview, **not an enforced process limit yet**. The Windows agent must be implemented to receive the setting and enforce it with a Windows Job Object before training can start. See [the local-agent architecture](docs/LOCAL_AGENT_ARCHITECTURE.md).
+The dashboard Settings page now includes a 2–10 GB RAM budget slider (0.5 GB increments), defaulting to 6 GB as a browser preference. The selected value is currently saved only in the browser where it is changed. It is a preference preview, **not an enforced process limit yet**. A compatible device agent must enforce the setting with a verified operating-system resource-control mechanism before training can start. See [the local-agent architecture](docs/LOCAL_AGENT_ARCHITECTURE.md).
 
 ## Browser dashboard
 
@@ -64,8 +64,8 @@ The static dashboard is in `dashboard/`. The repository root redirects to it.
 
 ### Public dashboard requirements and current behaviour
 
-- The dashboard is public; no login or sign-up is required.
-- Personal/account-specific training history is not displayed or fetched in public mode.
+- Guest Mode is public; the single owner account is planned but not implemented. Public self-registration must remain disabled.
+- Guests must not access personal training history, checkpoints, device pairing, or remote training controls.
 - Public-read-only-mode labels and the old History view have been removed.
 - Checkpoint access, device pairing, automatic starts, and training controls remain unavailable/locked.
 - The RAM slider is a browser-local preference only; it is not an enforced OS process limit until a secure device agent exists.
@@ -88,7 +88,7 @@ The static dashboard is in `dashboard/`. The repository root redirects to it.
 7. Before ending any future chat/context handoff, update this README with actual main SHA, PR states, CI results, deployment state, and exact next actions.
 
 
-Before the dashboard can sign in, edit `dashboard/config.js` and replace `sb_publishable_REPLACE_WITH_YOUR_KEY` with the Supabase publishable/anon key for the `ultron-memory` project. This key is public by design. Never put an `sb_secret_...` key in this file.
+The owner login is not implemented yet. Do not configure or expose authentication based on the historical steps below. `dashboard/config.js` currently contains a placeholder publishable key; it is public configuration, not an owner credential. Never put an `sb_secret_...` key in browser code.
 
 To publish with GitHub Pages:
 
@@ -126,8 +126,8 @@ The dashboard uses only the publishable/anon key and the signed-in user's JWT. T
 
 - The database-side lease functions and private bucket are installed in Supabase.
 - The dashboard source is committed, but GitHub Pages still needs to be enabled and the publishable key added to `dashboard/config.js`.
-- A Supabase Auth user must be created before the notebook can create a run.
-- The notebook has not yet been run on the user's live Kaggle, Colab or Lightning accounts.
+- The training worker currently expects a server-side owner UUID and backend secret from its secret manager. This is separate from the future browser owner session; do not create public self-registration or put backend credentials in the website.
+- The notebook has not yet been run on any live provider account.
 - Secondary Hugging Face checkpoint backup and ONNX release are not yet complete.
 - Provider account quota and GPU availability must be checked in each provider account.
 
@@ -181,7 +181,7 @@ Before finishing a chat, verify the current GitHub branch/commit/PR and CI state
 
 1. Verify the latest `main` SHA and post-merge CI runs after PR #7.
 2. Review PR #4 separately; do not merge or deploy it without explicit approval.
-3. Continue secure Windows agent implementation only after the device-control contract review.
+3. Continue the device-generic agent architecture and platform-specific enforcement review only after the device-control contract review.
 4. Confirm GitHub Pages deployment and public-dashboard locked-control behaviour.
 5. Keep secrets in provider secret managers only. Never request or record secret values.
 6. Update this README again before any future chat handoff.
@@ -222,7 +222,7 @@ The Supabase database-side lease functions and private checkpoint bucket were pr
 
 ### Work completed immediately before this handoff
 
-The current task is **secondary checkpoint backup and recovery**. The following changes have been committed to `main`:
+The earlier task was **secondary checkpoint backup and recovery**; current priority is finishing the website and owner/guest architecture before training. The following changes have been committed to `main`:
 
 1. Added `huggingface_hub` to `requirements.txt`.
 2. Added `HuggingFaceCheckpointStore` to `ultron_storage.py`. It requires an existing private Hugging Face model repository, uploads immutable checkpoint folders, stores a manifest receipt, and verifies component sizes and SHA-256 hashes.
@@ -275,7 +275,7 @@ These are optional until the private repository is configured. The Supabase back
 
 - Dashboard source is committed; GitHub Pages still needs to be enabled and `dashboard/config.js` needs the Supabase publishable/anon key.
 - A Supabase Auth user must exist before a live training run can be created.
-- The user has an iPad and no laptop; all setup instructions must use browser interfaces.
+- The user primarily works from an iPad; all website setup instructions must work in a browser and must not assume a Windows device.
 - Live provider accounts, actual quotas, GPU availability, Hugging Face private storage, browser sign-in and cross-provider recovery still need user-side setup or live verification.
 - Keep automatic starts disabled until platform policy, secrets and safety limits are verified. Guided switching must remain available.
 
