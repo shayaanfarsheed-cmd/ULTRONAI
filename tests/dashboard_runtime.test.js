@@ -37,9 +37,11 @@ test("manifest validator rejects traversal, malformed hashes and unsafe sizes", 
 });
 
 test("manifest validator enforces aggregate checkpoint size", () => {
-  const manifest = {checkpoint_id:"ckpt-large",step:1,files:{
-    "state.json":{size_bytes:runtime.MAX_TOTAL_BYTES,sha256:"a".repeat(64)}
-  }};
+  const files = {};
+  for (const name of ["state.json", "part-1.bin", "part-2.bin", "part-3.bin", "part-4.bin"]) {
+    files[name] = {size_bytes:runtime.MAX_FILE_BYTES,sha256:"a".repeat(64)};
+  }
+  const manifest = {checkpoint_id:"ckpt-large",step:1,files};
   assert.throws(() => runtime.validateManifest(manifest,"ckpt-large"), /256 MiB/);
 });
 
