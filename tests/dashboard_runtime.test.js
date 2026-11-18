@@ -118,3 +118,8 @@ test("manifest validator rejects numeric strings for the checkpoint step", () =>
   }};
   assert.throws(() => runtime.validateManifest(manifest, "ckpt-step"), /structure is invalid/);
 });
+
+test("bounded response reader rejects a dishonest declared length", async () => {
+  const response = new Response(new Uint8Array([1,2,3]), {headers:{"content-length":"2"}});
+  await assert.rejects(runtime.readResponseBytes(response, 8), /does not match its header/);
+});
