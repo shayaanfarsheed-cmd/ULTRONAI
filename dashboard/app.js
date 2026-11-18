@@ -1078,6 +1078,7 @@
 
   const DATA_LIBRARY_BUCKET = "data-library";
   const DATA_LIBRARY_MAX_BYTES = 20 * 1024 * 1024;
+  const DATA_LIBRARY_MAX_FILES = 50000;
 
   function showDataLibraryNotice(message, kind) {
     const box = $("dataLibraryNotice");
@@ -1158,17 +1159,22 @@
     const ownerId = state.user.id;
     const allFiles = [];
     async function walkFolder(prefix, depth) {
-      if (depth > 12 || allFiles.length >= 500) return;
-      const listed = await dataLibraryRequest("object/list/" + DATA_LIBRARY_BUCKET, "POST", {
-        prefix: prefix, limit: 500, offset: 0, sortBy: {column: "name", order: "asc"}
-      }, false);
-      for (const item of (Array.isArray(listed) ? listed : [])) {
-        if (!item || typeof item.name !== "string" || !item.name || item.name === "." || item.name === "..") continue;
-        const parent = prefix.slice(ownerId.length + 1);
-        const relative = parent ? parent + "/" + item.name : item.name;
-        if (!item.id && !item.metadata) await walkFolder(prefix + "/" + item.name, depth + 1);
-        else { try { allFiles.push(Object.assign({}, item, {name: safeDataRelativePath(relative)})); } catch (_) {} }
-        if (allFiles.length >= 500) break;
+      if (depth > 12 || allFiles.length >= DATA_LIBRARY_MAX_FILES) return;
+      const pageSize = 500;
+      for (let offset = 0; offset < 100000 && allFiles.length < DATA_LIBRARY_MAX_FILES; offset += pageSize) {
+        const listed = await dataLibraryRequest("object/list/" + DATA_LIBRARY_BUCKET, "POST", {
+          prefix: prefix, limit: pageSize, offset: offset, sortBy: {column: "name", order: "asc"}
+        }, false);
+        const items = Array.isArray(listed) ? listed : [];
+        for (const item of items) {
+          if (!item || typeof item.name !== "string" || !item.name || item.name === "." || item.name === "..") continue;
+          const parent = prefix.slice(ownerId.length + 1);
+          const relative = parent ? parent + "/" + item.name : item.name;
+          if (!item.id && !item.metadata) await walkFolder(prefix + "/" + item.name, depth + 1);
+          else { try { allFiles.push(Object.assign({}, item, {name: safeDataRelativePath(relative)})); } catch (_) {} }
+          if (allFiles.length >= DATA_LIBRARY_MAX_FILES) break;
+        }
+        if (items.length < pageSize) break;
       }
     }
     await walkFolder(ownerId, 0);
@@ -1309,7 +1315,7 @@
     Array.from(fileInput.files || []).forEach(function (file) { selected.push({file: file, path: file.name}); });
     Array.from(folderInput.files || []).forEach(function (file) { selected.push({file: file, path: file.webkitRelativePath || file.name}); });
     if (!selected.length) throw new Error("Choose files or select a dataset folder first.");
-    if (selected.length > 500) throw new Error("A single upload can contain at most 500 files.");
+    if (selected.length > DATA_LIBRARY_MAX_FILES) throw new Error("A single upload can contain at most 50,000 files.");
     let totalBytes = 0;
     selected.forEach(function (entry) {
       if (entry.file.size < 1 || entry.file.size > DATA_LIBRARY_MAX_BYTES) throw new Error(entry.path + " must be between 1 byte and 20 MiB.");
