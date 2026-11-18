@@ -26,6 +26,7 @@
 **Repository:** `shayaanfarsheed-cmd/ULTRONAI`  
 **Main branch merge:** PR #12 merged at `02ddff7437f6a4ac89f78c52ceb36cef6d3f944b`.  
 **Current branch:** `fix/bounded-checkpoint-streams`  
+**Latest implementation commit:** `3a6ec60460e2ec717454beddfa5c2f2ed9c51d83` (README sync below will advance the final PR head).
 **Draft PR #13:** [Enforce checkpoint download limits while streaming](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/13) — open, not merged.
 
 ## Current code review and follow-up
@@ -35,7 +36,7 @@
 - PR #13 reads checkpoint response bodies incrementally, cancels as soon as the configured cap is crossed, rejects declared lengths above the cap, checks declared versus received byte counts, and fails closed when Fetch streaming is unavailable.
 - Manifest `step` now must be a non-negative safe-integer number; strings are not coerced.
 - Regression tests cover exact-limit reads, cancellation, early declared-size rejection, missing stream support, dishonest length headers, and malformed step types.
-- PR #12's three workflows passed on its final reviewed head before merge. PR #13 validation is running on its current head; do not reuse PR #12's results for PR #13.
+- PR #12's three workflows passed on its final reviewed head before merge. PR #13 validation is pending/running on its latest code commit; do not reuse PR #12's results for PR #13.
 - iPad/iPhone/Android/desktop compatibility remains untested.
 - No production Supabase changes, secrets, owner provisioning, device pairing, agent installation, provider jobs, or live training.
 
