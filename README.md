@@ -1,9 +1,20 @@
+## Authoritative security update — 2026-11-18
+
+- **Device pairing is being removed at the owner's request.** The product will not pair remote devices, issue device credentials, or provide dashboard-to-device commands.
+- The former agent only sent heartbeats and could not execute commands, but it is no longer needed and is being removed.
+- Future training controls must be local to the device running training. The local user selects the RAM ceiling and operates Start/Stop there; the website cannot control another device.
+- Training remains disabled. No checkpoints or training data are deleted.
+- The old Supabase pairing tables are retained inert for auditability; the Edge Function must be retired with a fail-closed response. No direct browser grants are to be added.
+- PR #22 (pairing security tests) is obsolete under this decision and must not be merged.
+
+---
+
 # ULTRONAI — Project status and handoff
 
 **Repository:** [shayaanfarsheed-cmd/ULTRONAI](https://github.com/shayaanfarsheed-cmd/ULTRONAI)  
 **Dashboard:** [GitHub Pages](https://shayaanfarsheed-cmd.github.io/ULTRONAI/)  
 **Main branch:** `main`  
-**Latest merged work:** PR #20 — production device-pairing deployment handoff, merged at `5c8b5f9eb226d358e27d8d936ce5d23ba2d5e01c`.
+**Latest merged work:** PR #21 — dashboard deployment-status correction, merged at `3815ed379ddd23d0aa3713d0eec02d9e4f39cf2a`.
 
 ## Current priorities
 
