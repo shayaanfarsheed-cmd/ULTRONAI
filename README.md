@@ -24,46 +24,30 @@
 # ULTRONAI — Current implementation handoff (2026-11-18)
 
 **Repository:** `shayaanfarsheed-cmd/ULTRONAI`  
-**Active branch:** `main`  
-**Latest verified main commit:** `4ced9ca745aec0ab7dc736be100f5a25f7422848`  
-**Merged work:** PR #10 (repository architecture/configuration baseline) and PR #11 (owner sign-in and Guest Mode dashboard foundation).  
-**Latest PR:** [#11 — Build owner sign-in and Guest Mode dashboard foundation](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/11) — merged.
+**Main branch merge:** PR #12 merged at `02ddff7437f6a4ac89f78c52ceb36cef6d3f944b`.  
+**Current branch:** `fix/bounded-checkpoint-streams`  
+**Draft PR #13:** [Enforce checkpoint download limits while streaming](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/13) — open, not merged.
 
-## Current status
+## Current code review and follow-up
 
-- PR #11 is merged. Its squash merge commit is `4ced9ca745aec0ab7dc736be100f5a25f7422848`.
-- The merged dashboard includes Guest Mode by default, owner sign-in/sign-out UI, frontend owner UUID verification, owner-only request guards, private Activity view gating, and regression tests.
-- Owner sign-in remains deliberately inactive: `dashboard/config.js` contains a publishable-key placeholder and an empty `ownerUserId`.
-- The frontend UUID allowlist and browser-side request guards are not backend authorization. Production RLS and trusted server-side authorization still require separate design, review, and explicit approval.
-- Browser `sessionStorage` is not secure credential storage. Do not describe it as such or put privileged service-role secrets in the browser.
-- Device pairing, remote device control, checkpoint operations requiring production credentials, and live training remain unavailable until their secured backend and device architecture is implemented and separately approved.
-- The RAM slider is a local preference only; it does not enforce a process or operating-system memory limit.
-- No owner account was created, no device was paired, no agent was installed, and no provider job or live training was started.
+- Reviewed the merged PR #12 dashboard runtime, session refresh, checkpoint listing/verification/download paths, tests, and README.
+- Found that the original checkpoint byte guard checked the response only after `arrayBuffer()` allocated it. A missing or dishonest `Content-Length` could defeat the intended memory bound.
+- PR #13 reads checkpoint response bodies incrementally, cancels as soon as the configured cap is crossed, rejects declared lengths above the cap, checks declared versus received byte counts, and fails closed when Fetch streaming is unavailable.
+- Manifest `step` now must be a non-negative safe-integer number; strings are not coerced.
+- Regression tests cover exact-limit reads, cancellation, early declared-size rejection, missing stream support, dishonest length headers, and malformed step types.
+- PR #12's three workflows passed on its final reviewed head before merge. PR #13 validation is running on its current head; do not reuse PR #12's results for PR #13.
+- iPad/iPhone/Android/desktop compatibility remains untested.
+- No production Supabase changes, secrets, owner provisioning, device pairing, agent installation, provider jobs, or live training.
 
-## Optimization work — current stage
+## Next actions
 
-- Starting point: merged `main` commit `4ced9ca745aec0ab7dc736be100f5a25f7422848`.
-- Working branch: `optimize/dashboard-performance-security`.
-- Initial read-only review identified:
-  1. Possible concurrent refresh-token rotation when several requests renew an expiring session at once.
-  2. Sequential checkpoint metadata/file reads that can be slow on mobile networks.
-  3. Unnecessary chart redraws during full renders and window resize events.
-  4. Historical README handoff statements that incorrectly described PR #11 as unmerged.
-- Implemented on PR #12: single-flight refresh-token renewal; auth-generation checks against stale refreshes; checkpoint metadata concurrency capped at three; bounded metadata/file downloads (1 MiB metadata, 64 MiB per file, 256 MiB aggregate); strict manifest structure, path, SHA-256 and safe-integer validation; animation-frame fallback and defensive canvas handling.
-- Added executable Node behavioural tests for bounded concurrency, valid/invalid manifests, aggregate-size rejection, and chart scheduling fallback. Python's dashboard suite now runs these tests.
-- Current PR head is being validated; do not treat prior CI results as validation of these latest fixes. The README itself will trigger another validation run.
-- Remaining: verify actual CI on the final README-synced commit, review any failures, and then run iPad/iPhone/Android/desktop compatibility checks. Keep PR #12 unmerged pending review and explicit user approval.
-- Preserve the $0 budget, no Kaggle, no external AI APIs, no pretrained weights, and no externally generated training data.
-- No production Supabase changes, secrets changes, owner provisioning, device pairing, provider jobs, or real training are authorized by this optimization task.
-- Do not merge optimization work without explicit user approval.
+1. Verify all three GitHub Actions workflows on the latest exact PR #13 head.
+2. Fix any failures, update this handoff, and rerun CI after every source or README change.
+3. Review the final PR #13 diff and test streaming support on target browsers/devices before merge.
+4. Continue the dashboard compatibility and interaction work after this bounded-download repair.
+5. Keep training and production backend changes locked pending separate explicit approval.
 
-## Validation state
-
-- PR #11's three GitHub Actions checks passed on its validated head before merge.
-- All three GitHub Actions workflows passed on implementation commit `e1729ef735157bf45dc5c514d8bddc2335235dbb`: Test Suite run `44236200315`, Training Prototype Validation run `44236200378`, and Preflight run `44236200390`.
-- The subsequent README validation-sync commit `083e6d37de913efdef47d12fc9b4e12f106ceb54` was also fully validated: Test Suite run `44236363036`, Training Prototype Validation run `44236363001`, and Preflight run `44236362991` all completed successfully.
-- Recheck all workflows after any further source or documentation changes; compatibility testing remains a separate phase.
-- Compatibility testing across iPad/iPhone/Android/desktop remains a separate required phase after feature implementation and code repair.
+**Permanent constraints:** $0 budget; no Kaggle; no external AI APIs; no pretrained weights; no externally generated training data; no live training without explicit approval.
 
 ---
 
