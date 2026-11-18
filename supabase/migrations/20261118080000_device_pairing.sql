@@ -70,3 +70,55 @@ end;
 $$;
 revoke all on function public.consume_ultron_pairing_challenge(uuid,text,text,text,jsonb,text) from public, anon, authenticated;
 grant execute on function public.consume_ultron_pairing_challenge(uuid,text,text,text,jsonb,text) to service_role;
+
+
+-- Per-IP pairing endpoint rate limits. The key is a SHA-256 hash of the
+-- Cloudflare-provided client IP and endpoint label; raw IP addresses are not stored.
+create table if not exists public.ultron_pairing_rate_limits (
+  key_hash text primary key check (key_hash ~ '^[a-f0-9]{64}$'),
+  window_started_at timestamptz not null,
+  request_count integer not null check (request_count >= 1),
+  updated_at timestamptz not null default now()
+);
+alter table public.ultron_pairing_rate_limits enable row level security;
+revoke all on public.ultron_pairing_rate_limits from anon, authenticated;
+grant all on public.ultron_pairing_rate_limits to service_role;
+
+create or replace function public.consume_ultron_pairing_rate_limit(
+  p_key_hash text, p_limit integer, p_window_seconds integer
+) returns boolean
+language plpgsql security invoker set search_path = ''
+as $$
+declare
+  v_count integer;
+begin
+  if coalesce(
+       nullif(pg_catalog.current_setting('request.jwt.claim.role', true), ''),
+       (nullif(pg_catalog.current_setting('request.jwt.claims', true), '')::jsonb ->> 'role'),
+       ''
+     ) <> 'service_role' then raise exception 'service role required'; end if;
+  if p_key_hash is null or p_key_hash !~ '^[a-f0-9]{64}$'
+     or p_limit is null or p_limit < 1 or p_limit > 1000
+     or p_window_seconds is null or p_window_seconds < 1 or p_window_seconds > 3600 then
+    raise exception 'invalid rate limit parameters';
+  end if;
+  insert into public.ultron_pairing_rate_limits(key_hash, window_started_at, request_count, updated_at)
+  values (p_key_hash, pg_catalog.now(), 1, pg_catalog.now())
+  on conflict (key_hash) do update set
+    window_started_at = case
+      when public.ultron_pairing_rate_limits.window_started_at <=
+           pg_catalog.now() - pg_catalog.make_interval(secs => p_window_seconds)
+      then pg_catalog.now()
+      else public.ultron_pairing_rate_limits.window_started_at end,
+    request_count = case
+      when public.ultron_pairing_rate_limits.window_started_at <=
+           pg_catalog.now() - pg_catalog.make_interval(secs => p_window_seconds)
+      then 1
+      else public.ultron_pairing_rate_limits.request_count + 1 end,
+    updated_at = pg_catalog.now()
+  returning request_count into v_count;
+  return v_count <= p_limit;
+end;
+$$;
+revoke all on function public.consume_ultron_pairing_rate_limit(text,integer,integer) from public, anon, authenticated;
+grant execute on function public.consume_ultron_pairing_rate_limit(text,integer,integer) to service_role;
