@@ -20,14 +20,7 @@
 
     const body = response && response.body;
     if (!body || typeof body.getReader !== "function") {
-      if (declaredLength == null || typeof response.arrayBuffer !== "function") {
-        throw new Error("This browser cannot safely enforce the checkpoint download limit.");
-      }
-      const fallbackBytes = await response.arrayBuffer();
-      if (fallbackBytes.byteLength > maxBytes) {
-        throw new Error("Checkpoint object exceeds its allowed download size.");
-      }
-      return fallbackBytes;
+      throw new Error("This browser cannot safely enforce the checkpoint download limit.");
     }
 
     const reader = body.getReader();
