@@ -38,6 +38,19 @@ async function ownerFromRequest(request: Request) {
   const { data, error } = await client.auth.getUser();
   return error || !OWNER_USER_ID || data.user.id !== OWNER_USER_ID ? null : data.user;
 }
+async function allowPairingRequest(request: Request, endpoint: string, limit: number) {
+  // Cloudflare overwrites cf-connecting-ip at the edge; do not trust arbitrary
+  // client-provided forwarding headers as the rate-limit identity.
+  const clientIp = request.headers.get("cf-connecting-ip") || "";
+  if (!clientIp) return false;
+  const keyHash = await sha256(endpoint + ":" + clientIp);
+  const { data, error } = await admin.rpc("consume_ultron_pairing_rate_limit", {
+    p_key_hash: keyHash, p_limit: limit, p_window_seconds: 60,
+  });
+  if (error) throw error;
+  return data === true;
+}
+
 function validName(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0 && value.trim().length <= 80;
 }
