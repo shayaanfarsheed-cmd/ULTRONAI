@@ -60,7 +60,7 @@
     const badge = $("connectionBadge");
     badge.textContent = label;
     badge.className = "connection-badge" + (kind ? " " + kind : "");
-    $("footerConnection").textContent = kind === "stale" ? "OUT OF DATE · SHOWING LAST KNOWN STATUS" : "PRIVATE DATA · OWNER-ONLY ACCESS";
+    $("footerConnection").textContent = kind === "stale" ? "PUBLIC STATUS · OUT OF DATE" : "PUBLIC DASHBOARD";
   }
 
   function isConfigured() {
@@ -657,7 +657,6 @@
     renderMastery();
     drawChart();
     renderServers();
-    renderHistory();
     renderSettings();
     renderCheckpointList();
   }
@@ -673,7 +672,6 @@
     const labels = {
       overview: ["OVERVIEW", "System overview"],
       servers: ["SERVERS", "Free compute servers"],
-      history: ["HISTORY", "Switch and session history"],
       checkpoints: ["CHECKPOINTS", "Verified checkpoints"],
       settings: ["SETTINGS", "System settings"],
       devices: ["CONNECTED DEVICES", "Connected devices"]
@@ -1016,9 +1014,9 @@
     await loadServerRegistry();
     state.user = null;
     state.session = null;
-    setConnection("PUBLIC MODE", "connected");
-    $("lastUpdated").textContent = "Public dashboard · private training data is protected";
-    showNotice("Public read-only mode. Account-specific training history, checkpoints, device pairing and training controls remain locked. No login or sign-up is required.", "warn");
+    setConnection("PUBLIC", "connected");
+    $("lastUpdated").textContent = "Public system information · no personal training history";
+    showNotice("Public dashboard. No account or sign-in is required. Personal training history is not collected or displayed; checkpoints, device pairing and training controls are unavailable.", "info");
     renderAll();
   }
 
