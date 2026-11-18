@@ -20,6 +20,9 @@ class DevicePairingStaticTests(unittest.TestCase):
         self.assertIn("button.disabled = !hasVerifiedOwnerSession()", app)
         self.assertIn('if (view === "devices" && hasVerifiedOwnerSession())', app)
         self.assertIn("data-revoke-device", app)
+        self.assertIn("Challenge ID: ", app)
+        self.assertIn("Pairing code: ", app)
+        self.assertIn("DEVICE_CONTROL_ENABLED = CONFIG.deviceControlEnabled === true", app)
 
     def test_pairing_backend_keeps_registry_private(self):
         migration = (ROOT / "supabase" / "migrations" / "20261118080000_device_pairing.sql").read_text(encoding="utf-8").lower()
