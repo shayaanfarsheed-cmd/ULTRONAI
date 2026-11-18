@@ -5,38 +5,37 @@
 **Verified main merge:** `ad8a0d01bcd725f96f8d6a41d682febed3c2e4c7` (PR #10 is merged).  
 **Active feature branch:** `feature/owner-guest-dashboard`  
 **Draft PR:** [#11 — Build owner sign-in and Guest Mode dashboard foundation](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/11)  
-**Latest code head before this README update:** `7da5e079b003b16d3100b04a7f48afd2d16fe62e8`
+**Code head before this README handoff:** `8ba4bfd7114f8a9d107a96d4e1e4ff663ec77abb`
 
-## Current Work Package 2 implementation
+## Work Package 2 — owner/guest dashboard foundation
 
-- Added a responsive owner sign-in dialog and sign-in/sign-out controls to the dashboard.
-- Added an explicit owner user-ID allowlist check. Only the configured owner UUID may enter Owner Mode.
-- Added saved-session restoration with a fresh Supabase Auth user verification request.
-- Guest Mode remains the default. No public sign-up flow is present.
-- Added regression tests for owner allowlisting and guest defaults.
-- The publishable key remains a placeholder and `ownerUserId` is intentionally empty. Therefore owner sign-in remains safely unavailable until a separately approved backend/auth configuration is completed.
+### Implemented in PR #11
+- Added responsive owner sign-in and sign-out UI; no public sign-up.
+- Owner identity is checked against the configured owner UUID after Supabase Auth returns a session.
+- Guest Mode is the default; owner configuration remains deliberately disabled because the publishable key is still a placeholder and `ownerUserId` is blank.
+- Made session persistence fail closed: a storage failure clears in-memory session state.
+- Owner REST and Storage requests now require a verified owner-mode session and matching configured owner identity.
+- Guest transitions clear owner-only status, logs, switch requests, checkpoints, quota state and the saved owner cache.
+- Sign-out clears local access and private state before attempting server-side token revocation.
+- Sign-in password input is cleared immediately and again when the attempt finishes.
+- Expired or revoked sessions return to Guest Mode; stale in-flight refresh results are discarded using an auth-generation counter.
+- Added regression tests for owner-only request guards, cache isolation, guest transitions, password cleanup, sign-out ordering, and expired/revoked sessions.
+
+### Current safety boundary
+- The frontend UUID allowlist is only a UI/session gate. It is **not** a substitute for backend RLS and server-side authorization.
 - No production Supabase settings, schema, RLS, grants, Storage policies, secrets, or Edge Functions were changed.
-- No owner account was created. No device was paired. No training or provider job was started.
+- No owner account was created; no device was paired; no device agent was installed; no training or provider job was started.
+- Device pairing and remote training controls remain unavailable until the secure backend/device-control work is implemented and separately approved.
+- The RAM slider remains a browser preference, not an enforced process memory cap.
 
-## Validation status
-
-- Feature implementation is in progress.
-- Compatibility testing has **not** started; it follows feature implementation.
-- On PR head `7da5e079b003b16d3100b04a7f48afd2d16fe62e8`, Test Suite run `44228088554` passed and Preflight run `44228088540` passed. A README-only update creates a new head, so rerun checks before relying on these results.
-- Do not merge without the user's explicit approval.
-
-## Next actions
-
-1. Finish owner/guest UI state handling and audit every private action for fail-closed behaviour.
-2. Verify no guest path can load owner data or trigger private mutations.
-3. Add tests for invalid sessions, expired sessions, sign-out, missing owner configuration, and failed authentication.
-4. Review existing Supabase RLS assumptions without changing production.
-5. Complete remaining dashboard feature interfaces.
-6. Update this README with exact branch/commit/CI results before handoff.
+## Validation and next actions
+- All three workflows passed on the earlier PR head `9f54f93ad8b77d2d1fd02850a64d5d26a9ff0667`.
+- New code and regression tests are on `8ba4bfd7114f8a9d107a96d4e1e4ff663ec77abb`; its Test Suite, Preflight, and Training Prototype Validation workflows were triggered and were pending at the time of this README update. Recheck all three against the exact current PR head before treating validation as passed.
+- Feature implementation is still in progress. Compatibility testing has **not** started; it follows feature implementation.
+- Next: finish the remaining truthful owner/guest dashboard views, audit every UI action and data path, complete backend authorization design review without changing production, then run compatibility checks and repair any failures.
+- PR #11 remains draft and unmerged. Do not merge without the user's explicit approval.
 
 **Permanent constraints:** $0 budget; no paid services, Kaggle, external AI APIs, pretrained weights, or externally generated training data. No live training without separate approval.
-
----
 
 ---
 
