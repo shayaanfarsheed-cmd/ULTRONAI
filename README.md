@@ -1,3 +1,32 @@
+# ULTRONAI — Current Product Architecture and Handoff
+
+> **Authoritative current direction (2026-11-18):** ULTRON is a browser-based, iPad-compatible mathematics training-control website. It will have one restricted owner account and a public Guest Mode. This is the target architecture, **not a claim that authentication or private controls are implemented today**.
+
+## Current implementation truth
+
+- Public GitHub Pages dashboard currently operates in public mode. It does not provide the agreed owner login, logout, recovery, or private owner session yet.
+- Guest Mode is intended for public dashboard and public mathematics information only. It must never access private training history, checkpoints, device pairing, or remote training controls.
+- The owner account is intended to be one identity across the system. Public self-registration must not create additional owner accounts. Secure owner provisioning and recovery require a separately reviewed implementation.
+- Backend authorization—not hidden buttons—must protect every private operation. Owner identity must be derived from a verified server-side session. Never trust a browser-supplied owner ID.
+- Device pairing, remote training controls and checkpoint operations remain locked until the owner authorization, device-control backend, agent and resource enforcement are implemented and tested.
+- The dashboard RAM slider is a local preference only; it is not an operating-system memory limit.
+- Device support is platform/capability based. Windows-specific assumptions must not define the whole product. iPadOS and mobile browsers are dashboard clients, not assumed training workers.
+- Kaggle is excluded from the active provider plan because the user declined Kaggle. No Kaggle job or credential setup is authorized.
+- Permanent constraints: $0 budget, no paid APIs/services, no pretrained weights/models, no externally generated AI training data, no exposed credentials, and no live training without separate approval.
+
+## Current repair work
+
+- Work Package 1 branch: `repair/work-package-1-repository-architecture`
+- File-by-file audit: [docs/REPOSITORY_REPAIR_AUDIT.md](docs/REPOSITORY_REPAIR_AUDIT.md)
+- Main baseline: `397f1492c300371821b2651ddfbc7342adc9f60c`
+- PR #4 remains open and unmerged: [secure device-control contract](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/4).
+- PR #4 current head inspected: `6fa27729b657c43719fe5955b3f1b2d609720659`; its three latest CI workflows passed (Test Suite `44218633547`, Preflight `44218633560`, Training Prototype Validation `44218633551`).
+- No Supabase production changes, account creation, device pairing, agent installation, training, provider jobs or merges were performed.
+
+**Read the repair audit before continuing.** Older operational notes below are historical and must not override this current product direction. The owner account is not yet implemented; do not follow older public self-registration instructions.
+
+---
+
 # ULTRON Training Control
 
 ULTRON is an independently implemented mathematics Transformer training project. It starts from random weights, generates its own deterministic mathematics data, verifies examples independently, and does not use pretrained models, pretrained weights, AI APIs, or paid compute.
