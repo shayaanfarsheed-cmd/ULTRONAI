@@ -211,3 +211,12 @@ All earlier pairing implementation notes later in this README are historical onl
 - This is deterministic local retrieval, not a trained ULTRON neural answer model. It does not use an external AI API, start training, or invent a synthesized answer. It reports relevant source passages or says no evidence was found.
 - No Supabase schema or production Storage policy changes are part of this feature.
 - Keep the feature owner-only. Guests must not list, download, or search private files.
+
+## Folder uploads — implementation in progress
+
+- Data Library supports individual files and browser directory selection.
+- Directory uploads preserve each file relative path under the verified owner private Storage folder; uploads run sequentially with file-count progress.
+- Limits: 20 MiB per file, 500 files and 500 MiB per batch, maximum 12 path levels.
+- Library browsing is recursive; download, delete and Ask ULTRON use the complete relative path.
+- Uploading is storage only: no execution, Lean proof validation, training-dataset creation, or training start. Ask ULTRON searches only its supported UTF-8 text formats.
+- Directory picker support depends on the browser; multi-file selection is the fallback.
