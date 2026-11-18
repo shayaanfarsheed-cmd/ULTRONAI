@@ -1,6 +1,28 @@
 # ULTRONAI — Current implementation handoff (2026-11-18)
 
 **Repository:** `shayaanfarsheed-cmd/ULTRONAI`  
+**Main branch:** `main`  
+**Latest merged work:** PR #12 — [Dashboard performance optimization](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/12), merged at `02ddff7437f6a4ac89f78c52ceb36cef6d3f944b`.  
+**Current working branch:** `fix/bounded-checkpoint-streams` (follow-up hardening; PR not yet opened).
+
+## Latest code review and follow-up
+
+- Reviewed the merged PR #12 source, runtime helpers, checkpoint paths, behavioural tests, and handoff documentation.
+- Review finding: the prior size guard checked `arrayBuffer()` only after the browser had allocated the entire response. A missing or dishonest `Content-Length` could therefore bypass the intended pre-allocation memory bound.
+- Follow-up implementation: stream checkpoint response chunks and cancel immediately when the configured byte cap would be exceeded; reject unsafe non-streaming responses when no trustworthy length is available; validate declared versus actual streamed length.
+- Tightened manifest step validation to require a non-negative safe integer number, rather than coercing strings.
+- Added regression tests for exact-limit streams, stream cancellation, early declared-length rejection, unsafe fallback rejection, and malformed step types.
+- No production Supabase changes, secrets, account provisioning, device pairing, agent installation, provider jobs, or real training.
+
+**Validation:** follow-up code is not yet validated. Run the three required GitHub Actions workflows against the final follow-up commit before opening/merging the PR. Device compatibility testing remains outstanding.
+
+**Next actions:** inspect the updated files and diff; run Node behavioural tests and syntax checks; run full CI; then update this handoff with the exact commit and actual results. Keep this follow-up unmerged until reviewed and validated. Do not start training.
+
+---
+
+# ULTRONAI — Current implementation handoff (2026-11-18)
+
+**Repository:** `shayaanfarsheed-cmd/ULTRONAI`  
 **Active branch:** `main`  
 **Latest verified main commit:** `4ced9ca745aec0ab7dc736be100f5a25f7422848`  
 **Merged work:** PR #10 (repository architecture/configuration baseline) and PR #11 (owner sign-in and Guest Mode dashboard foundation).  
