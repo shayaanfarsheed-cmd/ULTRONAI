@@ -1374,9 +1374,11 @@
     });
     $("copyPairingCodeButton").addEventListener("click", function () {
       const code = $("pairingCode").textContent;
-      if (!/^\\d{8}$/.test(code)) return;
+      const challengeId = $("pairingChallengeId").textContent;
+      if (!/^\\d{8}$/.test(code) || !/^[0-9a-f-]{36}$/i.test(challengeId)) return;
+      const pairingDetails = "Challenge ID: " + challengeId + "\\nPairing code: " + code;
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(code).then(function () { showNotice("Pairing code copied.", "success"); })
+        navigator.clipboard.writeText(pairingDetails).then(function () { showNotice("Pairing details copied.", "success"); })
           .catch(function () { showNotice("Copy was blocked by this browser. Select the code to copy it manually.", "warn"); });
       } else showNotice("Select the code and copy it manually.", "info");
     });
