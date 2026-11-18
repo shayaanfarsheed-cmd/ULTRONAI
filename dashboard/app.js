@@ -652,9 +652,9 @@
     const server = next.server;
     title.textContent = derived === "dead" ? "The previous run appears dead" : "Handoff needed";
     if (server.id === "github_actions_cpu") {
-      text.textContent = status.automatic_start_enabled ? "The switcher may start the CPU fallback after its cooldown and lease checks." : "Open GitHub Actions, select ULTRON CPU Training, and press Run workflow.";
+      text.textContent = status.automatic_start_enabled ? "CPU fallback is only a provider option; training must be started inside the provider session." : "Open GitHub Actions, select ULTRON CPU Training, and press Run workflow.";
     } else if (server.id === "kaggle") {
-      text.textContent = status.automatic_start_enabled ? "The switcher may push the Kaggle notebook after its safety checks. If it does not start, open Kaggle and run the notebook." : "Open Kaggle, choose the free GPU if available, and press Run All.";
+      text.textContent = status.automatic_start_enabled ? "Open the provider notebook and make any training decision inside that session." : "Open Kaggle, choose the free GPU if available, and press Run All.";
     } else if (server.id === "google_colab") {
       text.textContent = "Open Colab, select a free GPU if offered, then press Runtime → Run all.";
     } else if (server.id === "lightning_ai") {
@@ -789,7 +789,7 @@
       return '<article class="server-card' + (server.id === nextId ? ' next-server' : '') + '">' +
         '<div class="server-main">' +
           '<div class="server-title-row"><span class="server-number">0' + (index + 1) + '</span><strong class="server-title">' + escapeHtml(server.name) + '</strong><span class="status-pill ' + escapeHtml(status) + '">' + escapeHtml(status.replace(/_/g, " ")) + '</span>' + (server.id === nextId ? '<span class="next-flag">NEXT</span>' : '') + '</div>' +
-          '<div class="server-sub">' + escapeHtml(server.role || "compute server") + ' · ' + escapeHtml(limitText) + ' · Automatic start: ' + escapeHtml(server.automatic_start || "no") + '</div>' +
+          '<div class="server-sub">' + escapeHtml(server.role || "compute server") + ' · ' + escapeHtml(limitText) + ' · Provider automation: not controlled by this dashboard</div>' +
           '<div class="server-meta"><span class="meta-chip">' + escapeHtml(server.hardware && (server.hardware.cpu_only ? "CPU" : server.hardware.free_gpu_options ? "GPU / CPU" : server.hardware.preferred || "Compute")) + '</span><span class="meta-chip">' + escapeHtml(quotaText) + '</span><span class="meta-chip">Order ' + escapeHtml(server.order) + '</span></div>' +
           '<div class="quota-line"><div class="quota-top"><span>Quota usage</span><span>' + escapeHtml(quota.percent == null ? "Not measurable" : formatNumber(quota.percent, 1) + "%") + '</span></div><div class="quota-track"><div class="quota-fill" style="width:' + (quota.percent == null ? 0 : Math.max(0, Math.min(100, quota.percent))) + '%"></div></div></div>' +
           '<div class="server-sub">' + escapeHtml(server.status_reason || server.limits && server.limits.quota_notes || "") + '</div>' +
@@ -1105,7 +1105,6 @@
     document.querySelectorAll("[data-view]").forEach(function (button) {
       button.addEventListener("click", function () { switchView(button.getAttribute("data-view")); });
     });
-    $("verifyCheckpointsButton").addEventListener("click", function () { safeResume().catch(function (error) { showCheckpointNotice(error.message, "error"); }); });
     $("autoStartToggle").disabled = true;
     $("ramLimitSlider").addEventListener("input", function () {
       const selected = Math.max(2, Math.min(10, Number($("ramLimitSlider").value)));
