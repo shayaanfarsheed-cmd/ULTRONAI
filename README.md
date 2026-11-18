@@ -6,6 +6,18 @@
 **Current working branch:** `fix/bounded-checkpoint-streams`  
 **Draft PR #13:** [Enforce checkpoint download limits while streaming](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/13) — open, not merged.
 
+## Dashboard accessibility and mobile layout — in progress
+
+- New branch: `feature/mobile-dashboard-accessibility`, based on PR #13's validated head `332800f4272b805461dffd96ad8ae7ab76fdc2e0`.
+- Added a keyboard-visible skip link to the dashboard content, clear `:focus-visible` outlines, and accessible `aria-current="page"` state for the selected navigation item.
+- Added iOS safe-area padding, more resilient narrow-screen top-bar/navigation sizing, and reduced-motion support.
+- These are code-level improvements only. They do not constitute real-device compatibility testing; test on iPad/iPhone Safari and Chrome, Android, and desktop before release.
+- PR #13's three required workflows passed on its exact head `332800f4272b805461dffd96ad8ae7ab76fdc2e0`: Preflight run `44243502542`, Training Prototype Validation run `44243502479`, Test Suite run `44243502449`.
+- PR #13 remains open, draft, and unmerged. This mobile-accessibility branch is separate and is not yet a pull request.
+- No backend changes, account provisioning, secrets, pairing, provider jobs, or training.
+
+**Next:** run the test suite and inspect the resulting changes; then open a draft PR and validate its exact head. Continue frontend work before any training.
+
 ## Latest code review and follow-up
 
 - Reviewed the merged PR #12 source, runtime helpers, checkpoint paths, behavioural tests, and handoff documentation.
