@@ -18,6 +18,7 @@
   const $ = function (id) { return document.getElementById(id); };
   const state = {
     publicMode: true,
+    authGeneration: 0,
     session: null,
     user: null,
     status: null,
@@ -78,18 +79,52 @@
   }
 
   function saveSession(session) {
-    state.session = session;
-    state.user = session && session.user ? session.user : null;
+    if (!session) {
+      state.session = null;
+      state.user = null;
+      try { sessionStorage.removeItem(SESSION_KEY); } catch (_) {}
+      return;
+    }
     try {
-      if (session) sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
-      else sessionStorage.removeItem(SESSION_KEY);
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
     } catch (_) {
-      if (session) throw new Error("This browser cannot retain the sign-in session. Enable session storage or use Guest Mode.");
+      state.session = null;
+      state.user = null;
+      try { sessionStorage.removeItem(SESSION_KEY); } catch (_) {}
+      throw new Error("This browser cannot retain the sign-in session. Enable session storage or use Guest Mode.");
+    }
+    state.session = session;
+    state.user = session.user || null;
+  }
+
+  function hasVerifiedOwnerSession() {
+    return Boolean(!state.publicMode && OWNER_USER_ID && state.session &&
+      state.session.access_token && state.user && state.user.id === OWNER_USER_ID &&
+      state.session.user && state.session.user.id === OWNER_USER_ID);
+  }
+
+  function assertOwnerAccess(session) {
+    if (!hasVerifiedOwnerSession() || (session && (!session.user || session.user.id !== OWNER_USER_ID))) {
+      throw new Error("Owner access is required for this private operation.");
     }
   }
 
   function setAccessMode(isOwner) {
-    state.publicMode = !isOwner;
+    const nextPublicMode = !isOwner;
+    if (state.publicMode !== nextPublicMode) state.authGeneration += 1;
+    state.publicMode = nextPublicMode;
+    if (!isOwner) {
+      state.session = null;
+      state.user = null;
+      try { sessionStorage.removeItem(SESSION_KEY); } catch (_) {}
+      state.status = null;
+      state.logs = [];
+      state.switches = [];
+      state.checkpoints = [];
+      state.quota = {};
+      state.lastUpdated = null;
+      state.stale = false;
+    }
     const signIn = $("ownerSignInButton");
     const signOut = $("ownerSignOutButton");
     const account = document.querySelector(".account-email");
@@ -132,6 +167,9 @@
   async function signInOwner(event) {
     event.preventDefault();
     const submit = $("ownerSubmitButton");
+    const passwordInput = $("ownerPassword");
+    const password = passwordInput.value;
+    passwordInput.value = "";
     if (!isConfigured()) {
       showAuthMessage("Authentication is not configured yet. Guest Mode remains available.", "warn");
       return;
@@ -141,7 +179,6 @@
       return;
     }
     const email = $("ownerEmail").value.trim();
-    const password = $("ownerPassword").value;
     if (!email || !password) {
       showAuthMessage("Enter the owner email and password.", "error");
       return;
@@ -165,34 +202,34 @@
       await refreshData();
     } catch (error) {
       saveSession(null);
+      setAccessMode(false);
       showAuthMessage(error.message || "Owner sign-in failed.", "error");
     } finally {
+      passwordInput.value = "";
       submit.disabled = false;
     }
   }
 
   async function signOutOwner() {
     const session = state.session;
-    try {
-      if (session && session.access_token && isConfigured()) {
-        await fetch(AUTH_ROOT + "logout", {
+    const ownerId = state.user && state.user.id;
+    if (ownerId) {
+      try { localStorage.removeItem(CACHE_PREFIX + ownerId); } catch (_) {}
+    }
+    saveSession(null);
+    setAccessMode(false);
+    showNotice("Signed out locally. You are now using Guest Mode.", "info");
+    if (session && session.access_token && isConfigured()) {
+      try {
+        const response = await fetch(AUTH_ROOT + "logout", {
           method: "POST",
           headers: {"apikey": PUBLISHABLE_KEY, "Authorization": "Bearer " + session.access_token}
         });
+        if (!response.ok) throw new Error("Server sign-out could not be confirmed.");
+      } catch (_) {
+        showNotice("Guest Mode is active and local private data is cleared. Server-side sign-out could not be confirmed; the session token was discarded in this browser.", "warn");
       }
-    } catch (_) {
-      showNotice("Could not confirm server-side sign-out. The local session has still been cleared.", "warn");
     }
-    if (state.user) {
-      try { localStorage.removeItem(CACHE_PREFIX + state.user.id); } catch (_) {}
-    }
-    saveSession(null);
-    state.status = null;
-    state.logs = [];
-    state.switches = [];
-    state.checkpoints = [];
-    setAccessMode(false);
-    showNotice("Signed out. You are now using Guest Mode.", "info");
   }
 
   function sessionFromResponse(data) {
@@ -236,6 +273,7 @@
 
   async function apiRequest(table, method, query, body) {
     const session = await ensureSession();
+    assertOwnerAccess(session);
     const url = API_ROOT + table + (query ? "?" + query : "");
     const headers = {
       "apikey": PUBLISHABLE_KEY,
@@ -266,6 +304,7 @@
 
   async function storageRequest(path, method, body, binary) {
     const session = await ensureSession();
+    assertOwnerAccess(session);
     const headers = {
       "apikey": PUBLISHABLE_KEY,
       "Authorization": "Bearer " + session.access_token
@@ -310,7 +349,7 @@
   }
 
   function saveSnapshot() {
-    if (!state.user) return;
+    if (!hasVerifiedOwnerSession()) return;
     const snapshot = {
       saved_at: new Date().toISOString(),
       status: state.status,
@@ -321,7 +360,7 @@
   }
 
   function loadSnapshot() {
-    if (!state.user) return false;
+    if (!hasVerifiedOwnerSession()) return false;
     try {
       const raw = localStorage.getItem(cacheKey());
       if (!raw) return false;
@@ -337,15 +376,17 @@
   }
 
   async function refreshData() {
-    if (!state.user || state.refreshing) return;
+    if (!hasVerifiedOwnerSession() || state.refreshing) return;
+    const generation = state.authGeneration;
+    const ownerId = state.user.id;
     state.refreshing = true;
     try {
-      const ownerId = state.user.id;
       const results = await Promise.all([
         apiRequest("training_status", "GET", queryForOwner(ownerId, "updated_at.desc", 30)),
         apiRequest("server_log", "GET", queryForOwner(ownerId, "started_at.desc", 500)),
         apiRequest("switch_requests", "GET", queryForOwner(ownerId, "requested_at.desc", 200))
       ]);
+      if (generation !== state.authGeneration || !hasVerifiedOwnerSession() || state.user.id !== ownerId) return;
       const rows = results[0] || [];
       rows.sort(function (a, b) { return new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0); });
       state.status = rows.find(function (row) { return row.state !== "finished"; }) || rows[0] || null;
@@ -367,6 +408,7 @@
       $("lastUpdated").textContent = "Last updated " + formatDateTime(state.lastUpdated);
       renderAll();
     } catch (error) {
+      if (generation !== state.authGeneration || !hasVerifiedOwnerSession() || state.user.id !== ownerId) return;
       state.stale = true;
       const hadCache = loadSnapshot();
       setConnection("OUT OF DATE", "stale");
@@ -898,7 +940,7 @@
   }
 
   async function loadCheckpointCandidates() {
-    if (!state.user || !state.status || !state.status.run_id) {
+    if (!hasVerifiedOwnerSession() || !state.status || !state.status.run_id) {
       state.checkpoints = [];
       return [];
     }
