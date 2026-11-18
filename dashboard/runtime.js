@@ -11,7 +11,7 @@
     const rawLength = response && response.headers && response.headers.get("content-length");
     let declaredLength = null;
     if (rawLength != null && rawLength !== "") {
-      if (!/^\\d+$/.test(String(rawLength))) throw new Error("Checkpoint response length is invalid.");
+      if (!/^\d+$/.test(String(rawLength))) throw new Error("Checkpoint response length is invalid.");
       declaredLength = Number(rawLength);
       if (!Number.isSafeInteger(declaredLength) || declaredLength > maxBytes) {
         throw new Error("Checkpoint object exceeds its allowed download size.");
