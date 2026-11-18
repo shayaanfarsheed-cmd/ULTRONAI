@@ -110,6 +110,57 @@ node --check dashboard/app.js
 node --check dashboard/config.js
 ```
 
+## Mandatory next-chat handoff rule (current)
+
+**This section supersedes the older handoff notes further below.** At the end of every ChatGPT work session, before the conversation context is closed or handed to a new chat, update this README with a concise, factual handoff. Do not assume the next chat can see the previous conversation.
+
+Every handoff must record:
+- Date/time (UTC), repository, active branch, latest commit SHA, and open PR number/link.
+- What changed in this session and the exact files touched.
+- Tests and CI runs with their actual results; clearly label anything still running, failed, or not yet verified.
+- Current deployment/runtime state and known limitations.
+- The next tasks in priority order, including the exact first file or test to inspect.
+- Outstanding user decisions/approvals. Never imply approval to merge or start training.
+- Secret names and where they belong (provider secret manager only), never secret values.
+
+Before finishing a chat, verify the current GitHub branch/commit/PR and CI state, then update this section. In the next chat, read this section first, inspect the referenced commit and files, and continue from that state. Do not repeat completed work or overwrite newer changes. If no code changed, still update the handoff date and next action when the project state or test status changed.
+
+### Latest handoff — 2026-11-18
+
+- **Handoff timestamp:** 2026-11-18 01:08 UTC
+- **Repository:** `shayaanfarsheed-cmd/ULTRONAI`
+- **Active branch:** `fix/session-heartbeat-fail-closed`
+- **Open PR:** [PR #7 — Fail closed when training heartbeat errors approach lease expiry](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/7)
+- **Current PR head at this handoff:** `7d62664b85e69ae115adcbed9efe7cce6d34b630`
+- **PR status:** open and unmerged; GitHub currently reports mergeability as unstable while checks run. Do not merge without explicit user approval.
+- **Training status:** no live training or provider job has been started.
+
+#### Changes and files
+
+- `ultron_session.py`: extracted `save_local_checkpoint()`; the generic unexpected heartbeat-error path now saves locally only when the last known lease window is nearly expired, marks the lease lost, and stops without attempting a remote checkpoint commit.
+- `tests/test_session.py`: added regression coverage for local checkpoint preservation/no remote commit on unexpected heartbeat failure and retry throttling.
+- `README.md`: updated this handoff to record verified CI and the next action.
+- The fake-clock fixture was corrected in commit `0974e2e5371410e2e3d62f3fe56f853466fc56fc`; current PR head before this README edit is `73816d36a85d838f7ae42248160dd821af3a7542`.
+
+#### Validation on PR head `7d62664b85e69ae115adcbed9efe7cce6d34b630`
+
+The three workflows on the prior code head `73816d36a85d838f7ae42248160dd821af3a7542` completed successfully. The README-only handoff commit above triggered a fresh CI cycle on the current head; at this handoff all three are still running:
+
+- Test suite: [run 44213538444](https://github.com/shayaanfarsheed-cmd/ULTRONAI/actions/runs/44213538444) — in progress.
+- Preflight: [run 44213538520](https://github.com/shayaanfarsheed-cmd/ULTRONAI/actions/runs/44213538520) — in progress.
+- Training prototype validation: [run 44213538416](https://github.com/shayaanfarsheed-cmd/ULTRONAI/actions/runs/44213538416) — in progress.
+- Previous code-head workflow runs (44213388114, 44213388095, 44213388127) all passed, including every listed job step. Do not treat those runs as validation of the current README commit.
+- PR diff reviewed: only `README.md`, `tests/test_session.py`, and `ultron_session.py` changed. The two regression tests are present. No review submissions or inline review threads were returned.
+- The README update itself creates a new commit and may trigger another CI cycle. Re-check the new PR head and workflows before treating validation as final for the updated head.
+
+#### Exact next actions
+
+1. Check the three current workflow runs above until each has a final conclusion. If any fail, inspect logs and fix on the same branch; then rerun validation.
+2. If all three pass on the current PR head, report PR #7 as validated and ask the user whether they explicitly approve merging. Do not merge without that approval.
+3. If another README handoff update is required, it will create another commit and CI cycle; record the new head and actual run states accurately.
+4. After PR #7 is merged with explicit approval, reconcile the older roadmap below against current repository state, then resume secure Windows training-agent implementation. Do not start training or cloud jobs.
+5. Keep secrets such as `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SUPABASE_OWNER_ID`, `HF_TOKEN`, and `HF_REPO_ID` in provider secret managers only; never ask for or record their values.
+
 ## Current development status and next-chat handoff
 
 **Last updated:** 2026-11-17 13:35 UTC  

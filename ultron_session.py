@@ -521,13 +521,9 @@ def run_training_session(
             backup_ok = backup_checkpoint(checkpoint_id)
             return backup_ok
 
-    def save_checkpoint(force_secondary_backup: bool = False) -> bool:
-        nonlocal pending_checkpoint_id, pending_state, last_checkpoint, last_error, last_saved_step, last_saved_checkpoint_id
+    def save_local_checkpoint() -> bool:
+        nonlocal pending_checkpoint_id, pending_state, last_checkpoint, last_saved_step, last_saved_checkpoint_id
         if step == last_saved_step:
-            if pending_checkpoint_id is not None:
-                return try_commit_pending(force_secondary_backup)
-            if force_secondary_backup and last_saved_checkpoint_id is not None:
-                return backup_checkpoint(last_saved_checkpoint_id) or last_saved_checkpoint_id is not None
             return True
         training_state = build_training_state()
         manifest = local_store.save(model, optimizer, training_state, scheduler)
@@ -536,6 +532,16 @@ def run_training_session(
         last_saved_checkpoint_id = pending_checkpoint_id
         last_checkpoint = monotonic()
         last_saved_step = step
+        return True
+
+    def save_checkpoint(force_secondary_backup: bool = False) -> bool:
+        if step == last_saved_step:
+            if pending_checkpoint_id is not None:
+                return try_commit_pending(force_secondary_backup)
+            if force_secondary_backup and last_saved_checkpoint_id is not None:
+                return backup_checkpoint(last_saved_checkpoint_id) or last_saved_checkpoint_id is not None
+            return True
+        save_local_checkpoint()
         return try_commit_pending(force_secondary_backup)
 
     def update_heartbeat() -> bool:
@@ -731,7 +737,19 @@ def run_training_session(
                             lease_lost = True
                         return finish("dead", "database_unreachable_lease_expiring")
                 except Exception as error:
-                    last_error = type(error).__name__
+                    # A failed heartbeat must not cause a tight retry loop or allow
+                    # training to continue beyond the last locally known lease window.
+                    last_error = "heartbeat_failed:" + type(error).__name__
+                    last_heartbeat = monotonic()
+                    if monotonic() >= lease_deadline - 30:
+                        # Persist locally only: the remote lease may no longer be
+                        # trustworthy, so do not attempt a remote checkpoint commit.
+                        try:
+                            save_local_checkpoint()
+                        except Exception as checkpoint_error:
+                            last_error += "; local_checkpoint_failed:" + type(checkpoint_error).__name__
+                        lease_lost = True
+                        return finish("dead", "heartbeat_failed_lease_expiring")
 
             batch = stream.next_batch(tokenizer.stoi[" "])
             try:

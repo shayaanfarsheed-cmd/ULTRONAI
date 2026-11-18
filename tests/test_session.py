@@ -4,6 +4,7 @@ from datetime import timedelta
 
 import torch
 
+from ultron_checkpoint import LocalCheckpointStore
 from ultron_model import ULTRONTransformer
 from ultron_session import run_training_session
 from ultron_storage import RemoteCheckpointStore, SupabaseStorageError
@@ -276,6 +277,84 @@ class TrainingSessionTests(unittest.TestCase):
         self.assertEqual(result["reason"], "pause_requested")
         self.assertEqual(api.released[-1], "paused")
         self.assertEqual(api.status["last_checkpoint_step"], 0)
+
+    def test_unexpected_heartbeat_error_saves_local_checkpoint_without_remote_commit(self):
+        class Clock:
+            value = 0.0
+            lease_deadline = 0.0
+
+            def __call__(self):
+                return self.value
+
+        clock = Clock()
+
+        class FailingControlsAPI(FakeAPI):
+            def renew_lease(self, run_id, lease_holder, fencing_token, ttl_seconds, status_values=None):
+                renewed = super().renew_lease(
+                    run_id, lease_holder, fencing_token, ttl_seconds, status_values=status_values
+                )
+                if renewed:
+                    clock.lease_deadline = clock.value + ttl_seconds
+                return renewed
+
+            def controls(self, run_id):
+                clock.value = clock.lease_deadline - 20
+                raise RuntimeError("temporary control read failure")
+
+        api = FailingControlsAPI()
+        remote_storage = FakeStorage()
+        remote = RemoteCheckpointStore(remote_storage, keep_last=3)
+        config = self._config()
+        config["monitoring"]["heartbeat_interval_seconds"] = 0
+        with tempfile.TemporaryDirectory() as folder:
+            result = run_training_session(
+                config,
+                self._servers(),
+                checkpoint_root=folder,
+                api=api,
+                remote_store=remote,
+                platform_id="kaggle",
+                runtime_override={"device": "cpu", "batch_size": 2, "cpu_threads": 1, "mixed_precision": "none"},
+                model_factory=self._model_factory,
+                monotonic=clock,
+            )
+            local = LocalCheckpointStore(folder)
+            checkpoints = local.list_valid_checkpoints()
+
+        self.assertEqual(result["state"], "dead")
+        self.assertEqual(result["reason"], "heartbeat_failed_lease_expiring")
+        self.assertTrue(checkpoints, "the latest training state must be preserved locally")
+        self.assertEqual(checkpoints[0]["step"], 0)
+        self.assertEqual(remote_storage.objects, {}, "uncertain lease must not trigger a remote commit")
+        self.assertEqual(api.released, [], "an expired/uncertain lease must not be released by this worker")
+
+    def test_unexpected_heartbeat_error_is_throttled_between_retries(self):
+        class FailingControlsAPI(FakeAPI):
+            def __init__(self):
+                super().__init__()
+                self.control_calls = 0
+
+            def controls(self, run_id):
+                self.control_calls += 1
+                raise RuntimeError("temporary control read failure")
+
+        api = FailingControlsAPI()
+        remote = RemoteCheckpointStore(FakeStorage(), keep_last=3)
+        with tempfile.TemporaryDirectory() as folder:
+            result = run_training_session(
+                self._config(),
+                self._servers(),
+                checkpoint_root=folder,
+                api=api,
+                remote_store=remote,
+                platform_id="kaggle",
+                runtime_override={"device": "cpu", "batch_size": 2, "cpu_threads": 1, "mixed_precision": "none"},
+                model_factory=self._model_factory,
+                monotonic=lambda: 0.0,
+            )
+
+        self.assertEqual(result["state"], "finished")
+        self.assertEqual(api.control_calls, 1, "heartbeat errors must not retry on every training batch")
 
     def test_lost_lease_stops_before_training_or_checkpointing(self):
         api = FakeAPI(renew=False)
