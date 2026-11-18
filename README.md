@@ -77,7 +77,7 @@
 ## Next steps for the next session
 
 1. Verify the GitHub Pages deployment for merge commit `acd9b8a20aac4552592a1b3fa7b72b9d2513bf2c` and inspect the live Local training page.
-2. **Audit and retire remaining dashboard-to-training commands** (`switchNow`, pause/resume, automatic-start toggles, and any related database writes). Keep server availability/recommendations and training status read-only; the website must not send commands to a running device or notebook.
+2. Retire remaining dashboard-to-training commands in PR #24; keep server recommendations, training status and checkpoint verification/download read-only. The website must not send commands to a running device or notebook.
 3. Verify the production `device-control` Edge Function still fails closed with HTTP 410; the direct HTTP invocation test was not available during this work. Keep the historical pairing tables inert and private.
 4. Begin the local-only runtime described in `docs/LOCAL_AGENT_ARCHITECTURE.md`: first a stub worker and state machine, then verified RAM enforcement and safe Stop/checkpoint behavior. No remote device control.
 5. Keep training disabled. Do not start real training until the user separately approves it after implementation and validation. Continue iPad and browser frontend testing before model training.
