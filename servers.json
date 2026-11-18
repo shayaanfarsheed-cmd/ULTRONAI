@@ -90,10 +90,7 @@
       },
       "automatic_start": "no",
       "start_steps": [
-        "Sign in to Kaggle and complete phone verification for GPU access.",
-        "Open the notebook page and create or import the repository's train.ipynb.",
-        "Select an available free GPU in Notebook Settings > Accelerator.",
-        "For an automated run, configure the Kaggle API token in GitHub Actions Secrets and register the kernel metadata."
+        "Disabled by the user. Do not create credentials, configure secrets, or launch this provider."
       ],
       "current_status": "unknown",
       "status_reason": "Disabled by the user; do not select, configure credentials for, or launch this provider.",
