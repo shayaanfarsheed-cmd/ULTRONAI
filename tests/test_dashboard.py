@@ -84,6 +84,16 @@ class DashboardStaticTests(unittest.TestCase):
         signout = javascript.split("async function signOutOwner()", 1)[1].split("function sessionFromResponse", 1)[0]
         self.assertLess(signout.index("saveSession(null);"), signout.index('fetch(AUTH_ROOT + "logout"'))
 
+    def test_checkpoint_metadata_reads_are_bounded_and_auth_generation_checked(self):
+        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
+        self.assertIn("async function mapWithConcurrency(items, limit, mapper)", javascript)
+        self.assertIn("mapWithConcurrency(ids, 3", javascript)
+        loader = javascript.split("async function loadCheckpointCandidates()", 1)[1].split("async function verifyCheckpoint", 1)[0]
+        self.assertIn('Promise.all([', loader)
+        self.assertIn("generation !== state.authGeneration", loader)
+        self.assertIn("state.status.run_id !== runId", loader)
+        self.assertIn("results.filter(Boolean)", loader)
+
     def test_private_activity_view_is_guest_gated(self):
         html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
