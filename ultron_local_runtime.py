@@ -101,6 +101,13 @@ def _worker(root: Path, run_id: str, batches: int, delay: float) -> int:
         while completed < batches:
             stop_file = root / "stop.request"
             if stop_file.exists():
+                try:
+                    request = _read_json(stop_file)
+                except Exception:
+                    request = {}
+                if request.get("run_id") != run_id:
+                    raise RuntimeErrorState("Stop request does not match the active run.")
+                _write_status(root, run_id, "STOP_REQUESTED", completed_batches=completed)
                 _write_status(root, run_id, "CHECKPOINTING", completed_batches=completed)
                 _checkpoint(root, run_id, completed)
                 _write_status(root, run_id, "STOPPED", completed_batches=completed,
