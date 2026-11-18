@@ -16,46 +16,40 @@ The dashboard Settings page now includes a 2–10 GB RAM budget slider (0.5 GB i
 
 The static dashboard is in `dashboard/`. The repository root redirects to it.
 
-## Current status — 2026-11-18 (PR #8 handoff)
+## Current status — 2026-11-18 (PR #8 merged)
 
 **This section supersedes older operational and handoff notes below wherever they conflict.**
 
 - **Repository:** `shayaanfarsheed-cmd/ULTRONAI`
-- **Active branch:** `ui/public-dashboard-no-personal-history`
-- **Pull request:** [#8 — Remove public read-only messaging and personal training history](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/8)
-- **PR head before this fix:** `cf76192bb030cb55e53a8aacc7c260790f5eb5ed`
-- **Frontend cleanup commit:** `207b3331dd300583fd6adbe5c9bd7206ad181e09` — removes the obsolete history renderer and owner-ID DOM reference.
-- **PR state:** open and unmerged. Do not merge without the user's explicit approval.
+- **Latest main commit:** `8e3bbfb62732de5cb47229572cac14b37cdc3d37` — squash merge of PR #8.
+- **PR #8:** [Remove public read-only messaging and personal training history](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/8) — **merged**.
+- **PR #8 head reviewed:** `d32f199d64140553ff3ed25abaee954f6b9fc89b`.
+- **PR #8 merge commit:** `8e3bbfb62732de5cb47229572cac14b37cdc3d37`.
+- **PR #8 checks on the exact reviewed head:** ULTRON Test Suite run `44214579105` passed; ULTRON preflight run `44214579213` passed; Training Prototype Validation run `44214579116` passed.
+- **PR #7:** [Fail closed when training heartbeat errors approach lease expiry](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/7) remains open and unmerged. Its latest known head is `13aec6a1d13a161793fb56ce3baee178e749c811`; test suite run `44213583636`, preflight run `44213583634`, and prototype validation run `44213583655` all passed.
+- **PR #4:** secure device-control contract remains open/unmerged; inspect and validate separately before any merge.
 
-### User-facing dashboard requirements
+### Public dashboard requirements and current behaviour
 
 - The dashboard is public; no login or sign-up is required.
-- Do not collect, load, cache, or display account-specific training history.
-- Do not display a public-read-only-mode label or warning.
-- Checkpoint access, device pairing, and training controls remain unavailable/locked. Do not enable them as part of this UI cleanup.
-- No live training or provider jobs have been started. No backend schema or secrets were changed.
+- Personal/account-specific training history is not displayed. Public initialization sets the user/session to null; history/status refresh and checkpoint storage loading are guarded by the absence of a user.
+- Public-read-only-mode labels and the old History view have been removed.
+- Checkpoint access, device pairing, automatic starts, and training controls remain unavailable/locked. Do not unlock them as part of unrelated UI work.
+- The RAM slider is a browser-local preference only; it is not an enforced OS process limit until a secure device agent exists.
+- No live training or provider jobs have been started. No backend schema or secrets were changed by PR #8.
 
-### PR #8 CI failure diagnosis
+### PR #8 review and merge
 
-GitHub Actions runs reported failing on 2026-11-18:
+The PR patch was reviewed, including `dashboard/app.js` and `dashboard/index.html`. The public page initializes without a user session; `refreshData()` and `loadCheckpointCandidates()` return without accessing account data when no user exists. The dashboard renders the training controls disabled in public mode, the checkpoint verification button is disabled in the HTML, and device pairing controls are unavailable. The three required CI workflows passed on the exact reviewed PR head before squash merge.
 
-- Preflight: run `44213979810`, job `134499064277`
-- Test suite: run `44213979643`, job `134499063447`
-- Training prototype validation: run `44213979639`, job `134499063456`
+### Exact next tasks for the next chat
 
-All three failed at the same unit test, `test_all_static_javascript_id_references_exist`. The dashboard HTML had removed the personal history and owner-ID elements while `dashboard/app.js` still contained unused references to `switchCount`, `sessionCount`, `switchHistoryBody`, `sessionHistoryBody`, and `ownerIdText`. This was a stale frontend reference issue; later smoke steps were skipped. The first fix removes the obsolete history renderer and owner-ID DOM reference rather than restoring the removed UI.
-
-**Validation status:** the original three runs failed on the stale DOM references. The frontend cleanup commit above is now on the PR branch. Fresh workflows triggered for that commit: test suite run `44214532032`, prototype validation run `44214532537`, and preflight run `44214531838`; all were `in_progress` at the last check. A README handoff-only follow-up commit is also being made and may trigger another CI set. Fetch the latest PR head and confirm its checks before calling this fixed. Do not claim success until all latest-head runs complete green.
-
-### Exact next steps for the next chat
-
-1. Read this current-status section first. Fetch the latest PR #8 head SHA; the README-only handoff commit may have advanced it beyond the frontend cleanup commit recorded above.
-2. Inspect `dashboard/app.js` and ensure public mode never queries, stores, or renders account-specific logs, switch requests, owner IDs, or personal checkpoint history. Remove obsolete unreachable account/history code where safe; preserve public system/server information.
-3. Run `node --check dashboard/app.js`, the dashboard static tests, and the complete Python unit suite locally or through CI.
-4. Verify checkpoint verification, device pairing, automatic starts, and all training controls remain disabled in the public dashboard.
-5. Inspect fresh CI runs for the updated PR head. Fix failures and rerun; do not bypass tests.
-6. Keep PR #8 open and unmerged until the user explicitly approves merging.
-7. Before ending any future chat/context handoff, update this README again with the actual branch, latest commit SHA, PR state, CI results, and next exact actions.
+1. Fetch current `main` and verify it contains merge commit `8e3bbfb62732de5cb47229572cac14b37cdc3d37`; confirm GitHub Pages reflects the merged dashboard.
+2. Re-check the public dashboard in a browser: no login/sign-up, no History view, no public-read-only wording, no personal history, and checkpoint/device/training controls remain locked.
+3. Review PR #7's heartbeat lease fail-closed changes and regression tests against the latest `main`; its CI passed, but it has not been merged. Do not merge it without the user's explicit approval.
+4. Review PR #4's device-control contract separately. Do not deploy a device agent, pair devices, change Supabase schema, or start live training without explicit approval.
+5. Keep the model-training objective unchanged: from-scratch 3–5M parameter mathematics Transformer, deterministic generated math data, independent verifier, no pretrained weights/models, no AI APIs, and no paid compute.
+6. Before ending any future chat/context handoff, update this README with the actual main SHA, PR states, latest CI results, and exact next actions.
 
 
 
