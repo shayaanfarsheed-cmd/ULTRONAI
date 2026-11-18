@@ -12,7 +12,7 @@
 - The old Supabase pairing tables are retained inert for auditability; the production Edge Function has been replaced with a fail-closed HTTP 410 response. No direct browser grants are to be added.
 - PR #22 (pairing security tests) is closed and obsolete. PR #23 was reviewed and merged on 2026-11-18; merge commit: `acd9b8a20aac4552592a1b3fa7b72b9d2513bf2c`. All three required PR workflows passed on its exact head.
 - Local training architecture and failure-handling plan: docs/LOCAL_AGENT_ARCHITECTURE.md.
-- **PR #25 remains open and unmerged.** Head `b2750c60af5148c93bb3bd2c0720ffb4fc361cbe` passed all three required workflows. Final diff review then identified a second lifecycle risk: stale/mismatched process metadata and PID reuse could produce false exit reports. The branch now binds process metadata to the run ID, records Linux process start-time ticks, fails closed for missing/mismatched identity, and adds PID-reuse regression coverage. Rerun all three required checks on the new head and repeat the full diff review before considering merge. Do not weaken process-exit assertions.
+- **PR #25 remains open and unmerged.** The earlier head `b2750c60af5148c93bb3bd2c0720ffb4fc361cbe` passed all three required workflows, but review found a PID-reuse/process-record identity risk. The latest implementation binds process metadata to the run ID, records Linux `/proc` start-time ticks, fails closed for missing or mismatched identity, and tests PID reuse. The current branch head is undergoing fresh validation; only green checks on that exact head count. Non-Linux PID-reuse verification remains a documented limitation. Do not weaken process-exit assertions.
 
 ---
 
