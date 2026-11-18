@@ -1,11 +1,11 @@
 ## Authoritative security update — 2026-11-18
 
-- **Device pairing is being removed at the owner's request.** The product will not pair remote devices, issue device credentials, or provide dashboard-to-device commands.
+- **Device pairing has been removed from the product at the owner's request.** The product will not pair remote devices, issue device credentials, or provide dashboard-to-device commands.
 - The former agent only sent heartbeats and could not execute commands, but it is no longer needed and is being removed.
 - Future training controls must be local to the device running training. The local user selects the RAM ceiling and operates Start/Stop there; the website cannot control another device.
 - Training remains disabled. No checkpoints or training data are deleted.
 - The old Supabase pairing tables are retained inert for auditability; the production Edge Function has been replaced with a fail-closed HTTP 410 response. No direct browser grants are to be added.
-- PR #22 (pairing security tests) is closed and obsolete. PR #23 removes pairing from the repository; it must pass checks and receive final review before merge.
+- PR #22 (pairing security tests) is closed and obsolete. PR #23 removes pairing from the repository; its latest CI passed, and final review/merge status must be checked.
 - Local training architecture and failure-handling plan: docs/LOCAL_AGENT_ARCHITECTURE.md.
 
 ---
@@ -91,13 +91,12 @@
 5. Continue dashboard UX and real-device testing. Do not start real training until the user explicitly approves it.
 
 
-## Secure device pairing work package (PR in progress)
+## Retired device-pairing work package (historical record)
 
-- Pairing control-plane source is being added on branch feature/secure-device-pairing.
-- Proposed design: five-minute one-time pairing challenge, five attempts maximum, atomic single-use redemption, 256-bit per-device bearer credential stored hashed server-side, owner-scoped device listing and revocation, and outbound HTTPS heartbeats.
-- Dashboard UI can request a one-time code and list/revoke devices after the Edge Function and migration are deployed.
-- No database migration or Edge Function has been applied to production. No device agent exists yet; a code alone cannot connect a device until a compatible agent is implemented.
-- Pairing does not start training or acquire the training lease. Device-reported capabilities are untrusted until validated by a future agent.
+- Device pairing was implemented and deployed temporarily, then retired at the owner's request in November 2026.
+- The repository no longer contains the pairing UI/API client or Python heartbeat agent. The production Edge Function now fails closed with HTTP 410.
+- Historical migration files and private database tables are retained inert for auditability; no browser grants or new callers are allowed.
+- No remote device command channel will be built. Future RAM enforcement and Start/Stop controls must run locally beside the training process.
 - Before production deployment, add edge/gateway per-IP throttling and disposable-project integration tests for concurrent redemption, expiry, attempt lockout, owner isolation, revocation, and secret redaction.
 
 
