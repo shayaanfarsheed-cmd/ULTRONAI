@@ -1068,7 +1068,7 @@
       try {
         const base = prefix + "/" + id;
         const metadata = await Promise.all([
-          getStorageBytes(base + "/manifest.json"),
+          getStorageBytes(base + "/manifest.json", ULTRON_RUNTIME.MAX_METADATA_BYTES),
           getStorageJson(base + "/upload_receipt.json")
         ]);
         const manifestBytes = metadata[0];
