@@ -20,6 +20,12 @@ class NoRemoteDevicePairingTests(unittest.TestCase):
         self.assertIn("training controls are not yet implemented", html)
         self.assertIn("locally", html)
 
+    def test_local_training_copy_does_not_promise_a_remote_agent(self):
+        html = (ROOT / "dashboard" / "index.html").read_text(encoding="utf-8").lower()
+        self.assertNotIn("waiting for agent", html)
+        self.assertNotIn("compatible device agent must enforce", html)
+        self.assertIn("does not enforce a memory cap", html)
+
     def test_agent_is_removed(self):
         self.assertFalse((ROOT / "agents" / "device_agent.py").exists())
 
