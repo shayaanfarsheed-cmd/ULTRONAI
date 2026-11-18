@@ -35,7 +35,8 @@
 
 - PR #11's three GitHub Actions checks passed on its validated head before merge.
 - All three GitHub Actions workflows passed on implementation commit `e1729ef735157bf45dc5c514d8bddc2335235dbb`: Test Suite run `44236200315`, Training Prototype Validation run `44236200378`, and Preflight run `44236200390`.
-- This README validation sync creates a newer branch commit; rerun all three workflows against the new exact PR head before treating the branch as fully validated.
+- The subsequent README validation-sync commit `083e6d37de913efdef47d12fc9b4e12f106ceb54` was also fully validated: Test Suite run `44236363036`, Training Prototype Validation run `44236363001`, and Preflight run `44236362991` all completed successfully.
+- Recheck all workflows after any further source or documentation changes; compatibility testing remains a separate phase.
 - Compatibility testing across iPad/iPhone/Android/desktop remains a separate required phase after feature implementation and code repair.
 
 ---
