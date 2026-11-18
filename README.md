@@ -212,11 +212,16 @@ All earlier pairing implementation notes later in this README are historical onl
 - No Supabase schema or production Storage policy changes are part of this feature.
 - Keep the feature owner-only. Guests must not list, download, or search private files.
 
-## Folder uploads — implementation in progress
+## Folder uploads
 
 - Data Library supports individual files and browser directory selection.
 - Directory uploads preserve each file relative path under the verified owner private Storage folder; uploads run sequentially with file-count progress.
-- Limits: 20 MiB per file, 500 files and 500 MiB per batch, maximum 12 path levels.
+- Limits: 20 MiB per file, 50,000 files per upload, 500 MiB per batch, maximum 12 path levels. Library listing is paginated in batches of 500 to support large folders.
 - Library browsing is recursive; download, delete and Ask ULTRON use the complete relative path.
 - Uploading is storage only: no execution, Lean proof validation, training-dataset creation, or training start. Ask ULTRON searches only its supported UTF-8 text formats.
 - Directory picker support depends on the browser; multi-file selection is the fallback.
+
+
+### Next step
+
+- Validate the 50,000-file Data Library cap and paginated recursive listing in CI before merging the change. The 500 MiB per-batch and 20 MiB per-file limits remain unchanged.
