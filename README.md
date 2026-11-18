@@ -1,17 +1,38 @@
-# PR #10 final validation handoff — 2026-11-18
+# ULTRONAI — Current implementation handoff (2026-11-18)
 
-**Current state:** PR #10 is open, unmerged, and GitHub reports it mergeable. The repository repair changes are complete for Work Package 1. Do not merge until the user explicitly approves.
+**Repository:** `shayaanfarsheed-cmd/ULTRONAI`  
+**Base branch:** `main`  
+**Verified main merge:** `ad8a0d01bcd725f96f8d6a41d682febed3c2e4c7` (PR #10 is merged).  
+**Active feature branch:** `feature/owner-guest-dashboard`
 
-**Latest validated commit before this handoff sync:** `e7147271f97bdca90e1ecdb568c353f16d48a865`. All three workflows passed on that exact commit:
-- ULTRON Test Suite: `44224090426`
-- ULTRON Training Prototype Validation: `44224090369`
-- ULTRON preflight tests: `44224090239`
+## Current Work Package 2 implementation
 
-**CI failure repair:** The previous run found two legacy tests still selecting Kaggle. The GPU-profile and config-override tests now use the enabled Google Colab runtime profile; the unused Kaggle runtime profile was removed. Kaggle detection remains available for explicit rejection, and Kaggle remains disabled in provider selection. No test was weakened.
+- Added a responsive owner sign-in dialog and sign-in/sign-out controls to the dashboard.
+- Added an explicit owner user-ID allowlist check. Only the configured owner UUID may enter Owner Mode.
+- Added saved-session restoration with a fresh Supabase Auth user verification request.
+- Guest Mode remains the default. No public sign-up flow is present.
+- Added regression tests for owner allowlisting and guest defaults.
+- The publishable key remains a placeholder and `ownerUserId` is intentionally empty. Therefore owner sign-in remains safely unavailable until a separately approved backend/auth configuration is completed.
+- No production Supabase settings, schema, RLS, grants, Storage policies, secrets, or Edge Functions were changed.
+- No owner account was created. No device was paired. No training or provider job was started.
 
-**Handoff note:** This README synchronization creates a new commit. Recheck all three workflows on the resulting exact PR head before declaring the PR merge-ready.
+## Validation status
 
-**Safety:** No merge, production Supabase change, account provisioning, device pairing, agent installation, provider job, or live training is authorized or performed.
+- Feature implementation is in progress.
+- Compatibility testing has **not** started; it follows feature implementation.
+- Automated checks must be run on the final PR head before the work is considered complete.
+- Do not merge without the user's explicit approval.
+
+## Next actions
+
+1. Finish owner/guest UI state handling and audit every private action for fail-closed behaviour.
+2. Verify no guest path can load owner data or trigger private mutations.
+3. Add tests for invalid sessions, expired sessions, sign-out, missing owner configuration, and failed authentication.
+4. Review existing Supabase RLS assumptions without changing production.
+5. Complete remaining dashboard feature interfaces.
+6. Update this README with exact branch/commit/CI results before handoff.
+
+**Permanent constraints:** $0 budget; no paid services, Kaggle, external AI APIs, pretrained weights, or externally generated training data. No live training without separate approval.
 
 ---
 
