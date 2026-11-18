@@ -1,11 +1,11 @@
-## Frontend update — learning-first dashboard
+## Latest update — 2026-11-18
 
-- A dedicated **How ULTRON Learns** view has been added on branch `frontend/learning-first-dashboard`.
-- It explains ULTRON's verified-data learning cycle, independent evaluation, targeted improvement, checkpoint promotion/rollback, and the distinction between existing foundations and planned work.
-- The view is informational only: it does not fabricate training metrics, start training, or add remote training controls.
-- Responsive layouts support narrow and touch-screen displays; automated regression coverage has been added.
-- This frontend change is awaiting PR review and CI. It is not merged or deployed yet.
-- Training remains disabled; no actual training has started.
+- **PR #27 merged** at `f1d8e074a2dfdf5e2718856760255bfc8e0e680d`. It adds the informational **How ULTRON Learns** dashboard view, responsive styling, and regression coverage. All three required PR workflows passed on exact head `a58eb2bbc84ef1d5530596c90b000ece7e0e5f47`.
+- The new view explains the verified-data learning cycle, held-out evaluation, targeted improvement, and checkpoint promotion/rollback. It does not start training or add remote controls.
+- **PR #25** remains open/unmerged: isolated local dummy-worker lifecycle prototype only; not a real trainer and not connected to the model.
+- **PR #26** remains open/draft/unmerged: learning-system architecture documentation only.
+- Main branch after PR #27: `f1d8e074a2dfdf5e2718856760255bfc8e0e680d`.
+- Actual training has not started. Keep device pairing and remote training controls removed.
 
 ---
 
