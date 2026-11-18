@@ -192,5 +192,37 @@ class DashboardStaticTests(unittest.TestCase):
                     self.assertNotIn(endpoint, source, path.name)
 
 
+    def test_owner_data_library_is_private_and_cross_browser_cloud_backed(self):
+        html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
+        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
+        storage_sql = (ROOT / "supabase" / "storage-setup.sql").read_text(encoding="utf-8")
+        self.assertIn('data-view="data"', html)
+        self.assertIn('id="view-data"', html)
+        self.assertIn('id="dataUploadForm"', html)
+        self.assertIn('id="dataFileList"', html)
+        self.assertIn('const DATA_LIBRARY_BUCKET = "data-library"', javascript)
+        self.assertIn('async function loadDataLibrary()', javascript)
+        self.assertIn('async function uploadDataFile()', javascript)
+        self.assertIn('async function downloadDataFile(name)', javascript)
+        self.assertIn('async function deleteDataFile(name)', javascript)
+        self.assertIn('if (!hasVerifiedOwnerSession())', javascript)
+        self.assertIn('window.setInterval(function ()', javascript)
+        self.assertIn('object/list/" + DATA_LIBRARY_BUCKET', javascript)
+        self.assertIn("ultron_data_library_owner_select", storage_sql)
+        self.assertIn("ultron_data_library_owner_insert", storage_sql)
+        self.assertIn("ultron_data_library_owner_update", storage_sql)
+        self.assertIn("ultron_data_library_owner_delete", storage_sql)
+        self.assertIn("(SELECT auth.uid())::text", storage_sql)
+        self.assertIn("public = false", storage_sql)
+        self.assertIn("20971520", storage_sql)
+        self.assertNotIn("service_role", javascript)
+
+    def test_data_library_never_executes_uploaded_content(self):
+        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
+        self.assertIn('new Blob([bytes], {type: "application/octet-stream"})', javascript)
+        self.assertIn("ULTRON will not execute uploaded files", (DASHBOARD / "index.html").read_text(encoding="utf-8"))
+        self.assertIn("DATA_LIBRARY_MAX_BYTES = 20 * 1024 * 1024", javascript)
+
+
 if __name__ == "__main__":
     unittest.main()
