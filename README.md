@@ -1,3 +1,15 @@
+## Latest update — 2026-11-18 (owner-only cloud data library — implementation proposed)
+
+- New work is on branch `feature/owner-data-library-sync`; it is not merged or deployed.
+- Adds an owner-only Data Library view. The same private Supabase Storage bucket is used by every browser after signing in to the same verified owner account; Guest Mode cannot list, upload, download, or delete files.
+- Browser library refresh is periodic while the dashboard is open and on tab visibility return. This is polling-based synchronization, not instant push notifications.
+- Files are stored under the authenticated owner's UUID folder in a private `data-library` bucket. The proposed storage setup enforces SELECT/INSERT/UPDATE/DELETE ownership using `auth.uid()` and limits each file to 20 MiB.
+- Uploading only stores bytes. Files are not executed or automatically added to training. No training was started.
+- **Important deployment gate:** the storage bucket and RLS policies are SQL configuration only in this branch. They have not been applied to production Supabase. Do not enable production access until reviewed and separately approved.
+- Tests and CI must pass on the pull request before merge. README is updated as part of every milestone.
+
+---
+
 ## Latest update — 2026-11-18 (seed dataset scanner — PR in progress)
 
 - Approved seed source: Hugging Face dataset `bkhtmm/openai-math-lemmas`, pinned to revision `d7056fd31c19fd1a0aed0a0bc3e99026d412b2ca`. The user downloaded the repository locally and confirmed 47 task folders.
