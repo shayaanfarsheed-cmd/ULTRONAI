@@ -54,3 +54,26 @@ test("chart scheduler uses requestAnimationFrame when available", () => {
   runtime.scheduleFrame(() => {}, {requestAnimationFrame: callback => { queued = callback; return 7; }});
   assert.equal(typeof queued, "function");
 });
+
+test("single-flight shares one in-flight refresh and permits a fresh run after reset", async () => {
+  const singleFlight = runtime.createSingleFlight();
+  let calls = 0;
+  let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  const operation = async () => { calls += 1; await gate; return calls; };
+  const first = singleFlight(operation);
+  const second = singleFlight(operation);
+  await Promise.resolve();
+  assert.equal(calls, 1);
+  release();
+  assert.equal(await first, 1);
+  assert.equal(await second, 1);
+  assert.equal(await singleFlight(async () => { calls += 1; return calls; }), 2);
+  let releaseOld;
+  const oldGate = new Promise(resolve => { releaseOld = resolve; });
+  const oldRun = singleFlight(async () => { await oldGate; return "old"; });
+  singleFlight.reset();
+  assert.equal(await singleFlight(async () => "new"), "new");
+  releaseOld();
+  assert.equal(await oldRun, "old");
+});
