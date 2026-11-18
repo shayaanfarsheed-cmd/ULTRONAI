@@ -816,7 +816,7 @@
       $("ramLimitValue").textContent = state.ramLimitGb + " GB";
       const localRamValue = $("deviceRamLimitValue");
       if (localRamValue) localRamValue.textContent = state.ramLimitGb + " GB";
-      $("ramLimitStatus").textContent = "Saved on this browser only. It is not enforced on a connected device yet.";
+      $("ramLimitStatus").textContent = "Saved on this browser only. It does not enforce a memory cap or control a training process.";
     }
     const review = state.projectConfig.terms_review || {};
     const intervalDays = Number(review.reminder_interval_days || 90);
@@ -1269,7 +1269,7 @@
       const localRamValue = $("deviceRamLimitValue");
       if (localRamValue) localRamValue.textContent = state.ramLimitGb + " GB";
       try { localStorage.setItem(RAM_LIMIT_KEY, String(state.ramLimitGb)); } catch (_) {}
-      $("ramLimitStatus").textContent = "Saved as " + state.ramLimitGb + " GB on this browser only. It is not yet sent to or enforced by a connected device.";
+      $("ramLimitStatus").textContent = "Saved as " + state.ramLimitGb + " GB on this browser only. This is a preference only; it does not enforce a memory cap.";
     });
 
 
