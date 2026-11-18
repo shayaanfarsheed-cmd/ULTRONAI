@@ -8,7 +8,7 @@ from ultron_checkpoint import LocalCheckpointStore
 from ultron_model import ULTRONTransformer
 from ultron_session import run_training_session
 from ultron_storage import RemoteCheckpointStore, SupabaseStorageError
-from ultron_supabase import LeaseResult, iso_utc, utc_now
+from ultron_supabase import LeaseResult, SupabaseAPIError, iso_utc, utc_now
 
 
 class FakeStorage:
@@ -355,6 +355,46 @@ class TrainingSessionTests(unittest.TestCase):
 
         self.assertEqual(result["state"], "finished")
         self.assertEqual(api.control_calls, 1, "heartbeat errors must not retry on every training batch")
+
+    def test_database_heartbeat_error_saves_locally_without_remote_commit(self):
+        class Clock:
+            value = 0.0
+
+            def __call__(self):
+                return self.value
+
+        clock = Clock()
+
+        class FailingRenewalAPI(FakeAPI):
+            def renew_lease(self, run_id, lease_holder, fencing_token, ttl_seconds, status_values=None):
+                clock.value = 751.0
+                raise SupabaseAPIError(503, "database unavailable")
+
+        api = FailingRenewalAPI()
+        remote_storage = FakeStorage()
+        remote = RemoteCheckpointStore(remote_storage, keep_last=3)
+        config = self._config()
+        config["monitoring"]["heartbeat_interval_seconds"] = 0
+        with tempfile.TemporaryDirectory() as folder:
+            result = run_training_session(
+                config,
+                self._servers(),
+                checkpoint_root=folder,
+                api=api,
+                remote_store=remote,
+                platform_id="kaggle",
+                runtime_override={"device": "cpu", "batch_size": 2, "cpu_threads": 1, "mixed_precision": "none"},
+                model_factory=self._model_factory,
+                monotonic=clock,
+            )
+            checkpoints = LocalCheckpointStore(folder).list_valid_checkpoints()
+
+        self.assertEqual(result["state"], "dead")
+        self.assertEqual(result["reason"], "database_unreachable_lease_expiring")
+        self.assertTrue(checkpoints, "the latest training state must be preserved locally")
+        self.assertEqual(checkpoints[0]["step"], 0)
+        self.assertEqual(remote_storage.objects, {}, "database outage must never trigger a remote checkpoint commit")
+        self.assertEqual(api.released, [], "an uncertain lease must not be released by this worker")
 
     def test_lost_lease_stops_before_training_or_checkpointing(self):
         api = FakeAPI(renew=False)
