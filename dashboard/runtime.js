@@ -45,6 +45,9 @@
         buffer.set(chunk, total);
         total = required;
       }
+    } catch (error) {
+      try { await reader.cancel(error); } catch (_) {}
+      throw error;
     } finally {
       try { reader.releaseLock(); } catch (_) {}
     }

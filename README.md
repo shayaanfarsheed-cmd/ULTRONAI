@@ -3,7 +3,7 @@
 **Repository:** [shayaanfarsheed-cmd/ULTRONAI](https://github.com/shayaanfarsheed-cmd/ULTRONAI)  
 **Dashboard:** [GitHub Pages](https://shayaanfarsheed-cmd.github.io/ULTRONAI/)  
 **Main branch:** `main`  
-**Latest merged work:** PR #12 — dashboard performance optimization, merged at `02ddff7437f6a4ac89f78c52ceb36cef6d3f944b`.
+**Latest merged work:** PR #13 — bounded streaming checkpoint downloads, merged at `76fb76422ee5ef3473998b43ccd19263ee04a856`.
 
 ## Current priorities
 
@@ -14,13 +14,10 @@
 
 ## Open pull requests
 
-- **PR #13 — [Enforce checkpoint download limits while streaming](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/13)**  
-  Branch: `fix/bounded-checkpoint-streams`; targets `main`; draft and unmerged. Adds bounded streaming checkpoint downloads, strict manifest step validation, and regression tests. CI trigger configuration was updated so Preflight and Training Prototype Validation also run on pull requests targeting feature branches. All three workflows passed on head `5fec2fdd7aacdfe62e0ba1e9dd6d53b96b237f49` (Preflight `44254731342`, Test Suite `44254731338`, Training Prototype Validation `44254731270`). This README sync creates a new commit; verify all checks again on the resulting exact head.
-
 - **PR #14 — [Improve dashboard mobile accessibility and safe-area layout](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/14)**  
-  Branch: `feature/mobile-dashboard-accessibility`; targets `main`; draft and unmerged. This branch was created from PR #13, so it contains PR #13's commits until #13 merges. Merge/review #13 first; then re-review #14's diff, which should reduce to its incremental dashboard changes. Current work adds a keyboard skip link, focus-visible outlines, selected-navigation semantics, safe-area spacing, narrow-screen layout refinements, reduced-motion support, landscape safe-area padding, and 44px minimum touch targets for coarse-pointer controls. Added static regression coverage for the skip-link target, initial/current navigation state, focus styles, reduced-motion, safe-area hooks, and touch-target rules. All three workflows passed on head `7816b4e58bb6fd90d860293195fbab16fb7a3412` (Preflight `44255087941`, Test Suite `44255087866`, Training Prototype Validation `44255087855`). This README sync creates a new commit; verify all checks again on the resulting exact head.
+  Branch: `feature/mobile-dashboard-accessibility`; targets `main`; draft and unmerged. Its branch has now been reconciled with the merged PR #13 history. The remaining changes are limited to `dashboard/app.js`, `dashboard/index.html`, `dashboard/styles.css`, `tests/test_dashboard.py`, and this README. Adds keyboard skip navigation, `aria-current` selected-navigation semantics, visible focus, iOS safe-area spacing, narrow-screen navigation refinements, reduced-motion support, landscape insets, and coarse-pointer touch targets. All three workflows must pass again on the reconciled exact head before merge.
 
-**Do not merge either PR until its exact final head has all required checks passing and the diff has been reviewed.** Real-device testing remains a separate requirement; automated CI does not prove iPad/iPhone compatibility.
+**Do not merge until the exact final head has all required checks passing and the diff has been reviewed.** Real-device testing remains separate; automated CI does not prove iPad/iPhone compatibility.
 
 ## Product and security constraints
 
@@ -32,39 +29,35 @@
 - Guest Mode is the public default. Owner sign-in is a single owner account; public self-registration is disabled.
 - Frontend UUID checks and browser session storage are not backend authorization or secure credential storage. Private operations require server-side authorization and RLS.
 - No owner provisioning, device pairing, agent installation, provider jobs, or live training without separate explicit approval.
-- The RAM slider is a local preference only. It does not enforce a process or operating-system memory cap; a compatible device agent would need to enforce a safe limit.
+- The RAM slider is a local preference only. It does not enforce a process or operating-system memory cap.
 
 ## Model and training status
 
-- The model is a from-scratch decoder-only Transformer with approximately 4.04 million trainable parameters, character-level tokenization, a 78-character vocabulary, 5 layers, embedding size 256, 8 attention heads, and context length 192 characters.
-- The model is randomly initialized; it has no pretrained weights.
-- The own data generator currently covers 14 topic areas, and an independent arithmetic verifier exists.
+- From-scratch decoder-only Transformer with approximately 4.04 million trainable parameters, character-level tokenization, 78-character vocabulary, 5 layers, embedding size 256, 8 attention heads, and context length 192 characters.
+- Randomly initialized; no pretrained weights.
+- Own data generator covers 14 topic areas; an independent arithmetic verifier exists.
 - Automated smoke tests validate implementation mechanics, not broad mathematical competence.
-- **Actual model training has not started.** Passing tests do not mean the model has learned mathematics.
-- Resolve the context-length difference against the older 1024-token target before changing architecture.
+- **Actual model training has not started.** Resolve the older 1024-token context target before changing architecture.
 
 ## Latest implementation notes
 
-- PR #12 introduced bounded checkpoint metadata/file handling, concurrency controls, strict manifest checks, chart scheduling safeguards, and single-flight session refresh.
-- PR #13 fixes the earlier post-allocation checkpoint size check by reading response streams incrementally, cancelling when the configured cap is exceeded, rejecting dishonest declared lengths, and failing closed when streaming is unavailable.
-- The stream reader limits the retained response buffer, but buffer growth can temporarily hold old and new allocations; this is not a hard total browser-process memory cap.
-- PR #14 improves keyboard navigation and mobile layout. These are code changes only, not proof from physical-device testing.
+- PR #12 added bounded checkpoint metadata/file handling, concurrency controls, manifest checks, chart scheduling safeguards, and single-flight session refresh.
+- PR #13 added incremental checkpoint response streaming, early cancellation at the configured byte cap, declared/actual length checks, fail-closed handling without streaming, strict manifest step validation, and regression tests.
+- The stream reader bounds the retained response buffer, but temporary buffer growth can hold old and new allocations; it is not a hard total browser-process memory cap.
+- PR #14 contains frontend accessibility and responsive-layout changes only; no real-device compatibility test has been performed.
 
 ## Required validation
 
-- Run all three GitHub Actions workflows on the exact final commit:
-  - ULTRON preflight tests
-  - ULTRON Test Suite
-  - ULTRON Training Prototype Validation
-- Review test logs and the complete PR diff; do not weaken tests or branch protection to obtain green checks.
-- After code validation, test actual browsers/devices: iPad/iPadOS Safari and Chrome, iPhone, Android, and desktop; include narrow/wide layouts, refresh, interrupted network, guest/owner access, and keyboard/screen-reader navigation.
-- Do not claim compatibility testing unless it was actually performed on the target devices.
+Run all three GitHub Actions workflows on the exact final commit:
+- ULTRON preflight tests
+- ULTRON Test Suite
+- ULTRON Training Prototype Validation
+
+Review test logs and the complete PR diff; do not weaken tests or branch protection. Then test actual iPad/iPadOS Safari and Chrome, iPhone, Android, and desktop browsers, including narrow/wide layouts, refresh, interrupted network, guest/owner access, and keyboard/screen-reader navigation. Do not claim device compatibility unless tested on those devices.
 
 ## Next steps for the next session
 
-1. Verify all three workflows on the latest exact heads of PR #13 and PR #14 after the README synchronization commits.
-2. Fix any failures at their root cause and rerun validation after every source or README change.
-3. Review PR #13 one final time; keep it draft until checks and review are complete.
-4. After PR #13 is merged, review PR #14's now-reduced diff and validate it again.
-5. Continue frontend implementation and device compatibility work. Do not start training yet.
-
+1. Review the reconciled PR #14 diff and verify its exact head.
+2. Run all three workflows on that exact head; fix root causes and rerun after every change.
+3. If all checks pass and GitHub reports the PR mergeable, mark it ready and merge.
+4. Continue dashboard interaction and device-compatibility work. Do not start training yet.

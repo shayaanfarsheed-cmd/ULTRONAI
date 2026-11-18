@@ -123,3 +123,18 @@ test("bounded response reader rejects a dishonest declared length", async () => 
   const response = new Response(new Uint8Array([1,2,3]), {headers:{"content-length":"2"}});
   await assert.rejects(runtime.readResponseBytes(response, 8), /does not match its header/);
 });
+
+
+test("bounded response reader cancels the stream when a read fails", async () => {
+  let cancelled = false;
+  const response = {
+    headers:new Headers(),
+    body:{getReader(){return {
+      async read(){throw new Error("network stream failed");},
+      async cancel(){cancelled = true;},
+      releaseLock(){}
+    };}}
+  };
+  await assert.rejects(runtime.readResponseBytes(response, 8), /network stream failed/);
+  assert.equal(cancelled, true);
+});
