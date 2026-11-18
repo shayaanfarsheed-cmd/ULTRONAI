@@ -1219,10 +1219,13 @@
     if (!uniqueTerms.length) return [];
     return passages.map(function (passage) {
       const content = passage.text.toLowerCase();
+      const words = content.match(/[a-z0-9_]{2,}/g) || [];
+      const frequencies = new Map();
+      words.forEach(function (word) { frequencies.set(word, (frequencies.get(word) || 0) + 1); });
       let score = 0;
       let matched = 0;
       uniqueTerms.forEach(function (term) {
-        const count = content.split(term).length - 1;
+        const count = frequencies.get(term) || 0;
         if (count > 0) {
           matched += 1;
           score += Math.min(count, 5) * 2;
