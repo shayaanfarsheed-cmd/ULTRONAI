@@ -170,6 +170,8 @@ def validate_project_config(config: Mapping[str, Any], servers: Mapping[str, Any
         errors.append("Private operations must require verified owner authentication")
     if access.get("guest_mode_enabled") is not True:
         errors.append("Guest Mode must remain enabled")
+    if set(access.get("guest_permissions", [])) != {"public_dashboard", "public_mathematics_information"}:
+        errors.append("Guest Mode must expose public information only")
     required_guest_denials = {
         "private_training_history", "private_checkpoints",
         "device_pairing", "remote_training_controls",
