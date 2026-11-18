@@ -145,6 +145,15 @@
     const account = document.querySelector(".account-email");
     if (signIn) signIn.hidden = Boolean(isOwner);
     if (signOut) signOut.hidden = !isOwner;
+    if ($("generatePairingCodeButton")) $("generatePairingCodeButton").disabled = !isOwner;
+    if ($("refreshDevicesButton")) $("refreshDevicesButton").disabled = !isOwner;
+    if (!isOwner) {
+      state.pairedDevices = [];
+      state.pairingChallenge = null;
+      if ($("pairingCodePanel")) $("pairingCodePanel").hidden = true;
+      if ($("pairingCode")) $("pairingCode").textContent = "••••••••";
+      renderPairedDevices();
+    }
     if (account) account.textContent = isOwner ? "OWNER MODE" : "GUEST MODE";
     setConnection(isOwner ? "OWNER" : "GUEST MODE", isOwner ? "connected" : "");
     renderAll();
@@ -923,6 +932,9 @@
     $("viewName").textContent = labels[view][0];
     $("pageTitle").textContent = labels[view][1];
     if (view === "overview") scheduleChartDraw();
+    if (view === "devices" && hasVerifiedOwnerSession()) {
+      loadPairedDevices().catch(function (error) { showNotice(error.message, "warn"); });
+    }
     if (view === "checkpoints") loadCheckpointCandidates().then(renderCheckpointList).catch(function (error) {
       showCheckpointNotice(error.message, "warn");
     });
@@ -1239,6 +1251,93 @@
     }
   }
 
+  async function deviceControlRequest(route, method, body) {
+    const session = await ensureSession();
+    assertOwnerAccess(session);
+    const response = await fetch(SUPABASE_URL + "/functions/v1/device-control/" + route, {
+      method: method || "GET",
+      headers: {
+        "apikey": PUBLISHABLE_KEY,
+        "Authorization": "Bearer " + session.access_token,
+        "Content-Type": "application/json"
+      },
+      body: body == null ? undefined : JSON.stringify(body),
+      cache: "no-store"
+    });
+    const data = await response.json().catch(function () { return {}; });
+    if (!response.ok) throw new Error(data.error || "Device control request failed (" + response.status + ").");
+    return data;
+  }
+
+  function renderPairedDevices() {
+    const list = $("pairedDeviceList");
+    if (!list) return;
+    list.replaceChildren();
+    $("deviceCountMetric").textContent = String(state.pairedDevices.filter(function (device) { return device.status === "paired"; }).length);
+    if (!hasVerifiedOwnerSession()) {
+      list.textContent = "Sign in as owner to view paired devices.";
+      return;
+    }
+    if (!state.pairedDevices.length) {
+      list.textContent = "No devices have been paired yet.";
+      return;
+    }
+    state.pairedDevices.forEach(function (device) {
+      const card = document.createElement("article");
+      card.className = "paired-device-card";
+      const details = document.createElement("div");
+      const title = document.createElement("strong");
+      title.textContent = device.device_name;
+      const meta = document.createElement("p");
+      meta.textContent = device.platform.toUpperCase() + " · " + device.status.toUpperCase() +
+        " · Last heartbeat: " + (device.last_seen_at ? formatDateTime(device.last_seen_at) : "not received");
+      details.append(title, meta);
+      card.append(details);
+      if (device.status === "paired") {
+        const revoke = document.createElement("button");
+        revoke.type = "button";
+        revoke.className = "quiet-button";
+        revoke.textContent = "Revoke";
+        revoke.setAttribute("data-revoke-device", device.id);
+        card.append(revoke);
+      }
+      list.append(card);
+    });
+  }
+
+  async function loadPairedDevices() {
+    if (!hasVerifiedOwnerSession()) {
+      state.pairedDevices = [];
+      renderPairedDevices();
+      return;
+    }
+    const data = await deviceControlRequest("devices", "GET");
+    state.pairedDevices = Array.isArray(data.devices) ? data.devices : [];
+    renderPairedDevices();
+  }
+
+  async function createPairingCode() {
+    const button = $("generatePairingCodeButton");
+    button.disabled = true;
+    try {
+      const data = await deviceControlRequest("challenge", "POST", {});
+      state.pairingChallenge = data;
+      $("pairingCode").textContent = data.code;
+      $("pairingCodeExpiry").textContent = "Expires " + formatDateTime(data.expires_at) + ". Use it only with your trusted ULTRON device agent.";
+      $("pairingCodePanel").hidden = false;
+      showNotice("One-time pairing code created. It is displayed only in this owner session.", "success");
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  async function revokePairedDevice(deviceId) {
+    if (!deviceId || !window.confirm("Revoke this device? Its stored credential will stop working.")) return;
+    await deviceControlRequest("devices?id=" + encodeURIComponent(deviceId), "DELETE");
+    await loadPairedDevices();
+    showNotice("Device credential revoked.", "success");
+  }
+
   function bindEvents() {
     $("themeToggle").addEventListener("click", function () {
       applyTheme(document.body.getAttribute("data-theme") === "dark" ? "light" : "dark");
@@ -1252,6 +1351,25 @@
     });
     $("ownerSignOutButton").addEventListener("click", function () { signOutOwner().catch(function (error) { showNotice(error.message, "error"); }); });
     $("ownerSignInForm").addEventListener("submit", signInOwner);
+    $("generatePairingCodeButton").addEventListener("click", function () {
+      createPairingCode().catch(function (error) { showNotice(error.message, "error"); });
+    });
+    $("copyPairingCodeButton").addEventListener("click", function () {
+      const code = $("pairingCode").textContent;
+      if (!/^\\d{8}$/.test(code)) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(code).then(function () { showNotice("Pairing code copied.", "success"); })
+          .catch(function () { showNotice("Copy was blocked by this browser. Select the code to copy it manually.", "warn"); });
+      } else showNotice("Select the code and copy it manually.", "info");
+    });
+    $("refreshDevicesButton").addEventListener("click", function () {
+      loadPairedDevices().catch(function (error) { showNotice(error.message, "error"); });
+    });
+    $("pairedDeviceList").addEventListener("click", function (event) {
+      const button = event.target.closest("[data-revoke-device]");
+      if (button) revokePairedDevice(button.getAttribute("data-revoke-device"))
+        .catch(function (error) { showNotice(error.message, "error"); });
+    });
     $("ownerCancelButton").addEventListener("click", function () { $("ownerSignInDialog").close(); });
     document.querySelectorAll("[data-view]").forEach(function (button) {
       button.addEventListener("click", function () { switchView(button.getAttribute("data-view")); });
