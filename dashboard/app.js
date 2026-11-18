@@ -154,6 +154,7 @@
       state.pairingChallenge = null;
       if ($("pairingCodePanel")) $("pairingCodePanel").hidden = true;
       if ($("pairingCode")) $("pairingCode").textContent = "••••••••";
+      if ($("pairingChallengeId")) $("pairingChallengeId").textContent = "not generated";
       renderPairedDevices();
     }
     if (account) account.textContent = isOwner ? "OWNER MODE" : "GUEST MODE";
@@ -1325,6 +1326,7 @@
       const data = await deviceControlRequest("challenge", "POST", {});
       state.pairingChallenge = data;
       $("pairingCode").textContent = data.code;
+      $("pairingChallengeId").textContent = data.challenge_id;
       $("pairingCodeExpiry").textContent = "Expires " + formatDateTime(data.expires_at) + ". Use it only with your trusted ULTRON device agent.";
       $("pairingCodePanel").hidden = false;
       showNotice("One-time pairing code created. It is displayed only in this owner session.", "success");
