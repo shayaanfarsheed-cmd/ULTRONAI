@@ -339,3 +339,10 @@ A merge commit brought current main into the PR branch while preserving the PR h
 - This is documentation only. No Supabase schema/RLS/grants, Edge Functions, production secrets, device pairing, agent deployment, live training, paid services, or billing were changed or started.
 - Next: review the threat model against the command contract, then design Stage 3 backend contracts and SQL for review only. Do not deploy or alter Supabase without explicit approval.
 - Keep PR #4 open and unmerged until explicit approval.
+
+### Stage 2 validation
+- Threat-model documentation commit: `e90a0079539d7f3632375974998f3ccbc9171235`.
+- Stage 2 README handoff/code head: `2d529f2f8ea019ec5c019b553313dcb401f6e670`.
+- All three workflows passed on that exact Stage 2 head: Test Suite `44217854553`, preflight `44217854500`, and Training Prototype Validation `44217854478`.
+- Test Suite compilation, dashboard checks, configuration validation, unit tests, and model/data/checkpoint/training smoke tests succeeded. Preflight and Training Prototype Validation also completed successfully.
+- No Supabase, production, pairing, agent, live-training, paid-service, or billing operations were performed.
