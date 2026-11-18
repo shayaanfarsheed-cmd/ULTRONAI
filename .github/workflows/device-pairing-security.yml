@@ -1,0 +1,49 @@
+name: ULTRON device pairing security tests
+
+on:
+  pull_request:
+    paths:
+      - "supabase/**"
+      - "tests/device_pairing.integration.test.mjs"
+      - ".github/workflows/device-pairing-security.yml"
+      - "docs/DEVICE_PAIRING.md"
+      - "README.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ultron-device-pairing-security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  local-pairing-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.81.3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Start disposable local Supabase stack
+        run: supabase start
+      - name: Export local-only test credentials
+        shell: bash
+        run: |
+          eval "$(supabase status -o env)"
+          {
+            echo "SUPABASE_URL=$API_URL"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "SUPABASE_PUBLISHABLE_KEY=${PUBLISHABLE_KEY:-$ANON_KEY}"
+          } >> "$GITHUB_ENV"
+      - name: Test database permissions and pairing invariants
+        run: supabase test db
+      - name: Test Edge Function integration and abuse cases
+        run: node --test tests/device_pairing.integration.test.mjs
+      - name: Stop disposable local stack
+        if: always()
+        run: supabase stop --no-backup
