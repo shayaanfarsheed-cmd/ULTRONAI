@@ -261,6 +261,17 @@ test("owner isolation, revocation, and revoked-token heartbeat rejection", async
   assert.equal(heartbeat.status, 401);
 });
 
+test("per-IP redemption limit allows ten requests and rejects the eleventh", async () => {
+  const challenge = await createChallenge(ownerToken);
+  assert.equal(challenge.status, 200);
+  const address = testIp();
+  const wrongCode = challenge.data.code === "00000000" ? "00000001" : "00000000";
+  for (let i = 0; i < 10; i++) {
+    assert.equal((await redeem(challenge.data.challenge_id, wrongCode, address)).status, 400);
+  }
+  assert.equal((await redeem(challenge.data.challenge_id, wrongCode, address)).status, 429);
+});
+
 test("per-IP challenge limit allows ten requests and rejects the eleventh", async () => {
   const address = testIp();
   for (let i = 0; i < 10; i++) {
