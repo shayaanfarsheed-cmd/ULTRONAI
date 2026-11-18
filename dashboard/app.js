@@ -4,6 +4,7 @@
   const CONFIG = window.ULTRON_CONFIG || {};
   const SUPABASE_URL = String(CONFIG.supabaseUrl || "").replace(/\/$/, "");
   const PUBLISHABLE_KEY = String(CONFIG.supabasePublishableKey || "");
+  const OWNER_USER_ID = String(CONFIG.ownerUserId || "").trim();
   const API_ROOT = SUPABASE_URL + "/rest/v1/";
   const AUTH_ROOT = SUPABASE_URL + "/auth/v1/";
   const STORAGE_ROOT = SUPABASE_URL + "/storage/v1/";
@@ -17,6 +18,7 @@
   const $ = function (id) { return document.getElementById(id); };
   const state = {
     publicMode: true,
+    authGeneration: 0,
     session: null,
     user: null,
     status: null,
@@ -77,10 +79,165 @@
   }
 
   function saveSession(session) {
+    if (!session) {
+      const previousUserId = state.user && state.user.id;
+      state.session = null;
+      state.user = null;
+      try { sessionStorage.removeItem(SESSION_KEY); } catch (_) {}
+      if (previousUserId) {
+        try { localStorage.removeItem(CACHE_PREFIX + previousUserId); } catch (_) {}
+      }
+      return;
+    }
+    try {
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    } catch (_) {
+      state.session = null;
+      state.user = null;
+      try { sessionStorage.removeItem(SESSION_KEY); } catch (_) {}
+      throw new Error("This browser cannot retain the sign-in session. Enable session storage or use Guest Mode.");
+    }
     state.session = session;
-    state.user = session && session.user ? session.user : null;
-    if (session) sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
-    else sessionStorage.removeItem(SESSION_KEY);
+    state.user = session.user || null;
+  }
+
+  function hasVerifiedOwnerSession() {
+    return Boolean(!state.publicMode && OWNER_USER_ID && state.session &&
+      state.session.access_token && state.user && state.user.id === OWNER_USER_ID &&
+      state.session.user && state.session.user.id === OWNER_USER_ID);
+  }
+
+  function assertOwnerAccess(session) {
+    if (!hasVerifiedOwnerSession() || (session && (!session.user || session.user.id !== OWNER_USER_ID))) {
+      throw new Error("Owner access is required for this private operation.");
+    }
+  }
+
+  function setAccessMode(isOwner) {
+    const nextPublicMode = !isOwner;
+    if (state.publicMode !== nextPublicMode) state.authGeneration += 1;
+    state.publicMode = nextPublicMode;
+    if (!isOwner) {
+      const previousUserId = state.user && state.user.id;
+      if (previousUserId) {
+        try { localStorage.removeItem(CACHE_PREFIX + previousUserId); } catch (_) {}
+      }
+      state.session = null;
+      state.user = null;
+      try { sessionStorage.removeItem(SESSION_KEY); } catch (_) {}
+      state.status = null;
+      state.logs = [];
+      state.switches = [];
+      state.checkpoints = [];
+      state.quota = {};
+      state.lastUpdated = null;
+      state.stale = false;
+    }
+    const signIn = $("ownerSignInButton");
+    const signOut = $("ownerSignOutButton");
+    const account = document.querySelector(".account-email");
+    if (signIn) signIn.hidden = Boolean(isOwner);
+    if (signOut) signOut.hidden = !isOwner;
+    if (account) account.textContent = isOwner ? "OWNER MODE" : "GUEST MODE";
+    setConnection(isOwner ? "OWNER" : "GUEST MODE", isOwner ? "connected" : "");
+    renderAll();
+  }
+
+  async function verifyOwnerSession() {
+    if (!state.session || !state.session.access_token) return false;
+    if (!OWNER_USER_ID) { saveSession(null); return false; }
+    try {
+      const session = await ensureSession();
+      const response = await fetch(AUTH_ROOT + "user", {
+        headers: {"apikey": PUBLISHABLE_KEY, "Authorization": "Bearer " + session.access_token}
+      });
+      const user = await response.json().catch(function () { return {}; });
+      if (!response.ok || !user.id || user.id !== OWNER_USER_ID) {
+        saveSession(null);
+        return false;
+      }
+      saveSession(Object.assign({}, session, {user: user}));
+      return true;
+    } catch (_) {
+      saveSession(null);
+      return false;
+    }
+  }
+
+  function showAuthMessage(message, kind) {
+    const box = $("ownerAuthMessage");
+    if (!box) return;
+    box.textContent = message;
+    box.className = "notice" + (kind ? " notice-" + kind : "");
+    box.hidden = !message;
+  }
+
+  async function signInOwner(event) {
+    event.preventDefault();
+    const submit = $("ownerSubmitButton");
+    const passwordInput = $("ownerPassword");
+    const password = passwordInput.value;
+    passwordInput.value = "";
+    if (!isConfigured()) {
+      showAuthMessage("Authentication is not configured yet. Guest Mode remains available.", "warn");
+      return;
+    }
+    if (!OWNER_USER_ID) {
+      showAuthMessage("Owner verification is not configured. Sign-in is safely disabled.", "warn");
+      return;
+    }
+    const email = $("ownerEmail").value.trim();
+    if (!email || !password) {
+      showAuthMessage("Enter the owner email and password.", "error");
+      return;
+    }
+    submit.disabled = true;
+    showAuthMessage("Verifying owner credentials…", "");
+    try {
+      const data = await authRequest("token?grant_type=password", {email: email, password: password});
+      const next = sessionFromResponse(data);
+      if (!next.access_token || !next.refresh_token || !next.user || next.user.id !== OWNER_USER_ID) {
+        if (next.access_token) {
+          await fetch(AUTH_ROOT + "logout", {method: "POST", headers: {"apikey": PUBLISHABLE_KEY, "Authorization": "Bearer " + next.access_token}}).catch(function () {});
+        }
+        throw new Error("This account is not the configured ULTRON owner account.");
+      }
+      saveSession(next);
+      setAccessMode(true);
+      $("ownerPassword").value = "";
+      $("ownerSignInDialog").close();
+      showNotice("Owner session verified. Private data requests use the authenticated session.", "success");
+      await refreshData();
+    } catch (error) {
+      saveSession(null);
+      setAccessMode(false);
+      showAuthMessage(error.message || "Owner sign-in failed.", "error");
+    } finally {
+      passwordInput.value = "";
+      submit.disabled = false;
+    }
+  }
+
+  async function signOutOwner() {
+    const session = state.session;
+    const ownerId = state.user && state.user.id;
+    if (ownerId) {
+      try { localStorage.removeItem(CACHE_PREFIX + ownerId); } catch (_) {}
+    }
+    saveSession(null);
+    setAccessMode(false);
+    showNotice("Signed out locally. You are now using Guest Mode.", "info");
+    if (session && session.access_token && isConfigured()) {
+      try {
+        const response = await fetch(AUTH_ROOT + "logout", {
+          method: "POST",
+          headers: {"apikey": PUBLISHABLE_KEY, "Authorization": "Bearer " + session.access_token}
+        });
+        if (!response.ok) throw new Error("Server sign-out could not be confirmed.");
+      } catch (_) {
+        showNotice("Guest Mode is active and local private data is cleared. Server-side sign-out could not be confirmed; the session token was discarded in this browser.", "warn");
+      }
+    }
   }
 
   function sessionFromResponse(data) {
@@ -109,21 +266,32 @@
     return data;
   }
 
+  function expireOwnerSession() {
+    saveSession(null);
+    if (!state.publicMode) setAccessMode(false);
+  }
+
   async function ensureSession() {
     if (!state.session || !state.session.access_token) throw new Error("Please sign in again.");
     if (Number(state.session.expires_at || 0) > Date.now() + 60000) return state.session;
     if (!state.session.refresh_token) {
-      saveSession(null);
+      expireOwnerSession();
       throw new Error("Your login expired. Please sign in again.");
     }
-    const data = await authRequest("token?grant_type=refresh_token", {refresh_token: state.session.refresh_token});
-    const next = sessionFromResponse(data);
-    saveSession(next);
-    return next;
+    try {
+      const data = await authRequest("token?grant_type=refresh_token", {refresh_token: state.session.refresh_token});
+      const next = sessionFromResponse(data);
+      saveSession(next);
+      return next;
+    } catch (_) {
+      expireOwnerSession();
+      throw new Error("Your owner session expired. Please sign in again.");
+    }
   }
 
   async function apiRequest(table, method, query, body) {
     const session = await ensureSession();
+    assertOwnerAccess(session);
     const url = API_ROOT + table + (query ? "?" + query : "");
     const headers = {
       "apikey": PUBLISHABLE_KEY,
@@ -144,7 +312,7 @@
     const data = raw ? (function () { try { return JSON.parse(raw); } catch (_) { return raw; } })() : null;
     if (!response.ok) {
       if (response.status === 401) {
-        saveSession(null);
+        expireOwnerSession();
       }
       const message = data && (data.message || data.hint || data.error) ? (data.message || data.hint || data.error) : "Database request failed (" + response.status + ").";
       throw new Error(message);
@@ -154,6 +322,7 @@
 
   async function storageRequest(path, method, body, binary) {
     const session = await ensureSession();
+    assertOwnerAccess(session);
     const headers = {
       "apikey": PUBLISHABLE_KEY,
       "Authorization": "Bearer " + session.access_token
@@ -168,6 +337,7 @@
     });
     if (!response.ok) {
       const data = await response.json().catch(function () { return {}; });
+      if (response.status === 401) expireOwnerSession();
       throw new Error(data.message || data.error || "Storage request failed (" + response.status + ").");
     }
     return binary ? response.arrayBuffer() : response.json().catch(function () { return null; });
@@ -198,7 +368,7 @@
   }
 
   function saveSnapshot() {
-    if (!state.user) return;
+    if (!hasVerifiedOwnerSession()) return;
     const snapshot = {
       saved_at: new Date().toISOString(),
       status: state.status,
@@ -209,7 +379,7 @@
   }
 
   function loadSnapshot() {
-    if (!state.user) return false;
+    if (!hasVerifiedOwnerSession()) return false;
     try {
       const raw = localStorage.getItem(cacheKey());
       if (!raw) return false;
@@ -225,15 +395,17 @@
   }
 
   async function refreshData() {
-    if (!state.user || state.refreshing) return;
+    if (!hasVerifiedOwnerSession() || state.refreshing) return;
+    const generation = state.authGeneration;
+    const ownerId = state.user.id;
     state.refreshing = true;
     try {
-      const ownerId = state.user.id;
       const results = await Promise.all([
         apiRequest("training_status", "GET", queryForOwner(ownerId, "updated_at.desc", 30)),
         apiRequest("server_log", "GET", queryForOwner(ownerId, "started_at.desc", 500)),
         apiRequest("switch_requests", "GET", queryForOwner(ownerId, "requested_at.desc", 200))
       ]);
+      if (generation !== state.authGeneration || !hasVerifiedOwnerSession() || state.user.id !== ownerId) return;
       const rows = results[0] || [];
       rows.sort(function (a, b) { return new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0); });
       state.status = rows.find(function (row) { return row.state !== "finished"; }) || rows[0] || null;
@@ -255,6 +427,7 @@
       $("lastUpdated").textContent = "Last updated " + formatDateTime(state.lastUpdated);
       renderAll();
     } catch (error) {
+      if (generation !== state.authGeneration || !hasVerifiedOwnerSession() || state.user.id !== ownerId) return;
       state.stale = true;
       const hadCache = loadSnapshot();
       setConnection("OUT OF DATE", "stale");
@@ -408,6 +581,12 @@
     const meta = $("nextActionMeta");
     const link = $("nextServerButton");
     link.hidden = true;
+    if (state.publicMode) {
+      title.textContent = "Welcome to the ULTRON guest dashboard";
+      text.textContent = "You can browse public system information without an account. Private training status, history, checkpoints and device controls are not loaded in Guest Mode.";
+      meta.textContent = "Guest access · no private data or training commands";
+      return;
+    }
     if (!status) {
       title.textContent = "No training run found";
       text.textContent = "Open the ULTRON training notebook and press Run All. It will create a run and request the single-writer lease.";
@@ -586,7 +765,7 @@
 
   function renderSettings() {
     $("autoStartToggle").checked = false;
-    $("autoStartToggle").disabled = state.publicMode;
+    $("autoStartToggle").disabled = true;
     const ramSlider = $("ramLimitSlider");
     if (ramSlider) {
       ramSlider.value = String(state.ramLimitGb);
@@ -635,9 +814,36 @@
     }).join("");
   }
 
+  function renderActivity() {
+    const logs = $("activityLogs");
+    const switches = $("activitySwitches");
+    if (state.publicMode || !hasVerifiedOwnerSession()) {
+      logs.innerHTML = '<p class="empty-state">Training activity is private. Sign in to the verified ULTRON owner account to view it.</p>';
+      switches.innerHTML = '<p class="empty-state">Server handoff records are private to the ULTRON owner.</p>';
+      return;
+    }
+    if (!state.logs.length) {
+      logs.innerHTML = '<p class="empty-state">No training sessions have been recorded yet.</p>';
+    } else {
+      logs.innerHTML = '<div class="table-scroll"><table><thead><tr><th>Server</th><th>Started</th><th>Duration</th><th>Result</th></tr></thead><tbody>' +
+        state.logs.slice(0, 500).map(function (item) {
+          return '<tr><td>' + escapeHtml(item.server_name || "Unknown") + '</td><td>' + escapeHtml(formatDateTime(item.started_at)) + '</td><td>' + escapeHtml(formatDuration(item.gpu_seconds)) + '</td><td>' + escapeHtml(item.end_reason || (item.ended_at ? "Completed" : "In progress")) + '</td></tr>';
+        }).join("") + '</tbody></table></div>';
+    }
+    if (!state.switches.length) {
+      switches.innerHTML = '<p class="empty-state">No server handoffs have been recorded yet.</p>';
+    } else {
+      switches.innerHTML = '<div class="table-scroll"><table><thead><tr><th>Requested</th><th>From</th><th>To</th><th>Reason</th><th>Result</th></tr></thead><tbody>' +
+        state.switches.slice(0, 200).map(function (item) {
+          return '<tr><td>' + escapeHtml(formatDateTime(item.requested_at)) + '</td><td>' + escapeHtml(item.from_server || "—") + '</td><td>' + escapeHtml(item.to_server || "—") + '</td><td>' + escapeHtml(item.reason || "—") + '</td><td>' + escapeHtml(item.result || "Pending") + '</td></tr>';
+        }).join("") + '</tbody></table></div>';
+    }
+  }
+
   function renderAll() {
     renderNextAction();
     renderMetrics();
+    renderActivity();
     const hasRun = Boolean(state.status && state.status.run_id);
     const finished = state.status && state.status.state === "finished";
     $("switchNowButton").disabled = state.publicMode || !hasRun || finished;
@@ -661,6 +867,7 @@
     });
     const labels = {
       overview: ["OVERVIEW", "System overview"],
+      activity: ["ACTIVITY", "Training activity"],
       servers: ["SERVERS", "Free compute servers"],
       checkpoints: ["CHECKPOINTS", "Verified checkpoints"],
       settings: ["SETTINGS", "System settings"],
@@ -786,7 +993,7 @@
   }
 
   async function loadCheckpointCandidates() {
-    if (!state.user || !state.status || !state.status.run_id) {
+    if (!hasVerifiedOwnerSession() || !state.status || !state.status.run_id) {
       state.checkpoints = [];
       return [];
     }
@@ -962,6 +1169,14 @@
       drawChart();
     });
     $("refreshButton").addEventListener("click", refreshData);
+    $("ownerSignInButton").addEventListener("click", function () {
+      showAuthMessage("", "");
+      if (typeof $("ownerSignInDialog").showModal === "function") $("ownerSignInDialog").showModal();
+      else showAuthMessage("This browser does not support the sign-in dialog. Update the browser or continue in Guest Mode.", "warn");
+    });
+    $("ownerSignOutButton").addEventListener("click", function () { signOutOwner().catch(function (error) { showNotice(error.message, "error"); }); });
+    $("ownerSignInForm").addEventListener("submit", signInOwner);
+    $("ownerCancelButton").addEventListener("click", function () { $("ownerSignInDialog").close(); });
     document.querySelectorAll("[data-view]").forEach(function (button) {
       button.addEventListener("click", function () { switchView(button.getAttribute("data-view")); });
     });
@@ -1002,11 +1217,17 @@
     } catch (_) {}
     bindEvents();
     await loadServerRegistry();
-    state.user = null;
-    state.session = null;
-    setConnection("PUBLIC", "connected");
-    $("lastUpdated").textContent = "Public system information · no personal training history";
-    showNotice("Public dashboard. No account or sign-in is required. Personal training history is not collected or displayed; checkpoints, device pairing and training controls are unavailable.", "info");
+    state.session = loadSavedSession();
+    state.user = state.session && state.session.user ? state.session.user : null;
+    const restoredOwner = await verifyOwnerSession();
+    setAccessMode(restoredOwner);
+    if (restoredOwner) {
+      $("lastUpdated").textContent = "Restored verified owner session.";
+      await refreshData();
+    } else {
+      $("lastUpdated").textContent = "Public system information · no personal training history";
+      showNotice("Guest Mode is active. Public information is available without an account. Private history, checkpoints, device pairing and remote training controls require verified owner access and a configured backend.", "info");
+    }
     renderAll();
   }
 

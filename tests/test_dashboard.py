@@ -24,6 +24,72 @@ class DashboardStaticTests(unittest.TestCase):
                 source = path.read_text(encoding="utf-8")
                 self.assertIsNone(re.search(r"sb_secret_[A-Za-z0-9]{12,}", source), path.name)
 
+    def test_owner_auth_is_allowlisted_and_has_no_signup_flow(self):
+        html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
+        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
+        config = (DASHBOARD / "config.js").read_text(encoding="utf-8")
+        self.assertIn('id="ownerSignInForm"', html)
+        self.assertIn('id="ownerSignOutButton"', html)
+        self.assertIn("user.id !== OWNER_USER_ID", javascript)
+        self.assertIn("state.publicMode = nextPublicMode", javascript)
+        self.assertIn('ownerUserId: ""', config)
+        self.assertNotIn("signup", javascript.lower())
+        self.assertNotIn("signUp", html)
+
+    def test_guest_mode_is_default_and_owner_session_is_verified(self):
+        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
+        self.assertIn("publicMode: true", javascript)
+        self.assertIn('AUTH_ROOT + "user"', javascript)
+        self.assertIn("setAccessMode(restoredOwner)", javascript)
+        self.assertIn('$("ownerPassword").value = ""', javascript)
+
+    def test_private_api_and_storage_require_verified_owner_mode(self):
+        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
+        self.assertIn("function hasVerifiedOwnerSession()", javascript)
+        self.assertIn("function assertOwnerAccess(session)", javascript)
+        self.assertGreaterEqual(javascript.count("assertOwnerAccess(session);"), 2)
+        self.assertIn("if (!hasVerifiedOwnerSession() || state.refreshing) return;", javascript)
+        self.assertIn("if (!hasVerifiedOwnerSession() || !state.status || !state.status.run_id)", javascript)
+
+    def test_guest_transition_clears_private_state_and_invalidates_inflight_refresh(self):
+        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
+        self.assertIn("state.authGeneration += 1", javascript)
+        self.assertIn("state.status = null;", javascript)
+        self.assertIn("state.checkpoints = [];", javascript)
+        self.assertIn("generation !== state.authGeneration", javascript)
+        self.assertIn("localStorage.removeItem(CACHE_PREFIX + previousUserId)", javascript)
+
+    def test_expired_or_revoked_owner_session_returns_to_guest_mode(self):
+        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
+        self.assertIn("function expireOwnerSession()", javascript)
+        self.assertIn("expireOwnerSession();", javascript)
+        self.assertIn('if (response.status === 401) expireOwnerSession();', javascript)
+        self.assertIn("Your owner session expired. Please sign in again.", javascript)
+
+    def test_signin_clears_password_and_signout_is_local_first(self):
+        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
+        self.assertIn('const password = passwordInput.value;\n    passwordInput.value = "";', javascript)
+        self.assertIn('passwordInput.value = "";\n      submit.disabled = false;', javascript)
+        signout = javascript.split("async function signOutOwner()", 1)[1].split("function sessionFromResponse", 1)[0]
+        self.assertLess(signout.index("saveSession(null);"), signout.index('fetch(AUTH_ROOT + "logout"'))
+
+    def test_private_activity_view_is_guest_gated(self):
+        html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
+        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
+        self.assertIn('data-view="activity"', html)
+        self.assertIn('id="view-activity"', html)
+        self.assertIn('id="activityLogs"', html)
+        self.assertIn('id="activitySwitches"', html)
+        self.assertIn("function renderActivity()", javascript)
+        self.assertIn("if (state.publicMode || !hasVerifiedOwnerSession())", javascript)
+        self.assertIn("renderActivity();", javascript)
+
+    def test_guest_overview_does_not_recommend_starting_training(self):
+        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
+        self.assertIn("Welcome to the ULTRON guest dashboard", javascript)
+        self.assertIn("Private training status, history, checkpoints and device controls are not loaded", javascript)
+        self.assertIn('$("autoStartToggle").disabled = true;', javascript)
+
     def test_dashboard_has_no_external_ai_api_endpoint(self):
         forbidden = (
             "api.openai.com",

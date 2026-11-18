@@ -359,3 +359,32 @@ code { color: var(--red); font-size: .92em; }
 @media (max-width: 520px) {
   .device-run-grid, .device-telemetry { grid-template-columns: 1fr 1fr; }
 }
+
+
+/* Restricted owner sign-in */
+.auth-dialog {
+  width: min(440px, calc(100vw - 28px));
+  max-width: none;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 20px;
+  color: var(--text);
+  background: var(--surface-2);
+  box-shadow: 0 24px 90px rgba(0,0,0,.55);
+}
+.auth-dialog::backdrop { background: rgba(0,0,0,.72); backdrop-filter: blur(8px); }
+.auth-card { display: grid; gap: 12px; padding: clamp(22px, 5vw, 32px); }
+.auth-card h2 { margin: 0; font-size: 24px; }
+.auth-card label { color: var(--soft); font-size: 12px; font-weight: 700; }
+.auth-card input {
+  width: 100%; min-height: 46px; border: 1px solid var(--line-strong);
+  border-radius: 10px; padding: 10px 12px; color: var(--text);
+  background: var(--surface); outline-offset: 3px;
+}
+.auth-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
+@media (max-width: 520px) {
+  .topbar-right { gap: 7px; }
+  .topbar-right .secondary-button, .topbar-right .quiet-button { min-height: 38px; padding: 0 10px; font-size: 12px; }
+  .auth-actions { flex-direction: column-reverse; }
+  .auth-actions button { width: 100%; }
+}
