@@ -23,13 +23,13 @@ class DevicePairingStaticTests(unittest.TestCase):
     def test_pairing_backend_keeps_registry_private(self):
         migration = (ROOT / "supabase" / "migrations" / "20261118080000_device_pairing.sql").read_text(encoding="utf-8")
         self.assertIn("ENABLE ROW LEVEL SECURITY", migration)
-        self.assertIn("REVOKE ALL ON public.ultron_devices, public.ultron_pairing_challenges FROM anon, authenticated", migration)
-        self.assertIn("GRANT ALL ON public.ultron_devices, public.ultron_pairing_challenges TO service_role", migration)
+        self.assertIn("revoke all on public.ultron_devices, public.ultron_pairing_challenges from anon, authenticated", migration.lower())
+        self.assertIn("grant all on public.ultron_devices, public.ultron_pairing_challenges to service_role", migration.lower())
         self.assertIn("FOR UPDATE", migration)
         self.assertIn("attempts >= 5", migration)
         self.assertIn("consumed_at", migration)
         self.assertIn("SECURITY DEFINER", migration)
-        self.assertIn("GRANT EXECUTE ON FUNCTION", migration)
+        self.assertIn("grant execute on function", migration.lower())
 
     def test_edge_function_verifies_owner_and_uses_one_time_device_tokens(self):
         function = (ROOT / "supabase" / "functions" / "device-control" / "index.ts").read_text(encoding="utf-8")
