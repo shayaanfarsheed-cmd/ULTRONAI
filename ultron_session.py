@@ -728,13 +728,18 @@ def run_training_session(
                             return finish("dead", "lease_lost_during_checkpoint_retry")
                         except Exception as error:
                             last_error = type(error).__name__
-                except SupabaseAPIError:
+                except SupabaseAPIError as error:
+                    # The database is unreachable, so the lease cannot be renewed
+                    # or checkpoint commits safely confirmed. Preserve state locally
+                    # only and stop before the last known lease window expires.
+                    last_error = "heartbeat_failed:" + type(error).__name__
                     last_heartbeat = monotonic()
                     if monotonic() >= lease_deadline - 30:
                         try:
-                            save_checkpoint()
-                        except LeaseLostError:
-                            lease_lost = True
+                            save_local_checkpoint()
+                        except Exception as checkpoint_error:
+                            last_error += "; local_checkpoint_failed:" + type(checkpoint_error).__name__
+                        lease_lost = True
                         return finish("dead", "database_unreachable_lease_expiring")
                 except Exception as error:
                     # A failed heartbeat must not cause a tight retry loop or allow
