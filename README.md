@@ -81,15 +81,24 @@
 - Before production deployment, add edge/gateway per-IP throttling and disposable-project integration tests for concurrent redemption, expiry, attempt lockout, owner isolation, revocation, and secret redaction.
 
 
-## Device pairing PR #18 — security review update
+## Device pairing — PR #18 merged
 
-- Draft PR: [Build secure device pairing control plane](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/18).
+- [Build secure device pairing control plane](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/18) merged on 2026-11-18 at `1f0ff3f6cdd7d75d23e5fbd594bb3b4d5627ce7b`.
 - Implements owner-only pairing challenge creation, one-time redemption, hashed device credentials, device registry/revocation, and heartbeat endpoint.
 - Security review correction: Edge Function now checks the verified Auth user against `ULTRON_OWNER_USER_ID`; the database consume function uses `SECURITY INVOKER` and is executable only by service_role; a newly issued code invalidates older outstanding challenges; capability payloads must be JSON objects within the size limit.
 - Pairing dashboard stays disabled unless `window.ULTRON_CONFIG.deviceControlEnabled === true`.
-- Production deployment still requires explicit approval, migration application, Edge Function deployment, secrets (including the owner Auth UUID) configured in Supabase, and integration tests for concurrency, owner isolation, expiry, revocation, and rate-limit windows.
+- The production migration and Edge Function are **not deployed**. Before activation, configure the Edge Function secret `ULTRON_OWNER_USER_ID` with the verified owner Auth UUID, apply the migration, deploy the function, run disposable-project integration tests for concurrency/owner isolation/expiry/revocation/rate limits, then enable the dashboard feature flag in a separate reviewed change.
 - A compatible OS-level agent and disposable-project integration tests are not complete. The iPad browser cannot run this background agent; it can only act as the owner dashboard/monitor unless a native iPad app is later built.
-- No production Supabase changes, device pairing, device commands, or training have occurred.
+- No production Supabase schema/secret changes, device pairing, device commands, or training have occurred.
 
 
 - Added `agents/device_agent.py`: minimal Python heartbeat-only agent for Linux/macOS/Windows/server environments. It prompts for the one-time challenge, holds the device token in memory, never prints or writes it to disk, and can resume using a provider secret named `ULTRON_DEVICE_TOKEN`. It does not execute remote commands or training. iPad remains the owner dashboard/monitor; iPadOS agent support would require a native application.
+
+
+## Next handoff — after PR #18
+
+1. Verify GitHub Pages deployment for merge commit `1f0ff3f6cdd7d75d23e5fbd594bb3b4d5627ce7b`.
+2. Keep `deviceControlEnabled` false until the production migration, Edge Function, owner secret, and integration tests are complete.
+3. Ask for explicit approval before any production Supabase migration, Edge Function deployment, or secret changes.
+4. After deployment, pair a supported Linux/macOS/Windows cloud worker using the Python heartbeat agent. The iPad remains the owner dashboard and monitor; it cannot host the persistent Python agent.
+5. Device pairing only records a device and heartbeat. Do not start training or accept remote commands until a separate secure job-control design is approved.
