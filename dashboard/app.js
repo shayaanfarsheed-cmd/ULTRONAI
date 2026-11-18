@@ -627,6 +627,10 @@
 
   function renderCheckpointList() {
     const container = $("checkpointList");
+    if (state.publicMode) {
+      container.innerHTML = '<div class="empty-state panel">Checkpoint access is locked on the public dashboard. No personal checkpoint history is loaded or displayed.</div>';
+      return;
+    }
     if (!state.status || !state.status.run_id) {
       container.innerHTML = '<div class="empty-state panel">Start a training run before managing checkpoints.</div>';
       return;
