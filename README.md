@@ -87,6 +87,6 @@
 - Implements owner-only pairing challenge creation, one-time redemption, hashed device credentials, device registry/revocation, and heartbeat endpoint.
 - Security review correction: Edge Function now checks the verified Auth user against `ULTRON_OWNER_USER_ID`; the database consume function uses `SECURITY INVOKER` and is executable only by service_role; a newly issued code invalidates older outstanding challenges; capability payloads must be JSON objects within the size limit.
 - Pairing dashboard stays disabled unless `window.ULTRON_CONFIG.deviceControlEnabled === true`.
-- Production deployment still requires explicit approval, migration application, Edge Function deployment, secrets (including the owner Auth UUID) configured in Supabase, and gateway/IP rate limiting.
+- Production deployment still requires explicit approval, migration application, Edge Function deployment, secrets (including the owner Auth UUID) configured in Supabase, and integration tests for concurrency, owner isolation, expiry, revocation, and rate-limit windows.
 - A compatible OS-level agent and disposable-project integration tests are not complete. The iPad browser cannot run this background agent; it can only act as the owner dashboard/monitor unless a native iPad app is later built.
 - No production Supabase changes, device pairing, device commands, or training have occurred.
