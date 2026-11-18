@@ -31,11 +31,11 @@ class NoRemoteDevicePairingTests(unittest.TestCase):
         html = (ROOT / "dashboard" / "index.html").read_text(encoding="utf-8")
         for forbidden in ("switchNow", "pauseTraining", "resumeTraining", "toggleAutomaticStart",
                           "insertSwitchRequest", "updateStatus", "requestResume", "safeResume",
-                          "verifyCheckpointsButton"):
+                          "verifyCheckpointsButton", "autoStartToggle"):
             self.assertNotIn(forbidden, app)
         for forbidden in ("switchNowButton", "pauseButton", "resumeButton", "safeResumeButton",
                           "data-checkpoint-resume", "manualHoursForm", "data-server-ready",
-                          "data-server-unavailable"):
+                          "data-server-unavailable", "autoStartToggle"):
             self.assertNotIn(forbidden, html)
         self.assertIn("read-only", html.lower())
 
