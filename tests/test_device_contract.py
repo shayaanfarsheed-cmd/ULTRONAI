@@ -3,7 +3,7 @@ import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from jsonschema import Draft202012Validator
+from jsonschema import Draft202012Validator, FormatChecker
 
 from ultron_device_contract import MAX_COMMAND_TTL, validate_command
 
@@ -44,7 +44,7 @@ class DeviceCommandContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
-        cls.validator = Draft202012Validator(cls.schema)
+        cls.validator = Draft202012Validator(cls.schema, format_checker=FormatChecker())
 
     def assert_schema_invalid(self, command):
         self.assertTrue(list(self.validator.iter_errors(command)), command)
