@@ -299,31 +299,32 @@ Key gaps to resolve before implementation:
 - Main at start of this work: `397f1492c300371821b2651ddfbc7342adc9f60c`
 - PR #4: https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/4
 - PR #4 was open and unmerged; its original head was `1bac6ba86b60576f19cc70ffd1504c049f2ef1d4`.
-- PR #4's original base was old (`f18b2f2732d37b7907632f796a493ff374c66305)); current main had advanced to `397f1492c300371821b2651ddfbc7342adc9f60c`.
+- PR #4's original base was old (`f18b2f2732d37b7907632f796a493ff374c66305`); current main had advanced to `397f1492c300371821b2651ddfbc7342adc9f60c`.
 - Original PR #4 CI runs: Test Suite `44108898704` and preflight `44108898794` succeeded on the old head. These results do not validate the new Stage 1 changes.
 
 ### Stage 1 changes pushed to PR #4 branch
 A merge commit brought current main into the PR branch while preserving the PR history:
-- New branch head: `afd90911299f3684f97d74ff4aa2d3bf18eb6c64`
+- Stage 1 initial merge commit: `afd90911299f3684f97d74ff4aa2d3bf18eb6c64`
+- Latest PR branch head after action-specific schema/test refinements: `6d275ee0ef3552554bffd5e61d3d01a2da3f2a9c`
 - Commit message: Harden device command contract and add executable validation
 - Updated `docs/DEVICE_CONTROL_CONTRACT.md`: precise data constraints/indexes, non-exposed schema grants/RLS requirements, no-login authorization boundary, pairing and credential lifecycle, atomic claim/ack state machine, 120-second command TTL, 30-second clock-skew tolerance, replay protection, fencing, 10-second stop target, Windows/Linux memory enforcement, local-agent trust boundary, and explicit deployment approval gate.
 - Updated `schemas/device-command.schema.json`: strict Draft 2020-12 command schema.
 - Added `ultron_device_contract.py`: pure schema/time/fencing/replay-policy validation; it does not authenticate devices or replace authoritative server checks.
 - Replaced structural-only tests in `tests/test_device_contract.py` with validator-driven valid/adversarial fixtures and runtime policy tests.
-- Added `jsonschema>=4.20,<5` to `requirements.txt`.
+- Added `jsonschema[format]>=4.20,<5` to `requirements.txt` so UUID and RFC 3339 date-time formats are checked.
 - Updated `.github/workflows/preflight-tests.yml` to install the schema-validation dependency.
 
 ### Validation status
 - The original PR #4 Test Suite and preflight jobs passed, but they ran before the new Stage 1 changes.
-- **The new Stage 1 changes have not yet been validated by fresh CI.**
-- No local test result is claimed.
-- Wait for fresh PR workflow runs on head `afd90911299f3684f97d74ff4aa2d3bf18eb6c64`; inspect any failed job logs and fix regressions.
+- Fresh CI on intermediate head `653426c90b061924a08dd28bbc0d72d69df1d28c` passed: Test Suite `44217252926`, preflight `44217253000`, and Training Prototype Validation `44217253051`.
+- Follow-up changes then tightened pause/resume/stop parameter allowlists and aligned the nonce/idempotency documentation. Those follow-up changes are on latest head `6d275ee0ef3552554bffd5e61d3d01a2da3f2a9c` and still require a fresh CI run.
+- A local test attempt against an isolated equivalent fixture ran 22 tests successfully; this is supplemental and is not a substitute for repository CI. A direct repository clone was unavailable in the execution environment.
 - Check that all workflows triggered by the updated PR head pass, including Test Suite, preflight, and Training Prototype Validation if applicable.
 
 ### Next actions (in order)
-1. Verify PR #4 now targets the latest main base and its head is `afd90911299f3684f97d74ff4aa2d3bf18eb6c64`.
-2. Inspect the complete updated diff, especially validator edge cases and documentation consistency.
-3. Verify fresh CI on the exact head; fix failures and rerun.
+1. Verify PR #4 targets current main and its latest head is `6d275ee0ef3552554bffd5e61d3d01a2da3f2a9c`.
+2. Inspect the complete updated diff, especially validator edge cases, action-specific parameter restrictions, and documentation consistency.
+3. Verify fresh CI on the exact latest head; fix failures and rerun.
 4. Check whether the schema validator's date-time/UUID format checks behave as expected under the pinned Python 3.11 workflow.
 5. Ensure no public login/sign-up UI or privileged dashboard controls were introduced.
 6. Keep PR #4 open and unmerged until explicit approval.
