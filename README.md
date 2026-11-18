@@ -1,45 +1,41 @@
 # ULTRONAI — Current implementation handoff (2026-11-18)
 
 **Repository:** `shayaanfarsheed-cmd/ULTRONAI`  
-**Base branch:** `main`  
-**Verified main merge:** `ad8a0d01bcd725f96f8d6a41d682febed3c2e4c7` (PR #10 is merged).  
-**Active feature branch:** `feature/owner-guest-dashboard`  
-**Draft PR:** [#11 — Build owner sign-in and Guest Mode dashboard foundation](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/11)  
-**Code and test head before this README handoff:** `39975a2e4253bae4fee14fd87579249d4ae1c273`
+**Active branch:** `main`  
+**Latest verified main commit:** `4ced9ca745aec0ab7dc736be100f5a25f7422848`  
+**Merged work:** PR #10 (repository architecture/configuration baseline) and PR #11 (owner sign-in and Guest Mode dashboard foundation).  
+**Latest PR:** [#11 — Build owner sign-in and Guest Mode dashboard foundation](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/11) — merged.
 
-## Work Package 2 — owner/guest dashboard foundation
+## Current status
 
-### Implemented in PR #11
-- Added responsive owner sign-in and sign-out UI; no public sign-up.
-- Owner identity is checked against the configured owner UUID after Supabase Auth returns a session.
-- Guest Mode is the default; owner configuration remains deliberately disabled because the publishable key is still a placeholder and `ownerUserId` is blank.
-- Made session persistence fail closed: a storage failure clears in-memory session state.
-- Owner REST and Storage requests now require a verified owner-mode session and matching configured owner identity.
-- Guest transitions clear owner-only status, logs, switch requests, checkpoints, quota state and the saved owner cache.
-- Sign-out clears local access and private state before attempting server-side token revocation.
-- Sign-in password input is cleared immediately and again when the attempt finishes.
-- Expired or revoked sessions return to Guest Mode; stale in-flight refresh results are discarded using an auth-generation counter.
-- Guest overview no longer recommends starting a training run; it explains that private training data and controls are unavailable in Guest Mode.
-- Added a private Activity view for owner training-session history and server handoff records. Guest Mode renders an explicit locked state and does not load private rows.
-- Unfinished automatic-start control remains disabled until a real, secured backend action exists.
-- Added regression tests for owner-only request guards, cache isolation, guest transitions, password cleanup, sign-out ordering, expired/revoked sessions, guest overview behaviour, and private Activity gating.
+- PR #11 is merged. Its squash merge commit is `4ced9ca745aec0ab7dc736be100f5a25f7422848`.
+- The merged dashboard includes Guest Mode by default, owner sign-in/sign-out UI, frontend owner UUID verification, owner-only request guards, private Activity view gating, and regression tests.
+- Owner sign-in remains deliberately inactive: `dashboard/config.js` contains a publishable-key placeholder and an empty `ownerUserId`.
+- The frontend UUID allowlist and browser-side request guards are not backend authorization. Production RLS and trusted server-side authorization still require separate design, review, and explicit approval.
+- Browser `sessionStorage` is not secure credential storage. Do not describe it as such or put privileged service-role secrets in the browser.
+- Device pairing, remote device control, checkpoint operations requiring production credentials, and live training remain unavailable until their secured backend and device architecture is implemented and separately approved.
+- The RAM slider is a local preference only; it does not enforce a process or operating-system memory limit.
+- No owner account was created, no device was paired, no agent was installed, and no provider job or live training was started.
 
-### Current safety boundary
-- The frontend UUID allowlist is only a UI/session gate. It is **not** a substitute for backend RLS and server-side authorization.
-- No production Supabase settings, schema, RLS, grants, Storage policies, secrets, or Edge Functions were changed.
-- No owner account was created; no device was paired; no device agent was installed; no training or provider job was started.
-- Device pairing and remote training controls remain unavailable until the secure backend/device-control work is implemented and separately approved.
-- The RAM slider remains a browser preference, not an enforced process memory cap.
+## Optimization work — current stage
 
-## Validation and next actions
-- All three workflows passed on the earlier PR head `9f54f93ad8b77d2d1fd02850a64d5d26a9ff0667`.
-- A preflight run on an intermediate commit exposed one outdated static assertion expecting the previous guest-mode assignment expression. The assertion was corrected to check the current equivalent state transition; no tests were removed or weakened.
-- Current code and regression tests are on `39975a2e4253bae4fee14fd87579249d4ae1c273`; this README handoff creates a new commit, so recheck all three workflows against the latest exact PR head before treating validation as passed.
-- Feature implementation is still in progress. Compatibility testing has **not** started; it follows feature implementation.
-- Next: finish remaining owner/guest dashboard sections and audit every UI action/data path, complete backend authorization design review without changing production, then run compatibility checks and repair any failures.
-- PR #11 remains draft and unmerged. Do not merge without the user's explicit approval.
+- Starting point: merged `main` commit `4ced9ca745aec0ab7dc736be100f5a25f7422848`.
+- Working branch: `optimize/dashboard-performance-security`.
+- Initial read-only review identified:
+  1. Possible concurrent refresh-token rotation when several requests renew an expiring session at once.
+  2. Sequential checkpoint metadata/file reads that can be slow on mobile networks.
+  3. Unnecessary chart redraws during full renders and window resize events.
+  4. Historical README handoff statements that incorrectly described PR #11 as unmerged.
+- Next: address refresh concurrency with regression coverage, optimize checkpoint loading with bounded concurrency and size safeguards, make chart drawing responsive/visibility-aware, and keep this handoff synchronized.
+- Preserve the $0 budget, no Kaggle, no external AI APIs, no pretrained weights, and no externally generated training data.
+- No production Supabase changes, secrets changes, owner provisioning, device pairing, provider jobs, or real training are authorized by this optimization task.
+- Do not merge optimization work without explicit user approval.
 
-**Permanent constraints:** $0 budget; no paid services, Kaggle, external AI APIs, pretrained weights, or externally generated training data. No live training without separate approval.
+## Validation state
+
+- PR #11's three GitHub Actions checks passed on its validated head before merge.
+- The optimization branch has not yet been validated. Run all repository workflows against its final exact commit before proposing a PR.
+- Compatibility testing across iPad/iPhone/Android/desktop remains a separate required phase after feature implementation and code repair.
 
 ---
 
