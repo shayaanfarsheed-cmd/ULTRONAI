@@ -337,6 +337,7 @@
       headers: headers,
       body: body == null ? undefined : JSON.stringify(body)
     });
+    if (binary && response.ok) return response.arrayBuffer();
     const raw = await response.text();
     const data = raw ? (function () { try { return JSON.parse(raw); } catch (_) { return raw; } })() : null;
     if (!response.ok) {
@@ -1086,14 +1087,13 @@
 
   function safeDataFileName(value) {
     const name = String(value || "").trim();
-    if (!name || name.length > 180 || name === "." || name === ".." ||
-        /[\\/\\\\\\x00-\\x1f\\x7f]/.test(name) || name.startsWith(".")) {
+    if (!/^[A-Za-z0-9][A-Za-z0-9._ -]{0,179}$/.test(name) || name === "." || name === ".." || name.startsWith(".")) {
       throw new Error("Use a simple file name (1–180 characters), without folders or hidden-file names.");
     }
     return name;
   }
 
-  async function dataLibraryRequest(path, method, body, fileBlob) {
+  async function dataLibraryRequest(path, method, body, fileBlob, binary) {
     const session = await ensureSession();
     assertOwnerAccess(session);
     const headers = {"apikey": PUBLISHABLE_KEY, "Authorization": "Bearer " + session.access_token};
@@ -1183,7 +1183,7 @@
   async function downloadDataFile(name) {
     if (!hasVerifiedOwnerSession()) throw new Error("Owner sign-in is required.");
     const safeName = safeDataFileName(name);
-    const bytes = await dataLibraryRequest("object/authenticated/" + DATA_LIBRARY_BUCKET + "/" + objectPath([state.user.id, safeName]), "GET", null, false);
+    const bytes = await dataLibraryRequest("object/authenticated/" + DATA_LIBRARY_BUCKET + "/" + objectPath([state.user.id, safeName]), "GET", null, false, true);
     const blob = new Blob([bytes], {type: "application/octet-stream"});
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
