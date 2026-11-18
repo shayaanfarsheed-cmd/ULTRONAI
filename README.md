@@ -16,41 +16,43 @@ The dashboard Settings page now includes a 2–10 GB RAM budget slider (0.5 GB i
 
 The static dashboard is in `dashboard/`. The repository root redirects to it.
 
-## Current status — 2026-11-18 (PR #8 merged)
+## Current status — 2026-11-18 (PR #7 and PR #8 merged)
 
 **This section supersedes older operational and handoff notes below wherever they conflict.**
 
 - **Repository:** `shayaanfarsheed-cmd/ULTRONAI`
-- **Latest main commit:** `8e3bbfb62732de5cb47229572cac14b37cdc3d37` — squash merge of PR #8.
-- **PR #8:** [Remove public read-only messaging and personal training history](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/8) — **merged**.
-- **PR #8 head reviewed:** `d32f199d64140553ff3ed25abaee954f6b9fc89b`.
-- **PR #8 merge commit:** `8e3bbfb62732de5cb47229572cac14b37cdc3d37`.
-- **PR #8 checks on the exact reviewed head:** ULTRON Test Suite run `44214579105` passed; ULTRON preflight run `44214579213` passed; Training Prototype Validation run `44214579116` passed.
-- **PR #7:** [Fail closed when training heartbeat errors approach lease expiry](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/7) remains open and unmerged. Its latest known head is `13aec6a1d13a161793fb56ce3baee178e749c811`; test suite run `44213583636`, preflight run `44213583634`, and prototype validation run `44213583655` all passed.
-- **PR #4:** secure device-control contract remains open/unmerged; inspect and validate separately before any merge.
+- **Latest main merge:** PR #7 squash merge `2515754cefe458937fb4bd764d7e6ad58198065c`.
+- **PR #8:** [Remove public read-only messaging and personal training history](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/8) — merged as `8e3bbfb62732de5cb47229572cac14b37cdc3d37`.
+- **PR #7:** [Fail closed when training heartbeat errors approach lease expiry](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/7) — merged as `2515754cefe458937fb4bd764d7e6ad58198065c`. Reviewed the heartbeat failure path and regression tests before merging.
+- **PR #7 reviewed head:** `13aec6a1d13a161793fb56ce3baee178e749c811`.
+- **PR #7 CI on reviewed head:** Test Suite run `44213583636` passed; Preflight run `44213583634` passed; Training Prototype Validation run `44213583655` passed. Every listed job step completed successfully.
+- **PR #4:** secure device-control contract remains open/unmerged; review separately before any merge.
+- **No live training or provider jobs have been started.**
 
 ### Public dashboard requirements and current behaviour
 
 - The dashboard is public; no login or sign-up is required.
-- Personal/account-specific training history is not displayed. Public initialization sets the user/session to null; history/status refresh and checkpoint storage loading are guarded by the absence of a user.
+- Personal/account-specific training history is not displayed or fetched in public mode.
 - Public-read-only-mode labels and the old History view have been removed.
-- Checkpoint access, device pairing, automatic starts, and training controls remain unavailable/locked. Do not unlock them as part of unrelated UI work.
+- Checkpoint access, device pairing, automatic starts, and training controls remain unavailable/locked.
 - The RAM slider is a browser-local preference only; it is not an enforced OS process limit until a secure device agent exists.
-- No live training or provider jobs have been started. No backend schema or secrets were changed by PR #8.
 
-### PR #8 review and merge
+### PR #7 heartbeat and checkpoint protection
 
-The PR patch was reviewed, including `dashboard/app.js` and `dashboard/index.html`. The public page initializes without a user session; `refreshData()` and `loadCheckpointCandidates()` return without accessing account data when no user exists. The dashboard renders the training controls disabled in public mode, the checkpoint verification button is disabled in the HTML, and device pairing controls are unavailable. The three required CI workflows passed on the exact reviewed PR head before squash merge.
+- The training loop treats unexpected heartbeat/control errors as failures and throttles retries to the configured heartbeat interval.
+- If the last locally known lease window is near expiry, the worker saves the latest state to local storage only, does not attempt a remote checkpoint commit, marks the lease lost, and stops.
+- Regression tests cover local checkpoint preservation/no remote commit on a near-expiry heartbeat failure and retry throttling.
+- The PR changed `ultron_session.py`, `tests/test_session.py`, and README handoff documentation. No Supabase schema, credentials, dashboard, provider configuration, or live training jobs were changed by PR #7.
 
 ### Exact next tasks for the next chat
 
-1. Fetch current `main` and verify it contains merge commit `8e3bbfb62732de5cb47229572cac14b37cdc3d37`; confirm GitHub Pages reflects the merged dashboard.
-2. Re-check the public dashboard in a browser: no login/sign-up, no History view, no public-read-only wording, no personal history, and checkpoint/device/training controls remain locked.
-3. Review PR #7's heartbeat lease fail-closed changes and regression tests against the latest `main`; its CI passed, but it has not been merged. Do not merge it without the user's explicit approval.
-4. Review PR #4's device-control contract separately. Do not deploy a device agent, pair devices, change Supabase schema, or start live training without explicit approval.
-5. Keep the model-training objective unchanged: from-scratch 3–5M parameter mathematics Transformer, deterministic generated math data, independent verifier, no pretrained weights/models, no AI APIs, and no paid compute.
-6. Before ending any future chat/context handoff, update this README with the actual main SHA, PR states, latest CI results, and exact next actions.
-
+1. Verify current `main` contains merge commit `2515754cefe458937fb4bd764d7e6ad58198065c` and check the latest post-merge GitHub Actions runs.
+2. Review PR #4's secure device-control contract separately; do not merge or deploy it without explicit user approval.
+3. Inspect and implement the secure Windows local agent only after reviewing PR #4's contract. Keep outbound HTTPS polling, one-time pairing, OS secret storage, command allowlist, lease fencing, and OS-enforced RAM limits.
+4. Confirm GitHub Pages deployment and manually verify the public dashboard: no login/sign-up, no personal history, and checkpoint/device/training controls remain locked.
+5. Preserve the training objective: from-scratch 3–5M parameter mathematics Transformer, deterministic generated math data, independent verifier, no pretrained weights/models, no AI APIs, and no paid compute.
+6. Do not start live training/provider jobs, pair devices, alter Supabase schema, or expose secrets without explicit approval.
+7. Before ending any future chat/context handoff, update this README with actual main SHA, PR states, CI results, deployment state, and exact next actions.
 
 
 Before the dashboard can sign in, edit `dashboard/config.js` and replace `sb_publishable_REPLACE_WITH_YOUR_KEY` with the Supabase publishable/anon key for the `ultron-memory` project. This key is public by design. Never put an `sb_secret_...` key in this file.
@@ -127,39 +129,25 @@ Before finishing a chat, verify the current GitHub branch/commit/PR and CI state
 
 ### Latest handoff — 2026-11-18
 
-- **Handoff timestamp:** 2026-11-18 01:08 UTC
+- **Handoff timestamp:** 2026-11-18 01:22 UTC
 - **Repository:** `shayaanfarsheed-cmd/ULTRONAI`
-- **Active branch:** `fix/session-heartbeat-fail-closed`
-- **Open PR:** [PR #7 — Fail closed when training heartbeat errors approach lease expiry](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/7)
-- **Current PR head at this handoff:** `7d62664b85e69ae115adcbed9efe7cce6d34b630`
-- **PR status:** open and unmerged; GitHub currently reports mergeability as unstable while checks run. Do not merge without explicit user approval.
-- **Training status:** no live training or provider job has been started.
+- **Main merge commit:** `2515754cefe458937fb4bd764d7e6ad58198065c` (PR #7).
+- **PR #7:** merged; reviewed code and regression tests before merge.
+- **PR #8:** merged; public dashboard history/login cleanup.
+- **PR #4:** remains open/unmerged and needs a separate security review.
+- **Latest validated PR #7 head:** `13aec6a1d13a161793fb56ce3baee178e749c811`.
+- **CI:** all three PR #7 workflows passed on that exact head: runs `44213583636`, `44213583634`, and `44213583655`. All job steps succeeded.
+- **Files changed by PR #7:** `ultron_session.py` and `tests/test_session.py`; README was also updated for the handoff.
+- **Training status:** no live training/provider job started; no Supabase schema or secret changes made.
 
-#### Changes and files
+#### Next actions
 
-- `ultron_session.py`: extracted `save_local_checkpoint()`; the generic unexpected heartbeat-error path now saves locally only when the last known lease window is nearly expired, marks the lease lost, and stops without attempting a remote checkpoint commit.
-- `tests/test_session.py`: added regression coverage for local checkpoint preservation/no remote commit on unexpected heartbeat failure and retry throttling.
-- `README.md`: updated this handoff to record verified CI and the next action.
-- The fake-clock fixture was corrected in commit `0974e2e5371410e2e3d62f3fe56f853466fc56fc`; current PR head before this README edit is `73816d36a85d838f7ae42248160dd821af3a7542`.
-
-#### Validation on PR head `7d62664b85e69ae115adcbed9efe7cce6d34b630`
-
-The three workflows on the prior code head `73816d36a85d838f7ae42248160dd821af3a7542` completed successfully. The README-only handoff commit above triggered a fresh CI cycle on the current head; at this handoff all three are still running:
-
-- Test suite: [run 44213538444](https://github.com/shayaanfarsheed-cmd/ULTRONAI/actions/runs/44213538444) — in progress.
-- Preflight: [run 44213538520](https://github.com/shayaanfarsheed-cmd/ULTRONAI/actions/runs/44213538520) — in progress.
-- Training prototype validation: [run 44213538416](https://github.com/shayaanfarsheed-cmd/ULTRONAI/actions/runs/44213538416) — in progress.
-- Previous code-head workflow runs (44213388114, 44213388095, 44213388127) all passed, including every listed job step. Do not treat those runs as validation of the current README commit.
-- PR diff reviewed: only `README.md`, `tests/test_session.py`, and `ultron_session.py` changed. The two regression tests are present. No review submissions or inline review threads were returned.
-- The README update itself creates a new commit and may trigger another CI cycle. Re-check the new PR head and workflows before treating validation as final for the updated head.
-
-#### Exact next actions
-
-1. Check the three current workflow runs above until each has a final conclusion. If any fail, inspect logs and fix on the same branch; then rerun validation.
-2. If all three pass on the current PR head, report PR #7 as validated and ask the user whether they explicitly approve merging. Do not merge without that approval.
-3. If another README handoff update is required, it will create another commit and CI cycle; record the new head and actual run states accurately.
-4. After PR #7 is merged with explicit approval, reconcile the older roadmap below against current repository state, then resume secure Windows training-agent implementation. Do not start training or cloud jobs.
-5. Keep secrets such as `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SUPABASE_OWNER_ID`, `HF_TOKEN`, and `HF_REPO_ID` in provider secret managers only; never ask for or record their values.
+1. Verify the latest `main` SHA and post-merge CI runs after PR #7.
+2. Review PR #4 separately; do not merge or deploy it without explicit approval.
+3. Continue secure Windows agent implementation only after the device-control contract review.
+4. Confirm GitHub Pages deployment and public-dashboard locked-control behaviour.
+5. Keep secrets in provider secret managers only. Never request or record secret values.
+6. Update this README again before any future chat handoff.
 
 ## Current development status and next-chat handoff
 
