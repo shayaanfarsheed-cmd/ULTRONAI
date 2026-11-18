@@ -5,6 +5,7 @@
   const SUPABASE_URL = String(CONFIG.supabaseUrl || "").replace(/\/$/, "");
   const PUBLISHABLE_KEY = String(CONFIG.supabasePublishableKey || "");
   const OWNER_USER_ID = String(CONFIG.ownerUserId || "").trim();
+  const DEVICE_CONTROL_ENABLED = CONFIG.deviceControlEnabled === true;
   const API_ROOT = SUPABASE_URL + "/rest/v1/";
   const AUTH_ROOT = SUPABASE_URL + "/auth/v1/";
   const STORAGE_ROOT = SUPABASE_URL + "/storage/v1/";
@@ -147,8 +148,8 @@
     const account = document.querySelector(".account-email");
     if (signIn) signIn.hidden = Boolean(isOwner);
     if (signOut) signOut.hidden = !isOwner;
-    if ($("generatePairingCodeButton")) $("generatePairingCodeButton").disabled = !isOwner;
-    if ($("refreshDevicesButton")) $("refreshDevicesButton").disabled = !isOwner;
+    if ($("generatePairingCodeButton")) $("generatePairingCodeButton").disabled = !isOwner || !DEVICE_CONTROL_ENABLED;
+    if ($("refreshDevicesButton")) $("refreshDevicesButton").disabled = !isOwner || !DEVICE_CONTROL_ENABLED;
     if (!isOwner) {
       state.pairedDevices = [];
       state.pairingChallenge = null;
@@ -1309,6 +1310,12 @@
   }
 
   async function loadPairedDevices() {
+    if (!DEVICE_CONTROL_ENABLED) {
+      state.pairedDevices = [];
+      $("pairedDeviceList").textContent = "Pairing backend is staged but not deployed. No device records are being requested.";
+      renderPairedDevices();
+      return;
+    }
     if (!hasVerifiedOwnerSession()) {
       state.pairedDevices = [];
       renderPairedDevices();
@@ -1323,6 +1330,7 @@
   }
 
   async function createPairingCode() {
+    if (!DEVICE_CONTROL_ENABLED) throw new Error("Device pairing is not enabled yet. The production migration, Edge Function and compatible device agent are not deployed.");
     const button = $("generatePairingCodeButton");
     button.disabled = true;
     const generation = state.authGeneration;
@@ -1337,7 +1345,7 @@
       $("pairingCodePanel").hidden = false;
       showNotice("One-time pairing code created. It is displayed only in this owner session.", "success");
     } finally {
-      button.disabled = !hasVerifiedOwnerSession();
+      button.disabled = !hasVerifiedOwnerSession() || !DEVICE_CONTROL_ENABLED;
     }
   }
 
