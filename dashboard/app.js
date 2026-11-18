@@ -794,7 +794,7 @@
           '<div class="quota-line"><div class="quota-top"><span>Quota usage</span><span>' + escapeHtml(quota.percent == null ? "Not measurable" : formatNumber(quota.percent, 1) + "%") + '</span></div><div class="quota-track"><div class="quota-fill" style="width:' + (quota.percent == null ? 0 : Math.max(0, Math.min(100, quota.percent))) + '%"></div></div></div>' +
           '<div class="server-sub">' + escapeHtml(server.status_reason || server.limits && server.limits.quota_notes || "") + '</div>' +
         '</div>' +
-        '<div class="server-actions"><a class="secondary-button button-link" href="' + escapeHtml(startUrl) + '" target="_blank" rel="noopener">Open server ↗</a><button class="quiet-button" type="button" data-server-ready="' + escapeHtml(server.id) + '" disabled>Mark ready</button><input type="datetime-local" aria-label="Unavailable until for ' + escapeHtml(server.name) + '" value="' + escapeHtml(untilValue) + '" data-server-until="' + escapeHtml(server.id) + '" disabled><button class="quiet-button" type="button" data-server-unavailable="' + escapeHtml(server.id) + '" disabled>Set unavailable</button></div>' +
+          '<div class="server-actions"><a class="secondary-button button-link" href="' + escapeHtml(startUrl) + '" target="_blank" rel="noopener">Open provider ↗</a></div>' +
       '</article>';
     }).join("");
   }
