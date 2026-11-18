@@ -43,6 +43,29 @@ class DashboardStaticTests(unittest.TestCase):
         self.assertIn("setAccessMode(restoredOwner)", javascript)
         self.assertIn('$("ownerPassword").value = ""', javascript)
 
+    def test_private_api_and_storage_require_verified_owner_mode(self):
+        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
+        self.assertIn("function hasVerifiedOwnerSession()", javascript)
+        self.assertIn("function assertOwnerAccess(session)", javascript)
+        self.assertGreaterEqual(javascript.count("assertOwnerAccess(session);"), 2)
+        self.assertIn("if (!hasVerifiedOwnerSession() || state.refreshing) return;", javascript)
+        self.assertIn("if (!hasVerifiedOwnerSession() || !state.status || !state.status.run_id)", javascript)
+
+    def test_guest_transition_clears_private_state_and_invalidates_inflight_refresh(self):
+        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
+        self.assertIn("state.authGeneration += 1", javascript)
+        self.assertIn("state.status = null;", javascript)
+        self.assertIn("state.checkpoints = [];", javascript)
+        self.assertIn("generation !== state.authGeneration", javascript)
+        self.assertIn("localStorage.removeItem(CACHE_PREFIX + previousUserId)", javascript)
+
+    def test_signin_clears_password_and_signout_is_local_first(self):
+        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
+        self.assertIn('const password = passwordInput.value;\n    passwordInput.value = "";', javascript)
+        self.assertIn('passwordInput.value = "";\n      submit.disabled = false;', javascript)
+        signout = javascript.split("async function signOutOwner()", 1)[1].split("function sessionFromResponse", 1)[0]
+        self.assertLess(signout.index("saveSession(null);"), signout.index('fetch(AUTH_ROOT + "logout"'))
+
     def test_dashboard_has_no_external_ai_api_endpoint(self):
         forbidden = (
             "api.openai.com",
