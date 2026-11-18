@@ -1,16 +1,79 @@
+# PR #10 final validation handoff — 2026-11-18
+
+**Current state:** PR #10 is open, unmerged, and GitHub reports it mergeable. The repository repair changes are complete for Work Package 1. Do not merge until the user explicitly approves.
+
+**Latest validated commit before this handoff sync:** `e7147271f97bdca90e1ecdb568c353f16d48a865`. All three workflows passed on that exact commit:
+- ULTRON Test Suite: `44224090426`
+- ULTRON Training Prototype Validation: `44224090369`
+- ULTRON preflight tests: `44224090239`
+
+**CI failure repair:** The previous run found two legacy tests still selecting Kaggle. The GPU-profile and config-override tests now use the enabled Google Colab runtime profile; the unused Kaggle runtime profile was removed. Kaggle detection remains available for explicit rejection, and Kaggle remains disabled in provider selection. No test was weakened.
+
+**Handoff note:** This README synchronization creates a new commit. Recheck all three workflows on the resulting exact PR head before declaring the PR merge-ready.
+
+**Safety:** No merge, production Supabase change, account provisioning, device pairing, agent installation, provider job, or live training is authorized or performed.
+
+---
+
+---
+
+## Work Package 1 handoff — 2026-11-18
+
+- **PR:** [#10 — Repair repository docs and owner/guest configuration baseline](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/10)
+- **Branch:** `repair/work-package-1-repository-architecture`
+- **Validated PR head before this README sync:** `4b8bc0afe572e748e195d48e736eaa737b4e2f30`. All three GitHub Actions workflows passed on that exact head: Preflight `44222226674`, Training Prototype Validation `44222226690`, and Test Suite `44222226680`. This README sync creates a newer commit; recheck CI on the new exact head.
+- **Base:** `main` at `397f1492c300371821b2651ddfbc7342adc9f60c`
+- **PR #10 status at the validated head:** open, unmerged, and GitHub reported mergeable. All three workflows passed on the validated head listed above. Recheck mergeability and CI after this handoff-only README update.
+- **Files changed:** `README.md`, `config.json`, `docs/LOCAL_AGENT_ARCHITECTURE.md`, `docs/REPOSITORY_REPAIR_AUDIT.md`, `servers.json`, `supabase/SETUP.md`, `tests/test_config.py`, `train.py`.
+- **Key decisions:** one restricted owner account plus public Guest Mode; no public signup; private operations require verified owner authorization; guests are limited to public content; Kaggle disabled; resource enforcement is platform-specific and training must fail closed when not verified.
+- **Not implemented:** owner login/recovery, production backend authorization, device registry/pairing, agents, and enforced resource limits.
+- **Safety:** no Supabase production changes, secrets, pairing, agent installation, training, provider jobs or merges.
+- **Validation:** all three workflows passed on validated head `4b8bc0afe572e748e195d48e736eaa737b4e2f30`: Preflight run `44222226674`; Training Prototype Validation run `44222226690`; Test Suite run `44222226680`. Every job step in all three runs completed successfully. GitHub reported `mergeable: true` for this head. The following README handoff update requires a fresh exact-head CI/mergeability check.
+
+---
+
+# ULTRONAI — Current Product Architecture and Handoff
+
+> **Authoritative current direction (2026-11-18):** ULTRON is a browser-based, iPad-compatible mathematics training-control website. It will have one restricted owner account and a public Guest Mode. This is the target architecture, **not a claim that authentication or private controls are implemented today**.
+
+## Current implementation truth
+
+- Public GitHub Pages dashboard currently operates in public mode. It does not provide the agreed owner login, logout, recovery, or private owner session yet.
+- Guest Mode is intended for public dashboard and public mathematics information only. It must never access private training history, checkpoints, device pairing, or remote training controls.
+- The owner account is intended to be one identity across the system. Public self-registration must not create additional owner accounts. Secure owner provisioning and recovery require a separately reviewed implementation.
+- Backend authorization—not hidden buttons—must protect every private operation. Owner identity must be derived from a verified server-side session. Never trust a browser-supplied owner ID.
+- Device pairing, remote training controls and checkpoint operations remain locked until the owner authorization, device-control backend, agent and resource enforcement are implemented and tested.
+- The dashboard RAM slider is a local preference only; it is not an operating-system memory limit.
+- Device support is platform/capability based. Windows-specific assumptions must not define the whole product. iPadOS and mobile browsers are dashboard clients, not assumed training workers.
+- Kaggle is excluded from the active provider plan because the user declined Kaggle. No Kaggle job or credential setup is authorized.
+- Permanent constraints: $0 budget, no paid APIs/services, no pretrained weights/models, no externally generated AI training data, no exposed credentials, and no live training without separate approval.
+
+## Current repair work
+
+- Work Package 1 branch: `repair/work-package-1-repository-architecture`
+- File-by-file audit: [docs/REPOSITORY_REPAIR_AUDIT.md](docs/REPOSITORY_REPAIR_AUDIT.md)
+- Main baseline: `397f1492c300371821b2651ddfbc7342adc9f60c`
+- PR #4 remains open and unmerged: [secure device-control contract](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/4).
+- PR #4 current head inspected: `6fa27729b657c43719fe5955b3f1b2d609720659`; its three latest CI workflows passed (Test Suite `44218633547`, Preflight `44218633560`, Training Prototype Validation `44218633551`).
+- No Supabase production changes, account creation, device pairing, agent installation, training, provider jobs or merges were performed.
+
+**Read the repair audit before continuing.** Older operational notes below are historical and must not override this current product direction. The owner account is not yet implemented; do not follow older public self-registration instructions.
+
+---
+
 # ULTRON Training Control
 
 ULTRON is an independently implemented mathematics Transformer training project. It starts from random weights, generates its own deterministic mathematics data, verifies examples independently, and does not use pretrained models, pretrained weights, AI APIs, or paid compute.
 
 ## Online website-controlled local training
 
-The selected hosting is GitHub Pages. The intended workflow is an online dashboard on GitHub Pages, Supabase for authenticated control and coordination, and a Windows local agent that makes outbound HTTPS connections and starts the fixed ULTRON training entry point only after local preflight and lease checks. This allows an iPad browser to control a paired Windows computer without exposing an inbound port.
+The selected hosting is GitHub Pages. The intended workflow is an online dashboard on GitHub Pages, a single restricted owner identity for private control, Guest Mode for public visitors, and compatible device agents that make outbound HTTPS connections. Desktop training workers are platform-specific; iPad and mobile browsers are dashboard clients. The owner/guest authentication flow and device agents are not implemented yet.
 
-The architecture and security contract is documented in [`docs/LOCAL_AGENT_ARCHITECTURE.md`](docs/LOCAL_AGENT_ARCHITECTURE.md). This is a design specification only: the Windows agent and Run/Pause/Resume/Stop integration have not yet been implemented, and training has not started.
+The architecture and security contract is documented in [`docs/LOCAL_AGENT_ARCHITECTURE.md`](docs/LOCAL_AGENT_ARCHITECTURE.md). This is a design specification only: the device agents and Run/Pause/Resume/Stop integration have not yet been implemented, and training has not started.
 
 ## Local RAM budget control
 
-The dashboard Settings page now includes a 2–10 GB RAM budget slider (0.5 GB increments), defaulting to 6 GB for the 16 GB Windows laptop. The selected value is currently saved only in the browser where it is changed. It is a preference preview, **not an enforced process limit yet**. The Windows agent must be implemented to receive the setting and enforce it with a Windows Job Object before training can start. See [the local-agent architecture](docs/LOCAL_AGENT_ARCHITECTURE.md).
+The dashboard Settings page now includes a 2–10 GB RAM budget slider (0.5 GB increments), defaulting to 6 GB as a browser preference. The selected value is currently saved only in the browser where it is changed. It is a preference preview, **not an enforced process limit yet**. A compatible device agent must enforce the setting with a verified operating-system resource-control mechanism before training can start. See [the local-agent architecture](docs/LOCAL_AGENT_ARCHITECTURE.md).
 
 ## Browser dashboard
 
@@ -35,8 +98,8 @@ The static dashboard is in `dashboard/`. The repository root redirects to it.
 
 ### Public dashboard requirements and current behaviour
 
-- The dashboard is public; no login or sign-up is required.
-- Personal/account-specific training history is not displayed or fetched in public mode.
+- Guest Mode is public; the single owner account is planned but not implemented. Public self-registration must remain disabled.
+- Guests must not access personal training history, checkpoints, device pairing, or remote training controls.
 - Public-read-only-mode labels and the old History view have been removed.
 - Checkpoint access, device pairing, automatic starts, and training controls remain unavailable/locked.
 - The RAM slider is a browser-local preference only; it is not an enforced OS process limit until a secure device agent exists.
@@ -52,14 +115,14 @@ The static dashboard is in `dashboard/`. The repository root redirects to it.
 
 1. Verify `main` contains merge commit `576ff758bb60391a816d1d2fb2e24d7c0fe63a81`; PR #9's three CI workflows passed on reviewed head `ac830806008d9d97d7b32a330e64f4aba09e3514`.
 2. Review PR #4's secure device-control contract separately; do not merge or deploy it without explicit user approval.
-3. Inspect and implement the secure Windows local agent only after reviewing PR #4's contract. Keep outbound HTTPS polling, one-time pairing, OS secret storage, command allowlist, lease fencing, and OS-enforced RAM limits.
+3. Resolve the owner/guest authorization design and review the device-generic agent contract before implementation. Keep outbound HTTPS polling, one-time pairing, OS secret storage, command allowlist, lease fencing, and OS-enforced RAM limits.
 4. Confirm GitHub Pages deployment and manually verify the public dashboard: no login/sign-up, no personal history, and checkpoint/device/training controls remain locked.
 5. Preserve the training objective: from-scratch 3–5M parameter mathematics Transformer, deterministic generated math data, independent verifier, no pretrained weights/models, no AI APIs, and no paid compute.
 6. Do not start live training/provider jobs, pair devices, alter Supabase schema, or expose secrets without explicit approval.
 7. Before ending any future chat/context handoff, update this README with actual main SHA, PR states, CI results, deployment state, and exact next actions.
 
 
-Before the dashboard can sign in, edit `dashboard/config.js` and replace `sb_publishable_REPLACE_WITH_YOUR_KEY` with the Supabase publishable/anon key for the `ultron-memory` project. This key is public by design. Never put an `sb_secret_...` key in this file.
+The owner login is not implemented yet. Do not configure or expose authentication based on the historical steps below. `dashboard/config.js` currently contains a placeholder publishable key; it is public configuration, not an owner credential. Never put an `sb_secret_...` key in browser code.
 
 To publish with GitHub Pages:
 
@@ -69,7 +132,7 @@ To publish with GitHub Pages:
 4. Save and wait for the Pages deployment.
 5. Open `https://shayaanfarsheed-cmd.github.io/ULTRONAI/`.
 
-The dashboard requires `training_api` to be the only exposed Data API schema. Follow `supabase/SETUP.md` before signing in.
+Historical setup note — do not follow this as an instruction to sign in or change production settings. Owner authentication is not implemented. Any future Supabase exposure, grants, RLS, or schema changes require a separately reviewed plan and explicit approval.
 
 ## Provider secrets
 
@@ -77,13 +140,13 @@ Add these values to each provider's secret manager, never to source files or not
 
 - `SUPABASE_URL`
 - `SUPABASE_SECRET_KEY` (current `sb_secret_...` key)
-- `SUPABASE_OWNER_ID` (your Supabase Auth user UUID)
+- `SUPABASE_OWNER_ID` (server-side owner UUID; not a browser credential)
 
-The dashboard uses only the publishable/anon key and the signed-in user's JWT. The notebook and switcher use the backend secret.
+The future owner dashboard may use a publishable key plus a verified owner session. The notebook and worker use backend secrets only from a trusted secret manager.
 
 ## Training entry points
 
-- `train.ipynb`: browser notebook launcher for Kaggle, Colab and other notebook platforms.
+- `train.ipynb`: browser notebook launcher for supported notebook platforms; Kaggle is excluded from the active provider plan.
 - `train.py`: shared training entry point.
 - `ultron_model.py`: model architecture.
 - `ultron_data.py` and `ultron_verify.py`: deterministic mathematics generation and independent verification.
@@ -97,8 +160,8 @@ The dashboard uses only the publishable/anon key and the signed-in user's JWT. T
 
 - The database-side lease functions and private bucket are installed in Supabase.
 - The dashboard source is committed, but GitHub Pages still needs to be enabled and the publishable key added to `dashboard/config.js`.
-- A Supabase Auth user must be created before the notebook can create a run.
-- The notebook has not yet been run on the user's live Kaggle, Colab or Lightning accounts.
+- The training worker currently expects a server-side owner UUID and backend secret from its secret manager. This is separate from the future browser owner session; do not create public self-registration or put backend credentials in the website.
+- The notebook has not yet been run on any live provider account.
 - Secondary Hugging Face checkpoint backup and ONNX release are not yet complete.
 - Provider account quota and GPU availability must be checked in each provider account.
 
@@ -152,7 +215,7 @@ Before finishing a chat, verify the current GitHub branch/commit/PR and CI state
 
 1. Verify the latest `main` SHA and post-merge CI runs after PR #7.
 2. Review PR #4 separately; do not merge or deploy it without explicit approval.
-3. Continue secure Windows agent implementation only after the device-control contract review.
+3. Continue the device-generic agent architecture and platform-specific enforcement review only after the device-control contract review.
 4. Confirm GitHub Pages deployment and public-dashboard locked-control behaviour.
 5. Keep secrets in provider secret managers only. Never request or record secret values.
 6. Update this README again before any future chat handoff.
@@ -193,7 +256,7 @@ The Supabase database-side lease functions and private checkpoint bucket were pr
 
 ### Work completed immediately before this handoff
 
-The current task is **secondary checkpoint backup and recovery**. The following changes have been committed to `main`:
+The earlier task was **secondary checkpoint backup and recovery**; current priority is finishing the website and owner/guest architecture before training. The following changes have been committed to `main`:
 
 1. Added `huggingface_hub` to `requirements.txt`.
 2. Added `HuggingFaceCheckpointStore` to `ultron_storage.py`. It requires an existing private Hugging Face model repository, uploads immutable checkpoint folders, stores a manifest receipt, and verifies component sizes and SHA-256 hashes.
@@ -220,7 +283,7 @@ The Hugging Face integration commits above were made after that run. A lookup fo
 - The two new Hugging Face tests have been added but are **not yet confirmed passing**.
 - End-to-end training recovery from Hugging Face has **not yet been tested**.
 - No real Hugging Face repository has been created or connected.
-- No live Kaggle, Colab or Lightning training session has been run.
+- No live provider training session has been run.
 - Do not claim the system is production-ready.
 
 ### Exact next tasks — do these in order
@@ -245,8 +308,8 @@ These are optional until the private repository is configured. The Supabase back
 ### Current operational state
 
 - Dashboard source is committed; GitHub Pages still needs to be enabled and `dashboard/config.js` needs the Supabase publishable/anon key.
-- A Supabase Auth user must exist before a live training run can be created.
-- The user has an iPad and no laptop; all setup instructions must use browser interfaces.
+- Owner authentication and trusted backend authorization are not implemented yet; do not create accounts or start a live training run as part of this work package.
+- The user primarily works from an iPad; all website setup instructions must work in a browser and must not assume a Windows device.
 - Live provider accounts, actual quotas, GPU availability, Hugging Face private storage, browser sign-in and cross-provider recovery still need user-side setup or live verification.
 - Keep automatic starts disabled until platform policy, secrets and safety limits are verified. Guided switching must remain available.
 
@@ -267,7 +330,7 @@ Key gaps to resolve before implementation:
 3. Define command time semantics: server-authoritative expiry, maximum command lifetime, issued/expiry relationship, clock-skew tolerance, stale/replayed command rejection, and bounded result payloads.
 4. Define credential lifecycle: token entropy/encoding, cryptographic hash choice for high-entropy secrets, one-time display, rotation, overlap/revocation behaviour, recovery after OS key-store loss, and redaction from all logs.
 5. Tighten lease fencing: authoritative lease validation and token comparison immediately before process launch and before every checkpoint/side effect; local agent must stop on lease uncertainty, revocation, stale token, or heartbeat timeout. Specify the stop deadline and crash recovery.
-6. Make resource enforcement testable: Windows Job Object assignment before child execution (including descendants), Linux cgroup v2 delegation/limits, explicit rejection when unavailable, measured memory headroom, and platform-specific integration tests. macOS stays ineligible until an enforceable cap is proven.
+6. Make resource enforcement testable: Windows Job Object assignment and Linux cgroup v2 delegation/limits, explicit rejection when unavailable, measured memory headroom, and platform-specific integration tests. macOS stays ineligible until an enforceable cap is proven.
 7. Specify the local agent trust boundary: signed/reproducible releases, update verification/rollback, installation-directory permissions, process ownership, safe termination, secure local IPC, and protection against another local user altering the executable/config.
 8. Add actual JSON Schema validator tests for each action and invalid cases. Validate UUID/date-time formats, action-specific parameter combinations, unknown fields, boundary values, and expiry policy. The schema alone cannot enforce dynamic facts such as expiry relative to server time or current fencing token.
 
@@ -277,7 +340,7 @@ Key gaps to resolve before implementation:
 2. **Threat model and state-machine review:** document attacker capabilities (malicious browser, stolen pairing code, stolen device credential, compromised local user, replayed network request, stale worker); draw pairing, command, revocation, lease and shutdown state transitions. Add failure-injection tests.
 3. **Backend design review (no deployment yet):** produce migration SQL and Edge Function contracts separately, including least-privilege grants, owner scoping, rate limits, audit events, atomic SQL/RPC operations, and secret redaction. Review all SQL and function code before requesting approval.
 4. **Approval gate:** request explicit approval before any Supabase migration, Edge Function deployment, RLS/grant change, or secret configuration. Keep the public dashboard controls disabled until end-to-end security tests pass.
-5. **Agent prototype:** begin with status-only polling and a fake command server. Add Windows first with OS secret storage, signed package/update verification, fixed training entry point, Job Object memory cap, and lease-loss fail-stop behaviour. Do not enable start until tests prove enforcement.
+5. **Agent prototype:** begin with status-only polling and a fake command server. Add platform-specific agents only after their OS credential storage, signed update verification, fixed training entry point, enforceable memory cap, and lease-loss fail-stop behaviour are proven. Do not enable start until tests prove enforcement.
 6. **Platform expansion:** add Linux only after cgroup v2 enforcement tests; keep macOS and mobile browsers as monitoring/control clients until their enforcement and runtime constraints are independently proven.
 7. **End-to-end validation:** test cross-user isolation, concurrent pairing redemption, credential theft/revocation, command replay/expiry, claim crashes, stale fencing tokens, duplicate delivery, process-tree termination, memory-limit refusal, and recovery after agent restart. Run all repository CI on the refreshed PR head.
 8. **Merge decision:** update PR #4 against current `main`, incorporate contract/test fixes, run CI, review the final diff, then merge only after all checks pass and explicit approval.

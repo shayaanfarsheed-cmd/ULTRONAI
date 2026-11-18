@@ -51,7 +51,7 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual(result["dataloader_workers"], 0)
 
     def test_gpu_profile_uses_bfloat16_when_supported(self):
-        result = resolve_runtime_settings(CONFIG, "kaggle", FakeTorch())
+        result = resolve_runtime_settings(CONFIG, "google_colab", FakeTorch())
         self.assertEqual(result["device"], "cuda")
         self.assertEqual(result["accelerator_name"], "Test GPU")
         self.assertEqual(result["mixed_precision"], "bf16")
@@ -62,7 +62,7 @@ class RuntimeTests(unittest.TestCase):
             **CONFIG,
             "runtime": {"batch_size": 12, "dataloader_workers": 1, "mixed_precision": "none"},
         }
-        result = resolve_runtime_settings(config, "kaggle", False)
+        result = resolve_runtime_settings(config, "google_colab", False)
         self.assertEqual(result["batch_size"], 12)
         self.assertEqual(result["dataloader_workers"], 1)
         self.assertEqual(result["mixed_precision"], "none")

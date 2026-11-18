@@ -50,7 +50,7 @@
       "name": "Kaggle Notebooks",
       "provider": "kaggle",
       "role": "primary_gpu",
-      "enabled": true,
+      "enabled": false,
       "notebook_open_url": "https://www.kaggle.com/code",
       "notebook_source_url": "https://github.com/shayaanfarsheed-cmd/ULTRONAI/blob/main/train.ipynb",
       "documentation_url": "https://www.kaggle.com/docs/notebooks",
@@ -88,15 +88,12 @@
         "quota_notes": "Kaggle documents 30 GPU hours per week or sometimes higher depending on demand and resources. The 12-hour limit applies to CPU/GPU notebook sessions; TPU sessions are limited to 9 hours.",
         "training_session_target_hours": 11.5
       },
-      "automatic_start": "yes",
+      "automatic_start": "no",
       "start_steps": [
-        "Sign in to Kaggle and complete phone verification for GPU access.",
-        "Open the notebook page and create or import the repository's train.ipynb.",
-        "Select an available free GPU in Notebook Settings > Accelerator.",
-        "For an automated run, configure the Kaggle API token in GitHub Actions Secrets and register the kernel metadata."
+        "Disabled by the user. Do not create credentials, configure secrets, or launch this provider."
       ],
       "current_status": "unknown",
-      "status_reason": "Account verification, remaining GPU quota and accelerator availability have not yet been checked.",
+      "status_reason": "Disabled by the user; do not select, configure credentials for, or launch this provider.",
       "sources": [
         "https://www.kaggle.com/docs/notebooks",
         "https://www.kaggle.com/docs/efficient-gpu-usage",

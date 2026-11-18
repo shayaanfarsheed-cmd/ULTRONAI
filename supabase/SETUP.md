@@ -1,145 +1,85 @@
-# Supabase setup for ULTRON Training Control
+# Supabase and owner-access architecture
 
-## 0. Publish and configure the browser dashboard
+**Status (2026-11-18): documentation only. Do not perform migrations, policy changes, key rotation, account creation, or production configuration as part of Work Package 1.**
 
-1. Open the repository **Settings → Pages**.
-2. Choose **Deploy from a branch**, branch `main`, folder `/(root)`, then Save.
-3. Wait for deployment and open `https://shayaanfarsheed-cmd.github.io/ULTRONAI/`.
-4. In GitHub, open `dashboard/config.js` and replace `sb_publishable_REPLACE_WITH_YOUR_KEY` with the project's publishable key (or legacy anon key). This key is public and is safe for browser use.
-5. Never put an `sb_secret_...` key in `dashboard/config.js`.
+## Product access model
 
-In Supabase, open **Authentication → URL Configuration**:
-- Set the Site URL to `https://shayaanfarsheed-cmd.github.io/ULTRONAI/`.
-- Add `https://shayaanfarsheed-cmd.github.io/ULTRONAI/**` to the allowed redirect URLs.
-- Save.
+ULTRON's accepted product design is:
 
-The dashboard uses Supabase Auth directly and does not load a third-party JavaScript SDK.
+- Exactly one intended owner account, with one identity across the website and private system operations.
+- Guest Mode for public dashboard and public mathematics information.
+- Guests cannot access private training history, checkpoints, device pairing, or remote training controls.
+- Public self-registration must remain disabled. Owner provisioning must be restricted to the intended owner.
+- Passwords must be handled by a trusted authentication provider and never stored in source code, browser storage, plaintext configuration, or notebooks.
+- The browser must never receive a Supabase secret/service-role key.
+- Private operations must derive the owner ID from a verified server-side identity. A browser-supplied owner ID is not authorization.
 
-Project: `ultron-memory` (`euhmejpaswmdpsutbtse`).
+**Implementation status:** the current dashboard is public-mode only. The owner login, restricted owner provisioning, recovery flow, and backend authorization boundary are not implemented. Do not treat the legacy instructions in earlier project notes as live setup steps.
 
-The training database schema and policies are installed. The private checkpoint bucket is also created and verified. The six existing `public` memory tables were not changed.
+## Existing Supabase resources — historical repository documentation
 
-## 1. Expose only the training API schema
+The repository documents an existing Supabase project named `ultron-memory` with project reference `euhmejpaswmdpsutbtse`. The repository also documents an existing `training_api` schema, owner-scoped RLS policies, lease/checkpoint RPCs, and a private `checkpoints` Storage bucket.
 
-This is the remaining dashboard setting that must be changed manually:
+These statements describe the last repository inspection; they are not a fresh live verification. Do not assume the live project still matches them without a separately approved inspection.
 
-1. Open the Supabase dashboard and select `ultron-memory`.
-2. Open **Settings → API → Data API**.
-3. In **Exposed schemas**, add `training_api`.
-4. Remove `public` and any other schema from the exposed list.
-5. Save the setting.
-6. Confirm `training_api` is the only exposed schema.
-
-The exposed schema contains exactly:
+Existing training API tables documented by the repository:
 - `training_status`
 - `server_log`
 - `switch_requests`
 
-Do not expose `auth`, `storage`, or any other schema. The Storage REST API works independently and does not require exposing the `storage` schema.
+Existing lease/fencing and checkpoint functions must remain the sole authoritative training-writer mechanism. Device control must not create a competing lease.
 
-**Compatibility note:** removing `public` from the exposed list will stop any older browser application that directly calls the six `public` memory tables. The tables and their RLS policies remain intact; they are simply no longer reachable through the Data API.
+## Safe browser configuration
 
-## 2. Check the private checkpoint bucket
+- `dashboard/config.js` may contain only the project URL and publishable/anon key.
+- A publishable key is public and does not authenticate the owner.
+- Never place `sb_secret_...`, service-role credentials, device credentials, pairing codes, recovery tokens, or private keys in the dashboard.
+- The current publishable-key value is a placeholder. Do not ask the user to paste a key into chat.
 
-The `checkpoints` bucket has already been created.
+## Future owner authentication work package
 
-Verified settings:
-- Bucket ID: `checkpoints`
-- Public: `false`
-- Per-object limit: 45,000,000 bytes (45 MB)
-- Allowed MIME types: `application/octet-stream`, `application/json`
+Before owner login is implemented, the design and tests must cover:
 
-The setup SQL is in `supabase/storage-setup.sql`.
+1. One intended owner identity; no public self-registration.
+2. Secure login and logout.
+3. Secure password recovery.
+4. Session expiry, refresh, revocation and multi-device access.
+5. Server-side authorization on every private operation.
+6. Anonymous Guest Mode denial for all private tables, RPCs, storage objects and device endpoints.
+7. Cross-owner isolation and attempts to spoof owner IDs.
+8. Rate limiting, audit events, secret redaction and account recovery abuse cases.
 
-## 3. Checkpoint access policy
+The exact provisioning mechanism must be selected before implementation. Do not enable an open signup endpoint and rely on hiding the signup button.
 
-The owner-only download policy has already been installed on `storage.objects`.
+## Future device-control backend
 
-It allows a signed-in user to list/download objects only when the first folder is their Supabase Auth user UUID:
+Device registry, one-time expiring pairing challenges, per-device credentials, command queue, heartbeat and revocation are not present in the inspected repository. They require a separate non-public control plane and narrow trusted server endpoints.
 
-```sql
-bucket_id = 'checkpoints'
-AND (storage.foldername(name))[1] = (SELECT auth.uid())::text
-```
+- Keep device-control records out of browser-exposed schemas.
+- Do not grant anonymous users access to device records or privileged RPCs.
+- Authenticate the agent independently from the owner.
+- Derive owner/device relationships on the server.
+- Use atomic command claim and idempotent acknowledgement.
+- Validate command expiry, nonce, action allowlist, payload size and current fencing token.
+- Reuse the existing training lease/fencing design.
+- Keep checkpoint storage private and verify SHA-256 before restore.
 
-There are no `anon` or `authenticated` INSERT, UPDATE, or DELETE policies for this bucket. The notebook uses its backend secret key for uploads. The dashboard uses the publishable key plus the user's login session for downloads.
+No migration SQL or Edge Function deployment is authorized by this guide.
 
-Object paths use:
+## Provider and training secrets
 
-```text
-{owner_uuid}/{run_uuid}/{checkpoint_id}/{component_file}
-```
+The training worker may require environment secrets such as `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, and `SUPABASE_OWNER_ID`. These belong only in a trusted provider/runner secret manager. They are not website configuration and must never be copied into ChatGPT, GitHub source files, notebook output, or browser storage.
 
-## 4. Create your Supabase Auth account
+**Kaggle is excluded from ULTRON's active provider plan because the user declined Kaggle.** Do not create Kaggle credentials, configure Kaggle secrets, or launch Kaggle jobs. Any future provider must be confirmed as genuinely free, available without adding a payment method, and compliant with its published limits. Budget remains $0.
 
-The project currently has no Auth users. After the dashboard is published and its publishable key is configured:
+No provider job or live training run may start without separate explicit approval.
 
-1. Open the ULTRON dashboard.
-2. Choose **Create account** and register with your email and a password.
-3. Confirm the email if Supabase requires it, then sign in.
-4. In Supabase **Authentication → Users**, copy that user's **UID**. This is your `SUPABASE_OWNER_ID`.
-5. Keep the UID as a configuration value; it is not an API secret.
+## What not to do
 
-The notebook uses this UUID to associate its run with your account. The database functions reject unknown owner IDs.
+- Do not follow legacy instructions to create an unrestricted Supabase Auth account.
+- Do not enable public signup.
+- Do not alter exposed schemas, grants, RLS policies, Storage policies, RPC permissions, or production secrets.
+- Do not deploy Edge Functions or migrations.
+- Do not start training, pair a device, or launch a provider job.
+- Do not add billing, a payment method, paid trials, or quota workarounds.
 
-## 5. Create a backend secret key
-
-1. Open **Settings → API Keys**.
-2. Open **Publishable and secret API keys**.
-3. Create a secret key beginning with `sb_secret_`.
-4. Do not paste it into ChatGPT, GitHub source files, notebook cells, or browser code.
-
-Add these values to each provider's secret manager:
-
-| Name | Value |
-|---|---|
-| `SUPABASE_URL` | `https://euhmejpaswmdpsutbtse.supabase.co` |
-| `SUPABASE_SECRET_KEY` | Your `sb_secret_...` key |
-| `SUPABASE_OWNER_ID` | Your Auth user UUID |
-
-The secret key is sent only in the `apikey` header. It is never sent as `Authorization: Bearer`.
-
-Provider locations:
-- Kaggle: **Add-ons → Secrets**
-- Colab: **Secrets** panel (key icon)
-- Lightning AI: Studio **Environment / Secrets**
-- GitHub: Repository **Settings → Secrets and variables → Actions → New repository secret**
-
-For GitHub Actions, add `SUPABASE_URL` as a repository variable if desired, and add `SUPABASE_SECRET_KEY` and `SUPABASE_OWNER_ID` as repository secrets.
-
-For the automatic Kaggle launcher only, also add:
-- `KAGGLE_USERNAME`: your existing Kaggle username.
-- `KAGGLE_KEY`: the API token generated by your existing Kaggle account.
-
-These two Kaggle values belong in **GitHub Actions Secrets**, not the public repository. The switcher uses the official Kaggle CLI to push the private notebook. Do not create another Kaggle account to obtain more quota.
-
-The built-in `GITHUB_TOKEN` is supplied by GitHub Actions with the workflow's declared `actions: write` permission. Do not create or paste a personal access token into the website.
-
-Automatic start status:
-- Kaggle: implemented through the official CLI; requires the two Kaggle secrets and global dashboard switch enabled.
-- GitHub Actions CPU: implemented through `workflow_dispatch`; uses the built-in workflow token.
-- Colab Free: guided only.
-- Lightning AI: guided only in this build; its SDK launch is not enabled.
-- Hugging Face Spaces: guided only; not configured as the primary CPU fallback.
-
-## 6. Database permissions already installed
-
-- RLS is enabled on all three `training_api` tables.
-- Authenticated users can read only rows whose `owner_id` equals `auth.uid()`.
-- The dashboard can update only the training control fields granted in SQL, including a requested checkpoint ID. The notebook validates the requested checkpoint under its active lease before moving the committed pointer.
-- Authenticated users can insert only their own manual server-log entries and waiting manual switch requests.
-- The backend secret key uses the `service_role` database role and bypasses RLS.
-- The seven lease/checkpoint/resume RPC functions are executable only by `service_role`; they use `SECURITY INVOKER`, not `SECURITY DEFINER`.
-- Existing `public` memory tables and policies were left unchanged.
-
-The SQL for the functions is in `supabase/lease-functions.sql`.
-
-## 7. Rotate a leaked secret key
-
-1. Open **Settings → API Keys**.
-2. Create a replacement `sb_secret_...` key.
-3. Update the provider secret in Kaggle, Colab, Lightning and GitHub Actions.
-4. Run a connection check on the new key.
-5. Delete the compromised key only after every backend has switched.
-
-Secret-key rotation is independent of the publishable key. Never rotate by pasting either key into chat.
