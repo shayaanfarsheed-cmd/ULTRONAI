@@ -814,9 +814,36 @@
     }).join("");
   }
 
+  function renderActivity() {
+    const logs = $("activityLogs");
+    const switches = $("activitySwitches");
+    if (state.publicMode || !hasVerifiedOwnerSession()) {
+      logs.innerHTML = '<p class="empty-state">Training activity is private. Sign in to the verified ULTRON owner account to view it.</p>';
+      switches.innerHTML = '<p class="empty-state">Server handoff records are private to the ULTRON owner.</p>';
+      return;
+    }
+    if (!state.logs.length) {
+      logs.innerHTML = '<p class="empty-state">No training sessions have been recorded yet.</p>';
+    } else {
+      logs.innerHTML = '<div class="table-scroll"><table><thead><tr><th>Server</th><th>Started</th><th>Duration</th><th>Result</th></tr></thead><tbody>' +
+        state.logs.slice(0, 500).map(function (item) {
+          return '<tr><td>' + escapeHtml(item.server_name || "Unknown") + '</td><td>' + escapeHtml(formatDateTime(item.started_at)) + '</td><td>' + escapeHtml(formatDuration(item.gpu_seconds)) + '</td><td>' + escapeHtml(item.end_reason || (item.ended_at ? "Completed" : "In progress")) + '</td></tr>';
+        }).join("") + '</tbody></table></div>';
+    }
+    if (!state.switches.length) {
+      switches.innerHTML = '<p class="empty-state">No server handoffs have been recorded yet.</p>';
+    } else {
+      switches.innerHTML = '<div class="table-scroll"><table><thead><tr><th>Requested</th><th>From</th><th>To</th><th>Reason</th><th>Result</th></tr></thead><tbody>' +
+        state.switches.slice(0, 200).map(function (item) {
+          return '<tr><td>' + escapeHtml(formatDateTime(item.requested_at)) + '</td><td>' + escapeHtml(item.from_server || "—") + '</td><td>' + escapeHtml(item.to_server || "—") + '</td><td>' + escapeHtml(item.reason || "—") + '</td><td>' + escapeHtml(item.result || "Pending") + '</td></tr>';
+        }).join("") + '</tbody></table></div>';
+    }
+  }
+
   function renderAll() {
     renderNextAction();
     renderMetrics();
+    renderActivity();
     const hasRun = Boolean(state.status && state.status.run_id);
     const finished = state.status && state.status.state === "finished";
     $("switchNowButton").disabled = state.publicMode || !hasRun || finished;
@@ -840,6 +867,7 @@
     });
     const labels = {
       overview: ["OVERVIEW", "System overview"],
+      activity: ["ACTIVITY", "Training activity"],
       servers: ["SERVERS", "Free compute servers"],
       checkpoints: ["CHECKPOINTS", "Verified checkpoints"],
       settings: ["SETTINGS", "System settings"],
