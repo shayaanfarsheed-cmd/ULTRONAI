@@ -337,7 +337,6 @@
       headers: headers,
       body: body == null ? undefined : JSON.stringify(body)
     });
-    if (binary && response.ok) return response.arrayBuffer();
     const raw = await response.text();
     const data = raw ? (function () { try { return JSON.parse(raw); } catch (_) { return raw; } })() : null;
     if (!response.ok) {
