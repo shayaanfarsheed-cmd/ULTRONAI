@@ -3,7 +3,7 @@
 **Repository:** [shayaanfarsheed-cmd/ULTRONAI](https://github.com/shayaanfarsheed-cmd/ULTRONAI)  
 **Dashboard:** [GitHub Pages](https://shayaanfarsheed-cmd.github.io/ULTRONAI/)  
 **Main branch:** `main`  
-**Latest merged work:** PR #19 — README handoff after secure device-pairing implementation, merged at `ee7c1365740053f6a45929f55215a529a8e8609f`.
+**Latest merged work:** PR #20 — production device-pairing deployment handoff, merged at `5c8b5f9eb226d358e27d8d936ce5d23ba2d5e01c`.
 
 ## Current priorities
 
@@ -98,11 +98,20 @@
 ## Next handoff — after PR #18
 
 1. Verify GitHub Pages deployment for merge commit `1f0ff3f6cdd7d75d23e5fbd594bb3b4d5627ce7b`.
-2. Keep `deviceControlEnabled` false until `ULTRON_OWNER_USER_ID` is configured and integration/security tests pass.
-3. Configure the custom Edge Function secret manually in Supabase Dashboard. Never paste the owner UUID into chat or commit it.
+2. Keep `deviceControlEnabled` false until the owner secret is configured and integration/security tests pass.
+3. The user has now reported configuring the custom Edge Function secret. Do not ask them to share its value; connected tools cannot read it back.
 4. Run disposable-project integration tests if a no-cost disposable project is available; do not create a paid project or run destructive tests against production.
 5. After tests pass and a separate reviewed feature-flag PR is merged, pair a supported Linux/macOS/Windows cloud worker using the Python heartbeat agent. The iPad remains the owner dashboard and monitor; it cannot host the persistent Python agent.
 6. Device pairing only records a device and heartbeat. Do not start training or accept remote commands until a separate secure job-control design is approved.
+
+
+
+## Latest validation update — 2026-11-18
+
+- User confirmed that the Supabase Edge Function secret `ULTRON_OWNER_USER_ID` has been configured. The secret value is not retrievable through the connected tooling; record this as user-reported, not independently value-verified.
+- Read-only verification confirms the Supabase project is healthy, `device-control` is ACTIVE (version 2), the three pairing tables exist, RLS is enabled, direct `anon`/`authenticated` SELECT is denied, and both RPC functions are `SECURITY INVOKER` with execute permission limited to `service_role`.
+- Pairing UI remains disabled (`deviceControlEnabled` is not enabled). No device is paired and no training has started.
+- Remaining gate: safe integration tests for challenge concurrency/single-use, expiry, five-attempt lockout, owner isolation, revocation, and per-IP rate limits. Do not run destructive tests against production or create a paid staging project. If a disposable free environment is unavailable, document that limitation and keep the feature flag off.
 
 
 ## Production deployment update — 2026-11-18
@@ -113,7 +122,9 @@
 - Verified migration history, active function deployment, RLS state, table grants, and RPC execute grants through read-only checks.
 - Supabase Security Advisor reports informational `rls_enabled_no_policy` findings for the three pairing tables. This is intentional: no direct client table access is granted; the Edge Function uses the service role after its own authorization checks. Advisor also reports the pre-existing Auth leaked-password-protection warning.
 - Supabase Performance Advisor reported unused indexes immediately after creation and several pre-existing unindexed foreign keys; these are informational and not a reason to expose the pairing tables.
-- **Still pending:** manually configure Edge Function secret `ULTRON_OWNER_USER_ID` in Supabase Dashboard, using the exact owner UUID already stored in `dashboard/config.js`. Do not paste the UUID into chat or commit it. No secret-management action was available through the connected tools.
+- **Owner secret update (2026-11-18):** the user reports configuring the Edge Function secret `ULTRON_OWNER_USER_ID` in Supabase Dashboard. Secret values are intentionally not readable through the connected tools, so its contents cannot be independently inspected. The function fails closed if the value is missing or does not match the verified owner Auth user.
 - **Still disabled:** dashboard feature flag `deviceControlEnabled`; no device is paired; no device commands or training are enabled.
+- **Verified after the user's secret-configuration confirmation:** Supabase project is `ACTIVE_HEALTHY`; `device-control` is ACTIVE (version 2); all three pairing tables exist with RLS enabled; `anon` and `authenticated` have no direct table SELECT privileges; both RPC functions are `SECURITY INVOKER` and executable only by `service_role`.
 - **Testing limitation:** integration tests for concurrent redemption, owner isolation, expiry, attempt lockout, revocation, and rate-limit windows have not yet run against a disposable Supabase project. Do not claim production pairing is fully validated. Do not create a billable staging project; keep within the $0 budget.
-- Next action: set the custom secret in the Supabase Dashboard, then run safe authentication/authorization checks and complete the no-cost integration test plan before a separate reviewed PR enables the dashboard control.
+- **Still disabled:** dashboard `deviceControlEnabled` feature flag; no device is paired; no remote commands or training are enabled.
+- Next action: complete a no-cost integration-validation plan without destructive tests against production. Only then prepare a separate reviewed PR to enable the dashboard control.
