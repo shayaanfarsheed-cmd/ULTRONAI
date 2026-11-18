@@ -581,6 +581,12 @@
     const meta = $("nextActionMeta");
     const link = $("nextServerButton");
     link.hidden = true;
+    if (state.publicMode) {
+      title.textContent = "Welcome to the ULTRON guest dashboard";
+      text.textContent = "You can browse public system information without an account. Private training status, history, checkpoints and device controls are not loaded in Guest Mode.";
+      meta.textContent = "Guest access · no private data or training commands";
+      return;
+    }
     if (!status) {
       title.textContent = "No training run found";
       text.textContent = "Open the ULTRON training notebook and press Run All. It will create a run and request the single-writer lease.";
@@ -759,7 +765,7 @@
 
   function renderSettings() {
     $("autoStartToggle").checked = false;
-    $("autoStartToggle").disabled = state.publicMode;
+    $("autoStartToggle").disabled = true;
     const ramSlider = $("ramLimitSlider");
     if (ramSlider) {
       ramSlider.value = String(state.ramLimitGb);
