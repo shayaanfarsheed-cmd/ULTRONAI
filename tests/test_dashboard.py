@@ -102,6 +102,7 @@ class DashboardStaticTests(unittest.TestCase):
         self.assertIn("generation !== state.authGeneration", loader)
         self.assertIn("state.status.run_id !== runId", loader)
         self.assertIn("results.filter(Boolean)", loader)
+        self.assertLess(loader.index("const listed = await storageRequest"), loader.index("state.status.run_id !== runId"))
 
     def test_private_activity_view_is_guest_gated(self):
         html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
