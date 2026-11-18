@@ -26,6 +26,24 @@ class NoRemoteDevicePairingTests(unittest.TestCase):
         self.assertNotIn("compatible device agent must enforce", html)
         self.assertIn("does not enforce a memory cap", html)
 
+    def test_dashboard_cannot_issue_remote_training_commands(self):
+        app = (ROOT / "dashboard" / "app.js").read_text(encoding="utf-8")
+        html = (ROOT / "dashboard" / "index.html").read_text(encoding="utf-8")
+        for forbidden in ("switchNow", "pauseTraining", "resumeTraining", "toggleAutomaticStart",
+                          "insertSwitchRequest", "updateStatus", "requestResume", "safeResume"):
+            self.assertNotIn(forbidden, app)
+        for forbidden in ("switchNowButton", "pauseButton", "resumeButton", "safeResumeButton",
+                          "data-checkpoint-resume", "manualHoursForm", "data-server-ready",
+                          "data-server-unavailable"):
+            self.assertNotIn(forbidden, html)
+        self.assertIn("read-only", html.lower())
+
+    def test_dashboard_data_client_has_no_training_control_writes(self):
+        app = (ROOT / "dashboard" / "app.js").read_text(encoding="utf-8")
+        self.assertNotIn('apiRequest("training_status", "PATCH"', app)
+        self.assertNotIn('apiRequest("switch_requests", "POST"', app)
+        self.assertNotIn('apiRequest("server_log", "POST"', app)
+
     def test_agent_is_removed(self):
         self.assertFalse((ROOT / "agents" / "device_agent.py").exists())
 
