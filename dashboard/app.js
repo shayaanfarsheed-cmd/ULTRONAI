@@ -1087,12 +1087,17 @@
     box.hidden = !message;
   }
 
-  function safeDataFileName(value) {
-    const name = String(value || "").trim();
-    if (!/^[A-Za-z0-9][A-Za-z0-9._ -]{0,179}$/.test(name) || name === "." || name === ".." || name.startsWith(".")) {
-      throw new Error("Use a simple file name (1–180 characters), without folders or hidden-file names.");
-    }
-    return name;
+  function safeDataRelativePath(value) {
+    const path = String(value || "").replace(/\\/g, "/").trim();
+    const parts = path.split("/");
+    if (!path || path.length > 900 || parts.length > 12 || parts.some(function (part) {
+      return !/^[A-Za-z0-9][A-Za-z0-9._ -]{0,179}$/.test(part) || part === "." || part === ".." || part.startsWith(".");
+    })) throw new Error("Use safe file and folder names with up to 12 folder levels; hidden names are not allowed.");
+    return parts.join("/");
+  }
+
+  function dataObjectPath(relativePath) {
+    return objectPath([state.user.id].concat(safeDataRelativePath(relativePath).split("/")));
   }
 
   async function dataLibraryRequest(path, method, body, fileBlob, binary) {
@@ -1151,13 +1156,24 @@
     }
     const generation = state.authGeneration;
     const ownerId = state.user.id;
-    const listed = await dataLibraryRequest("object/list/" + DATA_LIBRARY_BUCKET, "POST", {
-      prefix: ownerId, limit: 500, offset: 0, sortBy: {column: "name", order: "asc"}
-    }, false);
+    const allFiles = [];
+    async function walkFolder(prefix, depth) {
+      if (depth > 12 || allFiles.length >= 500) return;
+      const listed = await dataLibraryRequest("object/list/" + DATA_LIBRARY_BUCKET, "POST", {
+        prefix: prefix, limit: 500, offset: 0, sortBy: {column: "name", order: "asc"}
+      }, false);
+      for (const item of (Array.isArray(listed) ? listed : [])) {
+        if (!item || typeof item.name !== "string" || !item.name || item.name === "." || item.name === "..") continue;
+        const parent = prefix.slice(ownerId.length + 1);
+        const relative = parent ? parent + "/" + item.name : item.name;
+        if (!item.id && !item.metadata) await walkFolder(prefix + "/" + item.name, depth + 1);
+        else { try { allFiles.push(Object.assign({}, item, {name: safeDataRelativePath(relative)})); } catch (_) {} }
+        if (allFiles.length >= 500) break;
+      }
+    }
+    await walkFolder(ownerId, 0);
     if (generation !== state.authGeneration || !hasVerifiedOwnerSession() || state.user.id !== ownerId) return [];
-    state.dataFiles = (Array.isArray(listed) ? listed : []).filter(function (item) {
-      return item && typeof item.name === "string" && item.name && item.name.indexOf("/") === -1 && item.name !== "." && item.name !== "..";
-    }).sort(function (a, b) { return a.name.localeCompare(b.name); });
+    state.dataFiles = allFiles.sort(function (a, b) { return a.name.localeCompare(b.name); });
     $("dataSyncStatus").textContent = "Cloud library · " + state.dataFiles.length + " file(s) · last synced " + new Date().toLocaleTimeString();
     renderDataLibrary();
     return state.dataFiles;
@@ -1201,7 +1217,7 @@
         continue;
       }
       try {
-        const bytes = await dataLibraryRequest("object/authenticated/" + DATA_LIBRARY_BUCKET + "/" + objectPath([state.user.id, name]), "GET", null, false, true);
+        const bytes = await dataLibraryRequest("object/authenticated/" + DATA_LIBRARY_BUCKET + "/" + dataObjectPath(name), "GET", null, false, true);
         const text = new TextDecoder("utf-8", {fatal: true}).decode(bytes);
         totalBytes += bytes.byteLength;
         passages.push.apply(passages, splitAskPassages(text, name));
@@ -1287,30 +1303,42 @@
 
   async function uploadDataFile() {
     if (!hasVerifiedOwnerSession()) throw new Error("Sign in to the verified owner account before uploading.");
-    const input = $("dataFileInput");
-    const file = input.files && input.files[0];
-    if (!file) throw new Error("Choose a file first.");
-    if (file.size < 1 || file.size > DATA_LIBRARY_MAX_BYTES) throw new Error("Files must be between 1 byte and 20 MiB.");
-    const name = safeDataFileName(file.name);
+    const fileInput = $("dataFileInput");
+    const folderInput = $("dataFolderInput");
+    const selected = [];
+    Array.from(fileInput.files || []).forEach(function (file) { selected.push({file: file, path: file.name}); });
+    Array.from(folderInput.files || []).forEach(function (file) { selected.push({file: file, path: file.webkitRelativePath || file.name}); });
+    if (!selected.length) throw new Error("Choose files or select a dataset folder first.");
+    if (selected.length > 500) throw new Error("A single upload can contain at most 500 files.");
+    let totalBytes = 0;
+    selected.forEach(function (entry) {
+      if (entry.file.size < 1 || entry.file.size > DATA_LIBRARY_MAX_BYTES) throw new Error(entry.path + " must be between 1 byte and 20 MiB.");
+      entry.path = safeDataRelativePath(entry.path);
+      totalBytes += entry.file.size;
+    });
+    if (totalBytes > 500 * 1024 * 1024) throw new Error("This selection exceeds 500 MiB. Split it into smaller folders.");
     const button = $("dataUploadButton");
     if (state.dataLibraryBusy) return;
     state.dataLibraryBusy = true;
     button.disabled = true;
+    let uploaded = 0;
     try {
-      await dataLibraryRequest("object/" + DATA_LIBRARY_BUCKET + "/" + objectPath([state.user.id, name]), "POST", file, true);
-      input.value = "";
-      showDataLibraryNotice("Uploaded " + name + ". Other signed-in browsers will see it on their next sync.", "success");
+      for (const entry of selected) {
+        await dataLibraryRequest("object/" + DATA_LIBRARY_BUCKET + "/" + dataObjectPath(entry.path), "POST", entry.file, true);
+        uploaded += 1;
+        showDataLibraryNotice("Uploading " + uploaded + " of " + selected.length + " files…", "info");
+      }
+      fileInput.value = "";
+      folderInput.value = "";
+      showDataLibraryNotice("Uploaded " + uploaded + " file(s), preserving folder paths.", "success");
       await loadDataLibrary();
-    } finally {
-      state.dataLibraryBusy = false;
-      button.disabled = false;
-    }
+    } finally { state.dataLibraryBusy = false; button.disabled = false; }
   }
 
   async function downloadDataFile(name) {
     if (!hasVerifiedOwnerSession()) throw new Error("Owner sign-in is required.");
-    const safeName = safeDataFileName(name);
-    const bytes = await dataLibraryRequest("object/authenticated/" + DATA_LIBRARY_BUCKET + "/" + objectPath([state.user.id, safeName]), "GET", null, false, true);
+    const safeName = safeDataRelativePath(name);
+    const bytes = await dataLibraryRequest("object/authenticated/" + DATA_LIBRARY_BUCKET + "/" + dataObjectPath(safeName), "GET", null, false, true);
     const blob = new Blob([bytes], {type: "application/octet-stream"});
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
