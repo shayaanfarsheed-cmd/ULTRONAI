@@ -907,7 +907,10 @@
       section.hidden = section.id !== "view-" + view;
     });
     document.querySelectorAll(".nav-button").forEach(function (button) {
-      button.classList.toggle("active", button.getAttribute("data-view") === view);
+      const selected = button.getAttribute("data-view") === view;
+      button.classList.toggle("active", selected);
+      if (selected) button.setAttribute("aria-current", "page");
+      else button.removeAttribute("aria-current");
     });
     const labels = {
       overview: ["OVERVIEW", "System overview"],

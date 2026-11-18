@@ -16,6 +16,30 @@ class DashboardStaticTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def test_dashboard_keyboard_and_mobile_accessibility_hooks(self):
+        html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
+        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
+        styles = (DASHBOARD / "styles.css").read_text(encoding="utf-8")
+
+        self.assertIn('href="#mainContent"', html)
+        self.assertIn('id="mainContent" class="main-column" tabindex="-1"', html)
+        self.assertRegex(
+            html,
+            r'class="nav-button active"[^>]*aria-current="page"',
+        )
+        self.assertIn('setAttribute("aria-current", "page")', javascript)
+        self.assertIn('removeAttribute("aria-current")', javascript)
+        self.assertIn(":focus-visible", styles)
+        self.assertIn(".skip-link:focus", styles)
+        self.assertIn("prefers-reduced-motion: reduce", styles)
+        self.assertIn("env(safe-area-inset-top)", styles)
+        self.assertIn("padding-top: env(safe-area-inset-top)", styles)
+        self.assertIn("env(safe-area-inset-bottom)", styles)
+        self.assertIn("env(safe-area-inset-left)", styles)
+        self.assertIn("env(safe-area-inset-right)", styles)
+        self.assertIn("@media (pointer: coarse)", styles)
+        self.assertIn("min-height: 44px", styles)
+
     def test_all_static_javascript_id_references_exist(self):
         html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
