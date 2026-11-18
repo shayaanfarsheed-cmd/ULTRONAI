@@ -32,19 +32,24 @@ create or replace function public.consume_ultron_pairing_challenge(
   p_challenge_id uuid, p_code_hash text, p_device_name text, p_platform text,
   p_capabilities jsonb, p_token_hash text
 ) returns uuid
-language plpgsql security definer set search_path = ''
+language plpgsql security invoker set search_path = ''
 as $$
 declare
   v_challenge public.ultron_pairing_challenges%rowtype;
   v_device_id uuid;
 begin
-  if coalesce(auth.role(), '') <> 'service_role' then raise exception 'service role required'; end if;
+  if coalesce(
+       nullif(pg_catalog.current_setting('request.jwt.claim.role', true), ''),
+       (nullif(pg_catalog.current_setting('request.jwt.claims', true), '')::jsonb ->> 'role'),
+       ''
+     ) <> 'service_role' then raise exception 'service role required'; end if;
   if p_challenge_id is null or p_code_hash is null or p_token_hash is null or p_code_hash !~ '^[a-f0-9]{64}$'
      or p_token_hash !~ '^[a-f0-9]{64}$'
      or nullif(pg_catalog.btrim(p_device_name), '') is null
      or pg_catalog.char_length(p_device_name) > 80
-     or p_platform not in ('windows','macos','linux','ios','ipados','android','other')
-     or pg_catalog.octet_length(p_capabilities::text) > 4096 then
+     or p_platform is null or p_platform not in ('windows','macos','linux','ios','ipados','android','other')
+     or pg_catalog.jsonb_typeof(coalesce(p_capabilities, '{}'::jsonb)) <> 'object'
+     or pg_catalog.octet_length(coalesce(p_capabilities, '{}'::jsonb)::text) > 4096 then
     raise exception 'invalid pairing request';
   end if;
   select * into v_challenge from public.ultron_pairing_challenges
