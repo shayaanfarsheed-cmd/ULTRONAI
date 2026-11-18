@@ -2,7 +2,7 @@
 
 - **PR #24 is merged** at `23f87a0a8176626781824d550341d6bed05d22d5`. All three PR checks passed on the exact reviewed PR head `95067c881d0a255da638d151e2f96f09870ba0f4`.
 - The hosted dashboard is now read-only for training operations: no remote start/stop/pause/resume, switching, automatic-start, checkpoint-resume, server-status mutation, or manual usage writes. Status/history, provider links, and checkpoint verification/download remain read-only.
-- The merge commit's GitHub Pages deployment completed successfully. A subsequent README-only handoff update is also being deployed; confirm its Pages workflow before declaring the very latest commit live.
+- Latest `main` commit `ce6680c7c6072f96db2c84e4df64c5d85bcef64a` has successful ULTRON preflight, ULTRON Test Suite, and GitHub Pages deployment workflows (run IDs `44297684866`, `44297684868`, and `44297684756`). The Pages deployment workflow succeeded for this exact commit.
 
 - **Device pairing has been removed from the product at the owner's request.** The product will not pair remote devices, issue device credentials, or provide dashboard-to-device commands.
 - The former heartbeat-only agent has been removed.
@@ -20,7 +20,7 @@
 **Repository:** [shayaanfarsheed-cmd/ULTRONAI](https://github.com/shayaanfarsheed-cmd/ULTRONAI)  
 **Dashboard:** [GitHub Pages](https://shayaanfarsheed-cmd.github.io/ULTRONAI/)  
 **Main branch:** `main`  
-**Latest merged work:** PR #24 — make hosted dashboard read-only for training operations, merged at `23f87a0a8176626781824d550341d6bed05d22d5`.
+**Latest merged work:** PR #24 — make hosted dashboard read-only for training operations, merged at `23f87a0a8176626781824d550341d6bed05d22d5`. Latest validated `main` handoff commit: `ce6680c7c6072f96db2c84e4df64c5d85bcef64a`.
 
 ## Current priorities
 
@@ -37,7 +37,7 @@
   Merged on 2026-11-18 at `1de739ba0f15dd9d2fda3ba0dd503baeb801c15d`.
 - **PR #16 — [Configure verified owner authentication](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/16)**  
   Merged on 2026-11-18 at `7b0dc262a2319c00253f106b9122efe13a388063`. Configured the verified owner Auth UUID and public Supabase publishable key in `dashboard/config.js`, and updated regression tests to require valid configuration values. All three required PR workflows passed on the exact final head: preflight, Test Suite, and Training Prototype Validation.
-- GitHub Pages deployment after PR #16 still needs to be verified. Owner sign-in and Guest Mode have not yet been manually tested on the deployed site.
+- The latest GitHub Pages deployment workflow passed for `ce6680c7c6072f96db2c84e4df64c5d85bcef64a`. Owner sign-in and Guest Mode have not yet been manually tested on the deployed site.
 - **Real-device compatibility testing is still outstanding.** Automated CI does not prove iPad/iPhone, Android, or desktop browser behavior.
 
 ## Product and security constraints
