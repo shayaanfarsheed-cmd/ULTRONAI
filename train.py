@@ -94,6 +94,8 @@ def resolve_runtime_settings(
     platform_id: str,
     torch_module: Any | None = None,
 ) -> dict[str, Any]:
+    if platform_id == "kaggle":
+        raise ValueError("Kaggle is disabled for ULTRON and cannot be used as a runtime")
     if platform_id not in PLATFORM_IDS:
         platform_id = "other"
 
@@ -150,19 +152,25 @@ def resolve_runtime_settings(
 def validate_project_config(config: Mapping[str, Any], servers: Mapping[str, Any]) -> list[str]:
     errors: list[str] = []
     constraints = config.get("non_negotiable_constraints", {})
-    if constraints.get("ai_apis_allowed") is not False:
-        errors.append("AI APIs must remain disabled")
-    if constraints.get("pretrained_models_allowed") is not False:
-        errors.append("Pretrained models must remain disabled")
-    if constraints.get("pretrained_weights_allowed") is not False:
-        errors.append("Pretrained weights must remain disabled")
-    if constraints.get("initialize_model_from_random_weights") is not True:
-        errors.append("Model must initialize from random weights")
-    if constraints.get("paid_compute_allowed") is not False:
-        errors.append("Paid compute must remain disabled")
+    if not isinstance(constraints, Mapping):
+        constraints = {}
+        errors.append("non_negotiable_constraints must be an object")
+    for key, expected, message in (
+        ("ai_apis_allowed", False, "AI APIs must remain disabled"),
+        ("pretrained_models_allowed", False, "Pretrained models must remain disabled"),
+        ("pretrained_weights_allowed", False, "Pretrained weights must remain disabled"),
+        ("initialize_model_from_random_weights", True, "Model must initialize from random weights"),
+        ("paid_compute_allowed", False, "Paid compute must remain disabled"),
+    ):
+        if constraints.get(key) is not expected:
+            errors.append(message)
 
     access = config.get("access", {})
-    if access.get("owner_account_limit") != 1:
+    if not isinstance(access, Mapping):
+        access = {}
+        errors.append("access must be an object")
+    owner_limit = access.get("owner_account_limit")
+    if type(owner_limit) is not int or owner_limit != 1:
         errors.append("ULTRON must have exactly one owner account")
     if access.get("public_self_registration_enabled") is not False:
         errors.append("Public self-registration must remain disabled")
@@ -170,35 +178,94 @@ def validate_project_config(config: Mapping[str, Any], servers: Mapping[str, Any
         errors.append("Private operations must require verified owner authentication")
     if access.get("guest_mode_enabled") is not True:
         errors.append("Guest Mode must remain enabled")
-    if set(access.get("guest_permissions", [])) != {"public_dashboard", "public_mathematics_information"}:
+
+    guest_permissions = access.get("guest_permissions", [])
+    if not isinstance(guest_permissions, list) or any(not isinstance(item, str) for item in guest_permissions):
+        errors.append("Guest permissions must be a list of permission names")
+    elif set(guest_permissions) != {"public_dashboard", "public_mathematics_information"}:
         errors.append("Guest Mode must expose public information only")
+
     required_guest_denials = {
         "private_training_history", "private_checkpoints",
         "device_pairing", "remote_training_controls",
     }
-    if not required_guest_denials.issubset(set(access.get("guest_denied_permissions", []))):
+    denied_permissions = access.get("guest_denied_permissions", [])
+    if not isinstance(denied_permissions, list) or any(not isinstance(item, str) for item in denied_permissions):
+        errors.append("Guest denied permissions must be a list of permission names")
+    elif not required_guest_denials.issubset(set(denied_permissions)):
         errors.append("Guest Mode must deny all private training and device operations")
 
-    enforcement = config.get("local_training", {}).get("platform_enforcement", {})
-    for platform_name in ("windows", "linux", "macos", "ipados", "ios", "android", "browser"):
-        if not enforcement.get(platform_name):
-            errors.append(f"Missing resource-enforcement policy for {platform_name}")
-    if config.get("switching", {}).get("platform_allowlist") and "kaggle" in config["switching"]["platform_allowlist"]:
+    expected_enforcement = {
+        "windows": "job_objects",
+        "linux": "cgroups_v2",
+        "macos": "unverified_disabled",
+        "ipados": "monitoring_only",
+        "ios": "monitoring_only",
+        "android": "monitoring_only",
+        "browser": "monitoring_only",
+    }
+    local_training = config.get("local_training", {})
+    if not isinstance(local_training, Mapping):
+        local_training = {}
+        errors.append("local_training must be an object")
+    enforcement = local_training.get("platform_enforcement", {})
+    if not isinstance(enforcement, Mapping):
+        enforcement = {}
+        errors.append("platform_enforcement must be an object")
+    for platform_name, expected_policy in expected_enforcement.items():
+        if enforcement.get(platform_name) != expected_policy:
+            errors.append(
+                f"Invalid resource-enforcement policy for {platform_name}: "
+                f"expected {expected_policy!r}"
+            )
+
+    runtime = config.get("runtime", {})
+    if not isinstance(runtime, Mapping):
+        runtime = {}
+        errors.append("runtime must be an object")
+    supported_platforms = runtime.get("supported_platforms", [])
+    if not isinstance(supported_platforms, list) or any(not isinstance(item, str) for item in supported_platforms):
+        errors.append("runtime.supported_platforms must be a list of platform IDs")
+    elif "kaggle" in supported_platforms:
+        errors.append("Kaggle must be removed from supported runtime platforms")
+
+    switching = config.get("switching", {})
+    if not isinstance(switching, Mapping):
+        switching = {}
+        errors.append("switching must be an object")
+    allowlist = switching.get("platform_allowlist", [])
+    if not isinstance(allowlist, list) or any(not isinstance(item, str) for item in allowlist):
+        errors.append("switching.platform_allowlist must be a list of platform IDs")
+    elif "kaggle" in allowlist:
         errors.append("Kaggle must remain excluded from automatic provider selection")
 
     server_items = servers.get("servers", [])
-    server_ids = [item.get("id") for item in server_items]
+    if not isinstance(server_items, list):
+        server_items = []
+        errors.append("servers must be a list")
+    server_ids = [item.get("id") for item in server_items if isinstance(item, Mapping)]
+    if len(server_ids) != len(server_items):
+        errors.append("Every server entry must be an object")
     if len(server_ids) != len(set(server_ids)):
         errors.append("Server IDs must be unique")
-    if server_items and any(item.get("order") != index for index, item in enumerate(server_items, 1)):
+    if server_items and any(
+        not isinstance(item, Mapping) or item.get("order") != index
+        for index, item in enumerate(server_items, 1)
+    ):
         errors.append("Server order must be sequential")
+
+    kaggle_entries = [
+        item for item in server_items
+        if isinstance(item, Mapping) and item.get("id") == "kaggle"
+    ]
+    if len(kaggle_entries) != 1 or kaggle_entries[0].get("enabled") is not False:
+        errors.append("Kaggle must exist exactly once in the registry and remain disabled")
 
     fallback = config.get("server_rotation", {}).get("fallback_server_id")
     if fallback and fallback not in server_ids:
         errors.append("Configured CPU fallback is missing from servers.json")
 
     return errors
-
 
 def build_preflight_report(
     config: Mapping[str, Any],
