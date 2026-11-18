@@ -3,7 +3,7 @@
 **Repository:** [shayaanfarsheed-cmd/ULTRONAI](https://github.com/shayaanfarsheed-cmd/ULTRONAI)  
 **Dashboard:** [GitHub Pages](https://shayaanfarsheed-cmd.github.io/ULTRONAI/)  
 **Main branch:** `main`  
-**Latest merged work:** PR #13 — bounded streaming checkpoint downloads, merged at `76fb76422ee5ef3473998b43ccd19263ee04a856`.
+**Latest merged work:** PR #14 — mobile accessibility and safe-area layout, merged at `b4f7209f4c9572f03e1fb221e9304ba0e211ba88`.
 
 ## Current priorities
 
@@ -12,12 +12,13 @@
 3. Harden owner/guest access and checkpoint handling without exposing secrets.
 4. Keep all work within the $0 budget.
 
-## Open pull requests
+## Recently merged work
 
 - **PR #14 — [Improve dashboard mobile accessibility and safe-area layout](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/14)**  
-  Branch: `feature/mobile-dashboard-accessibility`; targets `main`; draft and unmerged. Its branch has now been reconciled with the merged PR #13 history. The remaining changes are limited to `dashboard/app.js`, `dashboard/index.html`, `dashboard/styles.css`, `tests/test_dashboard.py`, and this README. Adds keyboard skip navigation, `aria-current` selected-navigation semantics, visible focus, iOS safe-area spacing, narrow-screen navigation refinements, reduced-motion support, landscape insets, and coarse-pointer touch targets. All three workflows must pass again on the reconciled exact head before merge.
-
-**Do not merge until the exact final head has all required checks passing and the diff has been reviewed.** Real-device testing remains separate; automated CI does not prove iPad/iPhone compatibility.
+  Merged on 2026-11-18 at `b4f7209f4c9572f03e1fb221e9304ba0e211ba88`. Final PR head: `b8b7e561c25797117a72ba24a2051854ac252267`. Added keyboard skip navigation, `aria-current` selected-navigation semantics, visible focus, iOS safe-area spacing including the sticky-header top inset, narrow-screen navigation refinements, reduced-motion support, landscape insets, touch targets, and regression coverage.
+- All three required PR workflows passed on the exact final PR head: preflight, Test Suite, and Training Prototype Validation.
+- GitHub Pages deployment and both main-branch workflows passed on merge commit `b4f7209f4c9572f03e1fb221e9304ba0e211ba88`.
+- **Real-device compatibility testing is still outstanding.** Automated CI does not prove iPad/iPhone, Android, or desktop browser behavior.
 
 ## Product and security constraints
 
@@ -48,16 +49,13 @@
 
 ## Required validation
 
-Run all three GitHub Actions workflows on the exact final commit:
-- ULTRON preflight tests
-- ULTRON Test Suite
-- ULTRON Training Prototype Validation
+The PR #14 automated workflows passed on the exact final PR head, and main-branch workflows plus GitHub Pages deployment passed on the merge commit. Do not treat automated checks as a substitute for real-device testing.
 
-Review test logs and the complete PR diff; do not weaken tests or branch protection. Then test actual iPad/iPadOS Safari and Chrome, iPhone, Android, and desktop browsers, including narrow/wide layouts, refresh, interrupted network, guest/owner access, and keyboard/screen-reader navigation. Do not claim device compatibility unless tested on those devices.
+Next test actual iPad/iPadOS Safari and Chrome, iPhone, Android, and desktop browsers, including narrow/wide layouts, refresh, interrupted network, guest/owner access, and keyboard/screen-reader navigation. Do not claim device compatibility unless tested on those devices.
 
 ## Next steps for the next session
 
-1. Review the reconciled PR #14 diff and verify its exact head.
-2. Run all three workflows on that exact head; fix root causes and rerun after every change.
-3. If all checks pass and GitHub reports the PR mergeable, mark it ready and merge.
-4. Continue dashboard interaction and device-compatibility work. Do not start training yet.
+1. Test the deployed GitHub Pages dashboard on supported devices, starting with iPad/iPadOS.
+2. Fix any issues found and add regression tests for reproducible defects.
+3. Continue dashboard interaction, session, permission, and checkpoint UX validation.
+4. Keep the website/frontend priority; do not start real training until the user explicitly approves it.
