@@ -1,13 +1,11 @@
-## Reasoning-model architecture update — 2026-11-18
+## Learning-system architecture update — 2026-11-18
 
-- New design roadmap is being prepared on branch `architecture/reasoning-model-roadmap`: [docs/REASONING_MODEL_ARCHITECTURE.md](docs/REASONING_MODEL_ARCHITECTURE.md).
-- The repository already contains a from-scratch, randomly initialized decoder-only Transformer baseline: 4,038,478 parameters, 5 layers, 256 hidden dimensions, 8 attention heads, character-level tokenizer, and 192-character context.
-- Existing math data generation, independent verification, supervised training mechanics, topic evaluation, and held-out curriculum controller are implemented. Their tests validate mechanics, not broad mathematical competence.
-- The 192-character context remains below the earlier 1024-token target; resolve tokenizer/context design before a full training run.
-- Planned additions: bounded test-time candidate generation, deterministic specialist routing, independent verification, evaluation by held-out topic/difficulty, and only later verifier-rewarded optimization if evidence justifies it.
-- No additional moderation/filter pipeline is planned for the initial math prototype, as requested. Essential input validation, resource bounds, tool allowlists, and checkpoint integrity remain.
-- PR #25 local dummy-worker prototype remains **open and unmerged**. All three required workflows passed on exact head `ebf5e323c7b909dc0b9eca9185df1f8e6b5ce20f` (runs `44306585275`, `44306585191`, `44306585229`). Do not merge without explicit approval.
-- No real model training has started or been authorized. The dashboard remains read-only for training operations; no device pairing or remote control.
+- The architecture direction is now centered on **how ULTRON learns and improves**, not primarily on imitating another model's inference behavior.
+- Existing model, data generator, verifier, training engine, and curriculum controller are preserved. No existing code is being removed.
+- The design document `docs/REASONING_MODEL_ARCHITECTURE.md` now specifies verified supervised learning, held-out evaluation, structured error diagnosis, targeted curriculum, candidate checkpoint promotion/rollback, and later optional verifier-rewarded learning.
+- First priority is a reliable learning/evaluation loop, not multi-agent orchestration or expensive test-time compute.
+- No training has started or been authorized. Keep the frontend-first requirement, local-only training controls, no device pairing/remote commands, $0 budget, and 3–5M parameter target.
+- PR #25 local dummy-worker prototype remains open/unmerged pending review and explicit merge approval.
 
 ---
 
@@ -39,8 +37,9 @@
 
 1. Finish and validate the dashboard/frontend before starting any model training.
 2. Review and validate PR #25; it is open/unmerged and must not be merged without explicit approval.
-3. Implement the bounded reasoning controller and specialist modules under docs/REASONING_MODEL_ARCHITECTURE.md.
-4. Resolve tokenizer/context design (192-character implementation versus earlier 1024-token target) before a full training run.
+3. Build dataset versioning, leakage-resistant splits, and a frozen evaluation harness.
+4. Add structured error diagnosis, targeted curriculum feedback, checkpoint comparison, and rollback.
+5. Resolve tokenizer/context design (192-character implementation versus earlier 1024-token target) before a full training run.
 5. Test owner authentication, Guest Mode, and iPad/browser compatibility; keep all work within the $0 budget.
 
 ## Recently merged work
