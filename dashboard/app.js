@@ -15,6 +15,7 @@
   const POLL_MS = 15000;
   const STALE_SECONDS = 720;
   let sessionRefreshPromise = null;
+  const runSessionRefresh = ULTRON_RUNTIME.createSingleFlight();
   let chartDrawPending = false;
 
   const $ = function (id) { return document.getElementById(id); };
@@ -120,6 +121,7 @@
     if (state.publicMode !== nextPublicMode) {
       state.authGeneration += 1;
       sessionRefreshPromise = null;
+      runSessionRefresh.reset();
     }
     state.publicMode = nextPublicMode;
     if (!isOwner) {
@@ -287,7 +289,7 @@
 
     const refreshToken = state.session.refresh_token;
     const generation = state.authGeneration;
-    const refreshPromise = (async function () {
+    const refreshPromise = runSessionRefresh(async function () {
       try {
         const data = await authRequest("token?grant_type=refresh_token", {refresh_token: refreshToken});
         const next = sessionFromResponse(data);
@@ -304,7 +306,7 @@
         }
         throw new Error("Your owner session expired. Please sign in again.");
       }
-    })();
+    });
     sessionRefreshPromise = refreshPromise;
     try {
       return await refreshPromise;
