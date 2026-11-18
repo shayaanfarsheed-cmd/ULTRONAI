@@ -69,3 +69,13 @@
 3. Verify private memory and checkpoint requests are correctly restricted by Supabase RLS and Storage policies.
 4. Address the Supabase leaked-password-protection warning through the Supabase dashboard when authorized.
 5. Continue dashboard UX and real-device testing. Do not start real training until the user explicitly approves it.
+
+
+## Secure device pairing work package (PR in progress)
+
+- Pairing control-plane source is being added on branch feature/secure-device-pairing.
+- Proposed design: five-minute one-time pairing challenge, five attempts maximum, atomic single-use redemption, 256-bit per-device bearer credential stored hashed server-side, owner-scoped device listing and revocation, and outbound HTTPS heartbeats.
+- Dashboard UI can request a one-time code and list/revoke devices after the Edge Function and migration are deployed.
+- No database migration or Edge Function has been applied to production. No device agent exists yet; a code alone cannot connect a device until a compatible agent is implemented.
+- Pairing does not start training or acquire the training lease. Device-reported capabilities are untrusted until validated by a future agent.
+- Before production deployment, add edge/gateway per-IP throttling and disposable-project integration tests for concurrent redemption, expiry, attempt lockout, owner isolation, revocation, and secret redaction.
