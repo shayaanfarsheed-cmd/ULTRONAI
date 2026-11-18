@@ -1,115 +1,141 @@
-# ULTRON Reasoning-Model Architecture
+# ULTRON Learning-System Architecture
 
-**Status:** architecture and implementation roadmap; no real training has been authorized or started.
+**Status:** learning-system design; no real training has been authorized or started.
 
 ## Objective
 
-Build an independent, mathematics-focused model using the same broad engineering ideas found in modern reasoning systems: a learned language model, explicit test-time problem solving, specialist task execution, independent verification, and feedback-driven improvement.
+Build ULTRON around how it acquires, tests, retains, and improves mathematical capability. The primary engineering focus is the learning lifecycle, not imitating the conversational behavior or inference interface of another model.
 
-This is an independent implementation. It does not reproduce private OpenAI weights, datasets, infrastructure, or proprietary training procedures.
+This is an independent implementation. It does not reproduce private OpenAI weights, datasets, infrastructure, or proprietary training procedures. Keep existing code; extend it incrementally.
 
-## Existing implementation (verified in the main branch)
+## Existing foundation — preserve it
 
-- `ultron_model.py`: randomly initialized decoder-only Transformer; current defaults are 5 layers, 256 hidden dimensions, 8 attention heads, 4x feed-forward width, 192-character context, and a character tokenizer.
-- Current parameter count: **4,038,478 trainable parameters**, inside the 3–5 million target.
-- `ultron_data.py`: deterministic, locally generated math examples.
-- `ultron_verify.py`: independent answer verification for supported generated problem types.
-- `ultron_training.py`: masked prompt/solution training, resumable batch stream, optimizer loop, greedy completion, topic evaluation, and a held-out mastery curriculum controller.
-- Existing tests validate tensor mechanics, deterministic data generation, example verification, training updates, and curriculum state. They do not establish broad mathematical competence.
+- `ultron_model.py`: randomly initialized decoder-only Transformer; 4,038,478 trainable parameters, 5 layers, 256 hidden dimensions, 8 heads, 4x feed-forward width, 192-character context, character tokenizer.
+- `ultron_data.py`: deterministic local mathematical example generator.
+- `ultron_verify.py`: independent verifier for supported generated math examples.
+- `ultron_training.py`: supervised prompt/solution training mechanics, resumable batch stream, optimizer loop, completion generation, topic evaluation, and held-out mastery curriculum.
+- Tests cover model mechanics, generated-data validity, independent verification, training updates, stream restoration, and curriculum behavior.
 
-The current model is a small character-level baseline, not a GPT-scale general-purpose model. Its 192-character context is below the earlier 1024-token design target. That mismatch must be resolved deliberately before a full training run.
+These components are the starting foundation, not proof of broad mathematical competence. The current context is 192 characters, below the earlier 1024-token target; tokenizer/context design must be measured and resolved before serious training.
 
-## Target architecture
+## How ULTRON should learn
 
-### 1. Core model
+### 1. Learn from verified examples (supervised learning)
 
-Keep one compact, randomly initialized model in the 3–5 million parameter range for the first foundation release. Improve its tokenizer and context design only after measuring memory, throughput, and held-out accuracy. Do not silently increase the parameter budget.
+1. Generate examples internally using deterministic, versioned generators.
+2. Verify each answer independently before it enters the training set.
+3. Split data by seed and problem identity into train, validation, and frozen test sets.
+4. Train the randomly initialized model to predict solution steps and answers.
+5. Track loss and exact-answer accuracy separately.
+6. Keep test data out of training and curriculum feedback.
 
-### 2. Test-time reasoning controller
+The generator and verifier must not share the same implementation logic where that could hide a common error.
 
-Add an explicit, bounded controller around model inference:
+### 2. Measure what it knows
 
-1. Parse the question and identify its topic.
-2. Produce a short candidate solution plan.
-3. Generate one or more candidate solutions within a fixed compute/token budget.
-4. Check each candidate with deterministic tools where possible.
-5. Rank candidates using verifier results and consistency checks.
-6. Return the best verified answer, or clearly report that verification failed.
+Build a repeatable evaluation harness that measures:
+- Exact-answer accuracy by topic and difficulty
+- Step/solution validity where it can be independently checked
+- Invalid-answer and abstention rates
+- Train-versus-validation gap
+- Performance on held-out generated examples and separately authored challenge sets
+- Reproducibility across fixed seeds
 
-This is an external inference algorithm around the model, not a claim that the model has hidden human-like reasoning. Keep intermediate traces bounded and do not expose private chain-of-thought; return concise, user-facing solution steps.
+Training loss decreasing is not enough to claim learning. Promote a checkpoint only when held-out performance improves without regressions that exceed agreed thresholds.
 
-### 3. Specialist task modules
+### 3. Diagnose mistakes
 
-Start with deterministic Python modules rather than multiple copies of the same small model. Each module has a narrow interface and a known test set:
+For every failed evaluation example, store a structured record:
+- Stable example ID and dataset version
+- Topic, difficulty, and failure category
+- Model/checkpoint version
+- Expected answer and model answer
+- Verifier result and concise diagnostic
+- Training/evaluation split (never leak held-out test examples into training)
 
-- Arithmetic and number operations
-- Fractions, ratios, percentages
-- Algebra and equations
-- Geometry and measurement
-- Statistics and probability
-- Later: trigonometry, logarithms, calculus, proofs
+Cluster errors to identify weaknesses such as arithmetic slips, sign errors, fraction simplification, algebra transformations, or misunderstood instructions.
 
-A router selects a specialist; the verifier checks its result; the controller may request another candidate when the first fails. Parallel execution is optional and must be justified by measured latency/resource cost.
+### 4. Build a targeted curriculum
 
-### 4. Independent verification
+Use the existing `CurriculumController` as the starting point. Extend it so that:
+- Topics are introduced in prerequisite order.
+- Difficulty rises only after repeated success on validation sets.
+- Weak topics receive more newly generated, independently verified practice.
+- Repeated examples are tracked to reduce memorization.
+- Advancement requires held-out mastery, not just training-set accuracy.
+- A regression in an earlier topic can pause advancement and trigger review.
 
-Use exact arithmetic (fractions/integers) where possible. Add symbolic or numerical checks only with explicit tolerances and domain rules. Keep the verifier independent from the generator and model so that a shared bug cannot make incorrect answers appear correct.
+Do not let the model grade itself. The independent verifier and frozen evaluation harness decide whether a skill has improved.
 
-### 5. Feedback-driven learning
+### 5. Improve through controlled feedback
 
-Progress in this order:
+After a training/evaluation cycle:
+1. Compare topic metrics with the previous approved checkpoint.
+2. Identify the largest statistically meaningful weaknesses.
+3. Generate new targeted examples with fresh seeds.
+4. Verify and deduplicate those examples.
+5. Add them to a new versioned training set.
+6. Train a candidate checkpoint.
+7. Evaluate on validation and untouched test sets.
+8. Promote only if the candidate meets the acceptance criteria; otherwise roll back.
 
-1. Supervised training on independently generated and verified examples.
-2. Held-out evaluation by topic and difficulty.
-3. Error clustering to identify systematic weaknesses.
-4. Regenerate targeted examples with new seeds and verify them independently.
-5. Only then experiment with verifier-rewarded candidate selection or policy optimization.
+This is a data-centric feedback loop first. It is more appropriate for ULTRON's small parameter budget and $0 compute constraint than immediately attempting large-scale reinforcement learning.
 
-Do not begin reinforcement learning merely because it is part of a modern-model recipe. For a small model and limited compute, first establish a reliable supervised baseline and a stable reward signal. Any policy-optimization experiment needs a frozen evaluation set, reward-hacking tests, checkpoint rollback, and a measured improvement over the supervised baseline.
+### 6. Later: verifier-rewarded learning experiments
 
-### 6. Tool use
+Only after a reliable supervised baseline exists, investigate reinforcement-learning-style optimization:
+- Define a reward from independent correctness, valid steps, and task constraints.
+- Test the reward against deliberately wrong, malformed, and reward-hacking outputs.
+- Use a frozen evaluation set and compare against the supervised baseline.
+- Bound candidate count, compute, and training duration.
+- Keep optimizer state and rollback checkpoints.
+- Abandon the experiment if it does not improve held-out performance.
 
-Introduce tools as explicit, typed local functions with strict input/output schemas, timeouts, and resource limits. Initial tools should be deterministic math operations and a sandboxed code evaluator. The model may propose a tool call; the controller validates arguments and executes only allowlisted tools. No arbitrary shell execution, remote computer control, device pairing, or dashboard-to-runtime commands.
+Do not assume a modern model's RL recipe is suitable or affordable for a 3–5M parameter model. RL is a later experiment, not a prerequisite.
 
-### 7. Memory and checkpoints
+### 7. Retain learning safely
 
-Separate:
-- Model weights and optimizer/training state
-- Verified mathematical facts/rules
-- Error examples and evaluation results
-- Run metadata and checkpoint manifests
+Keep separate, versioned records for:
+- Model weights and optimizer/scheduler state
+- Dataset manifests, generator version, seeds, and splits
+- Evaluation reports and checkpoint promotion decisions
+- Error examples and targeted curriculum sets
+- Training run metadata and integrity-checked checkpoints
 
-Only verified, versioned content may enter durable knowledge memory. Checkpoints must be atomic, integrity-checked, and recoverable to the last known-good state.
+Checkpoint writes must be atomic and validated. Resuming must restore model, optimizer, scheduler, random number generators, data-stream position, curriculum state, and dataset identity. Never mix incompatible dataset or model versions silently.
 
-## Efficiency constraints
+## Efficiency and scope
 
 - $0 budget; no paid APIs or external inference services.
-- No pretrained weights or external model.
-- No externally generated training data; use ULTRON's own deterministic generators and independent verification.
-- Begin with sequential, bounded inference. Add parallel specialist execution only after profiling.
-- Use fixed maximum candidate counts, token budgets, timeouts, and batch sizes.
-- Keep the 3–5M parameter target for the first model.
-- Do not claim the browser RAM preference is an enforced operating-system memory cap.
-- Do not claim a free hosted notebook will run continuously or retain state indefinitely.
+- No pretrained weights, external models, or externally generated training data.
+- Keep the first model in the 3–5 million parameter range.
+- Profile tokenizer/context and memory choices before changing architecture.
+- Use small, measured batches and bounded evaluation/training steps.
+- Do not claim the dashboard RAM preference is an enforced hard memory cap.
+- Do not assume free hosted runtimes are continuous or persistent.
+- Avoid premature multi-agent orchestration and expensive inference loops; prioritize the learning signal and evaluation quality.
 
-## Safety and product boundaries
+## Product and security boundaries
 
-- No extra moderation/filter pipeline in the initial math-focused prototype, as requested.
-- Essential engineering protections remain: strict input validation, bounded resource use, typed tool allowlists, checkpoint integrity, and dependency hygiene.
+- No extra moderation/filter pipeline in the initial math-learning prototype, as requested.
+- Essential engineering protections remain: input validation, resource bounds, dependency hygiene, independent data verification, and checkpoint integrity.
 - Training controls remain local to the device/process running training.
-- No device pairing, remote commands, remote start/stop, HTTP control listener, or dashboard training writes.
-- Actual training remains disabled until the website/frontend priorities, local runtime validation, and a separate explicit training approval are complete.
+- No device pairing, remote commands, remote start/stop, public HTTP control listener, or dashboard training writes.
+- The dashboard remains read-only for training operations.
+- Actual training remains disabled until the frontend and local runtime gates are complete and the user separately approves starting training.
 
 ## Implementation sequence
 
-1. **Architecture baseline:** document the existing model/data/verifier/trainer and the gaps (this document).
-2. **Inference controller:** bounded candidate generation, deterministic tool routing, independent verification, and regression tests.
-3. **Specialist modules:** narrow mathematical solvers with exact arithmetic and test coverage.
-4. **Tokenizer/context study:** benchmark candidate tokenizer/context changes without changing the parameter target; resolve 192-character versus 1024-token requirements.
-5. **Evaluation harness:** frozen, non-overlapping held-out tests by topic/difficulty; report accuracy, exactness, latency, and memory.
-6. **Supervised baseline:** only after frontend and local runtime gates are satisfied and training is explicitly approved.
-7. **Feedback and RL experiments:** only if measured results justify the additional complexity.
+1. Preserve existing model, data generator, verifier, trainer, and curriculum code.
+2. Build dataset manifests, versioning, deterministic split enforcement, and deduplication.
+3. Build the evaluation harness with frozen held-out tests and topic/difficulty metrics.
+4. Build structured error logging and failure clustering.
+5. Extend curriculum generation using validation weaknesses without test leakage.
+6. Add candidate-checkpoint comparison, promotion, and rollback.
+7. Validate full checkpoint/resume determinism, including optimizer, RNG, stream, and curriculum state.
+8. Only after frontend/runtime gates and explicit approval, run a small supervised baseline.
+9. Consider reward-based optimization only if measured evidence justifies it.
 
 ## Completion criteria
 
-ULTRON is not considered a reasoning system merely because it has a Transformer or can print solution-like text. Each milestone must include tests and measured results. Report exact-answer accuracy on unseen problems, verifier pass rate, failure/abstention rate, latency, peak memory, and reproducibility. Never infer learning from falling training loss alone.
+ULTRON's learning system is successful only when repeated controlled cycles produce measurable improvement on unseen mathematics problems, with reproducible evaluations, verified data, safe checkpoint recovery, and no test-set leakage. Report exact metrics and limitations; never infer learning from loss alone.
