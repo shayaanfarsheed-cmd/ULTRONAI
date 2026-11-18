@@ -161,6 +161,23 @@ class DashboardStaticTests(unittest.TestCase):
         self.assertNotIn('id="autoStartToggle"', html)
         self.assertNotIn("autoStartToggle", javascript)
 
+    def test_learning_first_view_explains_verified_improvement_cycle(self):
+        html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
+        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
+        styles = (DASHBOARD / "styles.css").read_text(encoding="utf-8")
+        self.assertIn('data-view="learning"', html)
+        self.assertIn('id="view-learning"', html)
+        self.assertIn('aria-label="ULTRON learning cycle"', html)
+        self.assertIn("Generate", html)
+        self.assertIn("Verify", html)
+        self.assertIn("Evaluate", html)
+        self.assertIn("candidate", html.lower())
+        self.assertIn('learning: ["HOW ULTRON LEARNS", "Learning system"]', javascript)
+        self.assertIn(".learning-cycle", styles)
+        self.assertIn("Training is not running", html)
+        self.assertNotIn('id="learningStartButton"', html)
+        self.assertNotIn('id="remoteStartButton"', html)
+
     def test_dashboard_has_no_external_ai_api_endpoint(self):
         forbidden = (
             "api.openai.com",

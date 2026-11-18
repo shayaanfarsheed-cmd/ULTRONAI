@@ -1,3 +1,14 @@
+## Frontend update — learning-first dashboard
+
+- A dedicated **How ULTRON Learns** view has been added on branch `frontend/learning-first-dashboard`.
+- It explains ULTRON's verified-data learning cycle, independent evaluation, targeted improvement, checkpoint promotion/rollback, and the distinction between existing foundations and planned work.
+- The view is informational only: it does not fabricate training metrics, start training, or add remote training controls.
+- Responsive layouts support narrow and touch-screen displays; automated regression coverage has been added.
+- This frontend change is awaiting PR review and CI. It is not merged or deployed yet.
+- Training remains disabled; no actual training has started.
+
+---
+
 ## Authoritative security update — 2026-11-18
 
 - **PR #24 is merged** at `23f87a0a8176626781824d550341d6bed05d22d5`. All three PR checks passed on the exact reviewed PR head `95067c881d0a255da638d151e2f96f09870ba0f4`.
