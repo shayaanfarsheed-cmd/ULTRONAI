@@ -37,6 +37,26 @@ class LocalDummyRuntimeTests(unittest.TestCase):
         with patch.object(Path, "read_text", return_value=running_stat):
             self.assertTrue(_pid_exists(4321))
 
+    def test_linux_reused_pid_is_not_mistaken_for_original_worker(self):
+        current_stat = "4321 (unrelated process) R 1 4321 4321 0 -1 0 0 0 0 0 0 0 0 20 0 1 0 99999"
+        with patch.object(Path, "read_text", return_value=current_stat):
+            self.assertFalse(_pid_exists(4321, expected_start_ticks=12345))
+
+    def test_terminal_status_without_matching_process_identity_fails_closed(self):
+        with tempfile.TemporaryDirectory() as temp:
+            runtime = LocalDummyRuntime(temp)
+            runtime.status_file.write_text(
+                '{"schema":1,"run_id":"current","state":"COMPLETED"}',
+                encoding="utf-8",
+            )
+            runtime.process_file.write_text(
+                '{"run_id":"previous","pid":4321}',
+                encoding="utf-8",
+            )
+            status = runtime.status()
+            self.assertFalse(status["process_exited"])
+            self.assertTrue(runtime.lock.exists() is False)
+
     def test_hard_ram_cap_is_refused_before_start(self):
         with tempfile.TemporaryDirectory() as temp:
             runtime = LocalDummyRuntime(temp)
