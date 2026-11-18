@@ -360,7 +360,7 @@ A merge commit brought current main into the PR branch while preserving the PR h
 
 - Review document commit: `c7ae36f1f10c2587d0810524aad02de059c48ba3`.
 - Verified review document blob: `0456c80b7a94fbbbbcd9437dcf6fdf15effded2b`.
-- PR #4 remains open and unmerged; its base is main `397f1492c300371821b2651ddfbc7342adc9f60c`; current head after Stage 3 document commit is `c7ae36f1f10c2587d0810524aad02de059c48ba3`.
-- At handoff, Test Suite, preflight, and Training Prototype Validation checks on this new head were in progress. Do not claim they passed until their final conclusions are checked.
+- PR #4 remains open and unmerged; its base is main `397f1492c300371821b2651ddfbc7342adc9f60c`. The architecture-review document commit is `c7ae36f1f10c2587d0810524aad02de059c48ba3`; this README handoff was subsequently committed separately. Fetch the PR API for the exact current head rather than treating the document commit as the branch head.
+- The README update triggered fresh Test Suite, preflight, and Training Prototype Validation runs (IDs `44218597695`, `44218597785`, and `44218597762` respectively); their initial status was pending. Recheck their final conclusions on the current PR head before claiming validation passed.
 - The Stage 2 checks passed on the previous head `fc1cfd0eaaa4424f66ea2368779510aa33845294`: Test Suite `44217854553`, preflight `44217854500`, Training Prototype Validation `44217854478`.
 - Permanent project budget remains $0. Never enable billing, use paid trials, bypass quotas, or depend on paid services.
