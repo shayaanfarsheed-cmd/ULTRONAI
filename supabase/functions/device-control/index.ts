@@ -36,7 +36,7 @@ async function ownerFromRequest(request: Request) {
     auth: { persistSession: false, autoRefreshToken: false },
   });
   const { data, error } = await client.auth.getUser();
-  return error || !OWNER_USER_ID || data.user.id !== OWNER_USER_ID ? null : data.user;
+  return error || !data.user || !OWNER_USER_ID || data.user.id !== OWNER_USER_ID ? null : data.user;
 }
 async function allowPairingRequest(request: Request, endpoint: string, limit: number) {
   // Cloudflare overwrites cf-connecting-ip at the edge; do not trust arbitrary
