@@ -1053,13 +1053,17 @@
     const ownerId = state.user.id;
     const runId = state.status.run_id;
     const prefix = ownerId + "/" + runId;
+    const maximumCommittedStep = state.status.last_checkpoint_step == null ? -1 : Number(state.status.last_checkpoint_step);
     const listed = await storageRequest("object/list/checkpoints", "POST", {
       prefix: prefix,
       limit: 1000,
       offset: 0,
       sortBy: {column: "name", order: "asc"}
     }, false);
-    const maximumCommittedStep = state.status.last_checkpoint_step == null ? -1 : Number(state.status.last_checkpoint_step);
+    if (generation !== state.authGeneration || !hasVerifiedOwnerSession() ||
+        state.user.id !== ownerId || !state.status || state.status.run_id !== runId) {
+      return [];
+    }
     const ids = Array.from(new Set((listed || []).map(function (item) {
       return String(item.name || "").split("/")[0];
     }).filter(function (id) { return id.indexOf("ckpt-") === 0; })));
