@@ -1,3 +1,18 @@
+## Work Package 1 handoff — 2026-11-18
+
+- **PR:** [#10 — Repair repository docs and owner/guest configuration baseline](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/10)
+- **Branch:** `repair/work-package-1-repository-architecture`
+- **PR head at handoff:** `1b70d699beec5456888985a42e54baa2627dc416`
+- **Base:** `main` at `397f1492c300371821b2651ddfbc7342adc9f60c`
+- **PR #10 status:** open, unmerged. CI for the exact head has not yet been returned by the workflow-run lookup; verify all checks before accepting this package.
+- **Files changed:** `README.md`, `config.json`, `docs/LOCAL_AGENT_ARCHITECTURE.md`, `docs/REPOSITORY_REPAIR_AUDIT.md`, `servers.json`, `supabase/SETUP.md`, `tests/test_config.py`, `train.py`.
+- **Key decisions:** one restricted owner account plus public Guest Mode; no public signup; private operations require verified owner authorization; guests are limited to public content; Kaggle disabled; resource enforcement is platform-specific and training must fail closed when not verified.
+- **Not implemented:** owner login/recovery, production backend authorization, device registry/pairing, agents, and enforced resource limits.
+- **Safety:** no Supabase production changes, secrets, pairing, agent installation, training, provider jobs or merges.
+- **Next:** inspect PR #10 diff and exact-head CI; fix failures without weakening tests; update this handoff with final run IDs and results. Then continue the remaining Phase 1 file audit before starting account implementation.
+
+---
+
 # ULTRONAI — Current Product Architecture and Handoff
 
 > **Authoritative current direction (2026-11-18):** ULTRON is a browser-based, iPad-compatible mathematics training-control website. It will have one restricted owner account and a public Guest Mode. This is the target architecture, **not a claim that authentication or private controls are implemented today**.
