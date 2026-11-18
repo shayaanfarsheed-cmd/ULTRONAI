@@ -80,9 +80,13 @@
 
   function saveSession(session) {
     if (!session) {
+      const previousUserId = state.user && state.user.id;
       state.session = null;
       state.user = null;
       try { sessionStorage.removeItem(SESSION_KEY); } catch (_) {}
+      if (previousUserId) {
+        try { localStorage.removeItem(CACHE_PREFIX + previousUserId); } catch (_) {}
+      }
       return;
     }
     try {
