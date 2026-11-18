@@ -1,14 +1,15 @@
-# PR #10 validation repair handoff — 2026-11-18
+# PR #10 final validation handoff — 2026-11-18
 
-**Current state:** PR #10 is open and unmerged. The latest CI run failed on three workflows because two legacy runtime tests still selected Kaggle after Kaggle had been deliberately disabled.
+**Current state:** PR #10 is open, unmerged, and GitHub reports it mergeable. The repository repair changes are complete for Work Package 1. Do not merge until the user explicitly approves.
 
-**Root cause and repair:**
-- Both failures originated in `tests/test_runtime.py`: the GPU-profile and config-override tests used `platform_id="kaggle"`.
-- Updated those tests to use the enabled `google_colab` runtime profile.
-- Removed the now-unreachable Kaggle runtime profile from `train.py`. Kaggle detection remains available for explicit rejection; the provider stays disabled.
-- No test was weakened and no Kaggle restriction was removed.
+**Latest validated commit before this handoff sync:** `e7147271f97bdca90e1ecdb568c353f16d48a865`. All three workflows passed on that exact commit:
+- ULTRON Test Suite: `44224090426`
+- ULTRON Training Prototype Validation: `44224090369`
+- ULTRON preflight tests: `44224090239`
 
-**Validation:** The failed runs on prior head `adf0add1723bd18488c224522d839368fcfef6e1` were Test Suite `44223719035`, Preflight `44223719167`, and Training Prototype Validation `44223719236`. Each failed at unit tests due to the same two stale runtime tests. Fresh CI is required on the new head after this repair.
+**CI failure repair:** The previous run found two legacy tests still selecting Kaggle. The GPU-profile and config-override tests now use the enabled Google Colab runtime profile; the unused Kaggle runtime profile was removed. Kaggle detection remains available for explicit rejection, and Kaggle remains disabled in provider selection. No test was weakened.
+
+**Handoff note:** This README synchronization creates a new commit. Recheck all three workflows on the resulting exact PR head before declaring the PR merge-ready.
 
 **Safety:** No merge, production Supabase change, account provisioning, device pairing, agent installation, provider job, or live training is authorized or performed.
 
