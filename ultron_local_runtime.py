@@ -186,8 +186,8 @@ class LocalDummyRuntime:
             "run_id": status.get("run_id"), "requested_at": time.time(),
             "source": "local_cli",
         })
-        _write_status(self.root, str(status["run_id"]), "STOP_REQUESTED",
-                      completed_batches=status.get("completed_batches", 0))
+        # The worker owns lifecycle status writes. This prevents a race in
+        # which the worker finishes checkpointing before this process updates status.
         return "STOP_REQUESTED"
 
     def status(self) -> dict[str, Any]:
