@@ -3,21 +3,22 @@
 **Repository:** [shayaanfarsheed-cmd/ULTRONAI](https://github.com/shayaanfarsheed-cmd/ULTRONAI)  
 **Dashboard:** [GitHub Pages](https://shayaanfarsheed-cmd.github.io/ULTRONAI/)  
 **Main branch:** `main`  
-**Latest merged work:** PR #14 — mobile accessibility and safe-area layout, merged at `b4f7209f4c9572f03e1fb221e9304ba0e211ba88`.
+**Latest merged work:** PR #15 — README handoff update, merged at `1de739ba0f15dd9d2fda3ba0dd503baeb801c15d`.
 
 ## Current priorities
 
 1. Finish and validate the dashboard/frontend before starting any model training.
 2. Keep the website usable on iPad/iPhone, Android, and desktop browsers.
-3. Harden owner/guest access and checkpoint handling without exposing secrets.
+3. Verify owner authentication end-to-end and harden owner/guest access without exposing secrets.
 4. Keep all work within the $0 budget.
 
 ## Recently merged work
 
 - **PR #14 — [Improve dashboard mobile accessibility and safe-area layout](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/14)**  
-  Merged on 2026-11-18 at `b4f7209f4c9572f03e1fb221e9304ba0e211ba88`. Final PR head: `b8b7e561c25797117a72ba24a2051854ac252267`. Added keyboard skip navigation, `aria-current` selected-navigation semantics, visible focus, iOS safe-area spacing including the sticky-header top inset, narrow-screen navigation refinements, reduced-motion support, landscape insets, touch targets, and regression coverage.
-- All three required PR workflows passed on the exact final PR head: preflight, Test Suite, and Training Prototype Validation.
-- GitHub Pages deployment and both main-branch workflows passed on merge commit `b4f7209f4c9572f03e1fb221e9304ba0e211ba88`.
+  Merged on 2026-11-18 at `b4f7209f4c9572f03e1fb221e9304ba0e211ba88`. Added keyboard skip navigation, selected-navigation semantics, visible focus, iOS safe-area spacing, responsive navigation refinements, reduced-motion support, landscape insets, touch targets, and regression coverage.
+- **PR #15 — [Update README after PR #14 merge](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/15)**  
+  Merged on 2026-11-18 at `1de739ba0f15dd9d2fda3ba0dd503baeb801c15d`.
+- PR #14's three required checks passed on its final PR head. GitHub Pages deployment and main-branch workflows passed after PR #14.
 - **Real-device compatibility testing is still outstanding.** Automated CI does not prove iPad/iPhone, Android, or desktop browser behavior.
 
 ## Product and security constraints
@@ -27,9 +28,13 @@
 - No external AI inference APIs, pretrained weights, existing models, or externally generated training data. ULTRON's model, data generator, and training code are independently implemented.
 - No production Supabase schema, RLS, grants, storage, Edge Function, or secret changes without separate explicit approval.
 - Never put privileged keys, service-role secrets, or passwords in browser code, notebooks, commits, or logs.
+- The Supabase publishable key in `dashboard/config.js` is designed for public browser use; never substitute a secret/service-role key.
 - Guest Mode is the public default. Owner sign-in is a single owner account; public self-registration is disabled.
+- The owner Auth user has been created and email-confirmed in Supabase. PR #16 proposes adding its UUID and the project's publishable key to the dashboard config. Do not treat this as end-to-end sign-in validation until the PR is merged and an owner sign-in is tested in the deployed site.
 - Frontend UUID checks and browser session storage are not backend authorization or secure credential storage. Private operations require server-side authorization and RLS.
-- No owner provisioning, device pairing, agent installation, provider jobs, or live training without separate explicit approval.
+- Current inspected database state: RLS is enabled on all six public memory tables and the three `training_api` tables. Owner-scoped policies were present for the inspected memory/training records; Storage has an owner-folder SELECT policy for the `checkpoints` bucket. The browser must still be tested against these policies with both owner and Guest Mode.
+- Supabase Security Advisor reports **Leaked Password Protection Disabled**. Enable it in Supabase Auth password/security settings when ready; no production setting was changed during this work.
+- No device pairing, agent installation, provider jobs, or live training without separate explicit approval.
 - The RAM slider is a local preference only. It does not enforce a process or operating-system memory cap.
 
 ## Model and training status
@@ -49,13 +54,15 @@
 
 ## Required validation
 
-The PR #14 automated workflows passed on the exact final PR head, and main-branch workflows plus GitHub Pages deployment passed on the merge commit. Do not treat automated checks as a substitute for real-device testing.
-
-Next test actual iPad/iPadOS Safari and Chrome, iPhone, Android, and desktop browsers, including narrow/wide layouts, refresh, interrupted network, guest/owner access, and keyboard/screen-reader navigation. Do not claim device compatibility unless tested on those devices.
+- Run all three GitHub Actions workflows on the exact final PR head: ULTRON preflight tests, ULTRON Test Suite, and ULTRON Training Prototype Validation.
+- Review the complete PR diff and exact head SHA; do not weaken tests or branch protection.
+- After merge/deployment, test owner sign-in and Guest Mode in a real browser. Confirm Guest Mode cannot read private records, and owner mode can access only the configured owner's records.
+- Test actual iPad/iPadOS Safari and Chrome, iPhone, Android, and desktop browsers, including narrow/wide layouts, refresh, interrupted network, and keyboard/screen-reader navigation. Do not claim device compatibility unless tested on those devices.
 
 ## Next steps for the next session
 
-1. Test the deployed GitHub Pages dashboard on supported devices, starting with iPad/iPadOS.
-2. Fix any issues found and add regression tests for reproducible defects.
-3. Continue dashboard interaction, session, permission, and checkpoint UX validation.
-4. Keep the website/frontend priority; do not start real training until the user explicitly approves it.
+1. Review PR #16's exact diff and run all required workflows on its final head.
+2. If all checks pass and GitHub reports the PR mergeable, merge the owner-auth configuration change.
+3. Test owner sign-in and Guest Mode against the deployed dashboard; inspect any auth, RLS, or Storage failures without weakening access controls.
+4. Address the Supabase leaked-password-protection warning through the Supabase dashboard when authorized.
+5. Continue dashboard interaction and device-compatibility work. Do not start real training until the user explicitly approves it.

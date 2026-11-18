@@ -64,7 +64,12 @@ class DashboardStaticTests(unittest.TestCase):
         self.assertIn('id="ownerSignOutButton"', html)
         self.assertIn("user.id !== OWNER_USER_ID", javascript)
         self.assertIn("state.publicMode = nextPublicMode", javascript)
-        self.assertIn('ownerUserId: ""', config)
+        self.assertRegex(
+            config,
+            r'ownerUserId: "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"',
+        )
+        self.assertRegex(config, r'supabasePublishableKey: "sb_publishable_[A-Za-z0-9_-]+"')
+        self.assertNotIn("REPLACE_WITH", config)
         self.assertNotIn("signup", javascript.lower())
         self.assertNotIn("signUp", html)
 
