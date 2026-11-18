@@ -1,3 +1,15 @@
+## Latest update — 2026-11-18 (seed dataset scanner — PR in progress)
+
+- Approved seed source: Hugging Face dataset `bkhtmm/openai-math-lemmas`, pinned to revision `d7056fd31c19fd1a0aed0a0bc3e99026d412b2ca`. The user downloaded the repository locally and confirmed 47 task folders.
+- Stage 1 implementation is on branch `data/seed-dataset-scanner`: `ultron_seed_dataset.py`, `tests/test_seed_dataset.py`, and `docs/SEED_DATASET_IMPORT.md`.
+- The scanner reads TOML/JSON metadata, inventories relative file paths, sizes, and SHA-256 hashes, and checks task/theorem consistency. It never executes dataset-provided scripts, Lean files, Dockerfiles, or shell commands.
+- Scanner success means structure/metadata passed only. Proof status remains `not_checked`; dataset task metadata currently marks tasks `unvalidated`. Lean-kernel verification is a later stage.
+- Automated tests have been added, but **have not yet been run in this environment or by GitHub Actions**. Do not claim Stage 1 validated until CI passes and the scanner is run against the user's local 47-task folder.
+- No seed dataset source files, reference archives, or proof solutions are committed. The original local download remains unchanged.
+- No model training has started. Do not start training as part of dataset import.
+
+---
+
 ## Latest update — 2026-11-18
 
 - **PR #27 merged** at `f1d8e074a2dfdf5e2718856760255bfc8e0e680d`. It adds the informational **How ULTRON Learns** dashboard view, responsive styling, and regression coverage. All three required PR workflows passed on exact head `a58eb2bbc84ef1d5530596c90b000ece7e0e5f47`.
