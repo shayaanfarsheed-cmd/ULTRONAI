@@ -59,9 +59,9 @@ class DevicePairingStaticTests(unittest.TestCase):
         self.assertIn("Array.isArray(capabilities)", function)
         self.assertIn("allowPairingRequest(request, \"redeem\", 10)", function)
         self.assertIn("cf-connecting-ip", function)
-        self.assertNotIn("\\"ios\\"", function)
-        self.assertNotIn("\\"ipados\\"", function)
-        self.assertNotIn("\\"android\\"", function)
+        self.assertNotIn('"ios"', function)
+        self.assertNotIn('"ipados"', function)
+        self.assertNotIn('"android"', function)
         self.assertIn("Device authentication required", function)
 
     def test_agent_keeps_device_token_in_memory_and_supports_heartbeat_only(self):
@@ -73,7 +73,7 @@ class DevicePairingStaticTests(unittest.TestCase):
         self.assertIn("ULTRON_DEVICE_TOKEN", agent)
         self.assertNotIn("write_text(", agent)
         self.assertNotIn("print(token)", agent)
-        self.assertNotIn("device_token", agent.replace("data.get(\\"device_token\\")", ""))
+        self.assertNotIn("device_token", agent.replace('data.get("device_token")', ""))
 
     def test_dashboard_does_not_contain_service_role_or_device_token(self):
         dashboard = ROOT / "dashboard"
