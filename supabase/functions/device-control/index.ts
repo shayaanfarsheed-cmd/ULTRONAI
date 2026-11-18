@@ -49,6 +49,7 @@ Deno.serve(async (request) => {
   const route = url.pathname.split("/").filter(Boolean).slice(-1)[0] || "";
   try {
     if (request.method === "POST" && route === "challenge") {
+      if (!(await allowPairingRequest(request, "challenge", 10))) return json({ error: "Pairing rate limit exceeded or client IP unavailable." }, 429);
       const owner = await ownerFromRequest(request);
       if (!owner) return json({ error: "Owner authentication required." }, 401);
       // Only one live challenge per owner; a newly issued code invalidates older ones.
@@ -65,6 +66,7 @@ Deno.serve(async (request) => {
       return json({ challenge_id: data.id, code, expires_at: data.expires_at });
     }
     if (request.method === "POST" && route === "redeem") {
+      if (!(await allowPairingRequest(request, "redeem", 10))) return json({ error: "Pairing rate limit exceeded or client IP unavailable." }, 429);
       const body = await request.json();
       const challengeId = String(body.challenge_id || "");
       const code = String(body.code || "");
