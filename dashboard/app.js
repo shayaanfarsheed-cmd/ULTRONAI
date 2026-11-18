@@ -1375,8 +1375,8 @@
     $("copyPairingCodeButton").addEventListener("click", function () {
       const code = $("pairingCode").textContent;
       const challengeId = $("pairingChallengeId").textContent;
-      if (!/^\\d{8}$/.test(code) || !/^[0-9a-f-]{36}$/i.test(challengeId)) return;
-      const pairingDetails = "Challenge ID: " + challengeId + "\\nPairing code: " + code;
+      if (!/^\d{8}$/.test(code) || !/^[0-9a-f-]{36}$/i.test(challengeId)) return;
+      const pairingDetails = "Challenge ID: " + challengeId + "\nPairing code: " + code;
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(pairingDetails).then(function () { showNotice("Pairing details copied.", "success"); })
           .catch(function () { showNotice("Copy was blocked by this browser. Select the code to copy it manually.", "warn"); });
