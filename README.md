@@ -3,7 +3,9 @@
 **Repository:** `shayaanfarsheed-cmd/ULTRONAI`  
 **Base branch:** `main`  
 **Verified main merge:** `ad8a0d01bcd725f96f8d6a41d682febed3c2e4c7` (PR #10 is merged).  
-**Active feature branch:** `feature/owner-guest-dashboard`
+**Active feature branch:** `feature/owner-guest-dashboard`  
+**Draft PR:** [#11 — Build owner sign-in and Guest Mode dashboard foundation](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/11)  
+**Latest code head before this README update:** `7da5e079b003b16d3100b04a7f48afd2d16fe62e8`
 
 ## Current Work Package 2 implementation
 
@@ -20,7 +22,7 @@
 
 - Feature implementation is in progress.
 - Compatibility testing has **not** started; it follows feature implementation.
-- Automated checks must be run on the final PR head before the work is considered complete.
+- On PR head `7da5e079b003b16d3100b04a7f48afd2d16fe62e8`, Test Suite run `44228088554` passed and Preflight run `44228088540` passed. A README-only update creates a new head, so rerun checks before relying on these results.
 - Do not merge without the user's explicit approval.
 
 ## Next actions
