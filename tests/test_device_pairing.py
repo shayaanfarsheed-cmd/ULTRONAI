@@ -66,6 +66,7 @@ class DevicePairingStaticTests(unittest.TestCase):
 
     def test_agent_keeps_device_token_in_memory_and_supports_heartbeat_only(self):
         agent = (ROOT / "agents" / "device_agent.py").read_text(encoding="utf-8")
+        compile(agent, "agents/device_agent.py", "exec")
         self.assertIn("getpass.getpass", agent)
         self.assertIn("heartbeat", agent)
         self.assertIn("HEARTBEAT_SECONDS = 60", agent)
