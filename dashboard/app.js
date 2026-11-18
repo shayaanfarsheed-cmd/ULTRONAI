@@ -118,6 +118,10 @@
     if (state.publicMode !== nextPublicMode) state.authGeneration += 1;
     state.publicMode = nextPublicMode;
     if (!isOwner) {
+      const previousUserId = state.user && state.user.id;
+      if (previousUserId) {
+        try { localStorage.removeItem(CACHE_PREFIX + previousUserId); } catch (_) {}
+      }
       state.session = null;
       state.user = null;
       try { sessionStorage.removeItem(SESSION_KEY); } catch (_) {}
@@ -262,17 +266,27 @@
     return data;
   }
 
+  function expireOwnerSession() {
+    saveSession(null);
+    if (!state.publicMode) setAccessMode(false);
+  }
+
   async function ensureSession() {
     if (!state.session || !state.session.access_token) throw new Error("Please sign in again.");
     if (Number(state.session.expires_at || 0) > Date.now() + 60000) return state.session;
     if (!state.session.refresh_token) {
-      saveSession(null);
+      expireOwnerSession();
       throw new Error("Your login expired. Please sign in again.");
     }
-    const data = await authRequest("token?grant_type=refresh_token", {refresh_token: state.session.refresh_token});
-    const next = sessionFromResponse(data);
-    saveSession(next);
-    return next;
+    try {
+      const data = await authRequest("token?grant_type=refresh_token", {refresh_token: state.session.refresh_token});
+      const next = sessionFromResponse(data);
+      saveSession(next);
+      return next;
+    } catch (_) {
+      expireOwnerSession();
+      throw new Error("Your owner session expired. Please sign in again.");
+    }
   }
 
   async function apiRequest(table, method, query, body) {
@@ -298,7 +312,7 @@
     const data = raw ? (function () { try { return JSON.parse(raw); } catch (_) { return raw; } })() : null;
     if (!response.ok) {
       if (response.status === 401) {
-        saveSession(null);
+        expireOwnerSession();
       }
       const message = data && (data.message || data.hint || data.error) ? (data.message || data.hint || data.error) : "Database request failed (" + response.status + ").";
       throw new Error(message);
@@ -323,6 +337,7 @@
     });
     if (!response.ok) {
       const data = await response.json().catch(function () { return {}; });
+      if (response.status === 401) expireOwnerSession();
       throw new Error(data.message || data.error || "Storage request failed (" + response.status + ").");
     }
     return binary ? response.arrayBuffer() : response.json().catch(function () { return null; });
