@@ -73,6 +73,17 @@ class DashboardStaticTests(unittest.TestCase):
         signout = javascript.split("async function signOutOwner()", 1)[1].split("function sessionFromResponse", 1)[0]
         self.assertLess(signout.index("saveSession(null);"), signout.index('fetch(AUTH_ROOT + "logout"'))
 
+    def test_private_activity_view_is_guest_gated(self):
+        html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
+        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
+        self.assertIn('data-view="activity"', html)
+        self.assertIn('id="view-activity"', html)
+        self.assertIn('id="activityLogs"', html)
+        self.assertIn('id="activitySwitches"', html)
+        self.assertIn("function renderActivity()", javascript)
+        self.assertIn("if (state.publicMode || !hasVerifiedOwnerSession())", javascript)
+        self.assertIn("renderActivity();", javascript)
+
     def test_guest_overview_does_not_recommend_starting_training(self):
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
         self.assertIn("Welcome to the ULTRON guest dashboard", javascript)
