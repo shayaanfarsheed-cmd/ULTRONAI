@@ -35,6 +35,7 @@
         <div class="sidebar-label">CONTROL ROOM</div>
         <nav class="side-nav" aria-label="Dashboard sections">
           <button class="nav-button active" type="button" data-view="overview"><span>◈</span> Overview</button>
+          <button class="nav-button" type="button" data-view="activity"><span>≋</span> Activity</button>
           <button class="nav-button" type="button" data-view="devices"><span>▣</span> Devices</button>
           <button class="nav-button" type="button" data-view="servers"><span>⌘</span> Servers</button>
           <button class="nav-button" type="button" data-view="checkpoints"><span>⬡</span> Checkpoints</button>
@@ -226,6 +227,25 @@
             </div>
             <p class="fine-print">Pause and switch requests are handled by the active notebook at its next heartbeat. A new server must acquire the database lease before it can train.</p>
           </div>
+        </section>
+
+        <section id="view-activity" class="view-section" hidden>
+          <div class="section-intro">
+            <div>
+              <div class="eyebrow">PRIVATE OWNER RECORD</div>
+              <h2>Training activity</h2>
+              <p class="muted-text">Recent training sessions and server handoffs recorded for the owner account.</p>
+            </div>
+            <span class="status-pill">OWNER ONLY</span>
+          </div>
+          <article class="panel table-panel">
+            <div class="section-heading"><div><div class="eyebrow">SESSION HISTORY</div><h2>Training sessions</h2></div><span class="small-pill">LATEST 500</span></div>
+            <div id="activityLogs"><p class="empty-state">Activity is available only to the verified owner.</p></div>
+          </article>
+          <article class="panel table-panel">
+            <div class="section-heading"><div><div class="eyebrow">CONTROL AUDIT</div><h2>Server handoffs</h2></div><span class="small-pill">LATEST 200</span></div>
+            <div id="activitySwitches"><p class="empty-state">Handoff records are available only to the verified owner.</p></div>
+          </article>
         </section>
 
         <section id="view-servers" class="view-section" hidden>
