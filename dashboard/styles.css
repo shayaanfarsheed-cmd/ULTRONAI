@@ -457,3 +457,14 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible) { outline: none; }
   button:not(.copy-id-button) { min-height: 44px; }
   .copy-id-button { min-height: 40px; }
 }
+
+/* Secure device pairing UI */
+.pairing-code-panel { margin-top: 18px; padding: 18px; border: 1px solid var(--line-strong); border-radius: 14px; background: var(--surface-2); }
+.pairing-code { display: block; margin: 12px 0; color: var(--red); font-size: clamp(30px, 8vw, 42px); font-weight: 900; letter-spacing: .2em; font-variant-numeric: tabular-nums; }
+.paired-devices-wrap { margin-top: 22px; }
+.paired-devices-wrap h3 { margin: 0; font-size: 16px; }
+.paired-device-list { display: grid; gap: 10px; }
+.paired-device-card { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-2); }
+.paired-device-card strong { color: var(--text); font-size: 13px; }
+.paired-device-card p { margin: 5px 0 0; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+@media (max-width: 520px) { .paired-device-card { align-items: flex-start; flex-direction: column; } }
