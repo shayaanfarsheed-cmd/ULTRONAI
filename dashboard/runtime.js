@@ -59,7 +59,7 @@
 
   function createSingleFlight() {
     let pending = null;
-    return function (operation) {
+    const run = function (operation) {
       if (pending) return pending;
       const current = Promise.resolve().then(operation);
       pending = current;
@@ -67,6 +67,8 @@
         if (pending === current) pending = null;
       });
     };
+    run.reset = function () { pending = null; };
+    return run;
   }
 
   const api = {mapWithConcurrency, validateManifest, scheduleFrame, createSingleFlight,
