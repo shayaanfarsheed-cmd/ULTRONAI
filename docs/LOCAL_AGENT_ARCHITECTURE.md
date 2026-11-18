@@ -1,6 +1,6 @@
 # ULTRON — Local Training Architecture
 
-**Status:** approved design direction. Device pairing and remote device commands are removed. No real training has started.
+**Status:** local-only dummy-worker lifecycle prototype added on branch `runtime/local-dummy-worker`. Device pairing and remote device commands are removed. No real training has started.
 
 ## Security boundary
 
@@ -11,7 +11,7 @@
 - No automatic training on device boot, dashboard load, browser refresh, or reconnection.
 - iPad can open the dashboard and, if the selected training provider offers a notebook UI, operate that provider's own session. iPadOS browser tabs are not assumed to host a persistent Python training process.
 
-## Local control design
+## Implemented prototype boundary (2026-11-18)\n\n- `ultron_local_runtime.py` is a local command-line lifecycle harness that launches only a dummy subprocess. It has no HTTP listener, network client, Supabase integration, provider automation, model import, or training entry point.\n- Commands are explicit on the same device: `python ultron_local_runtime.py start`, `stop`, `status`, and `verify`. The default state directory is `.ultron-local`.\n- Stop is represented by a local stop-request file and observed by the dummy worker at a batch boundary. Checkpoints are written to a temporary file, flushed, atomically replaced, and SHA-256 verified.\n- A lock rejects duplicate starts and fails closed on stale/corrupt lock state; there is no automatic recovery or restart. A terminal status is not considered process-exited until the worker PID is no longer present.\n- **RAM enforcement is not implemented.** A request for a hard RAM cap is refused before process start. The prototype must not be connected to the model or presented as a usable training runtime.\n- The dummy-worker tests are lifecycle tests only; they do not prove OS-level RAM enforcement, process-tree containment, cross-platform behavior, or model checkpoint compatibility.\n\n## Local control design
 
 1. The person at the training runtime chooses a RAM ceiling before starting.
 2. Preflight detects platform support and verifies the selected limit can be enforced for the full training process and its child processes.
@@ -45,7 +45,7 @@ If the platform cannot enforce the selected cap, Start remains disabled and the 
 
 ## Tests required before activation
 
-Use a stub training worker and generated fixtures; do not start the real model. Test RAM cap enforcement and over-cap behavior on each supported OS, child-process containment, graceful stop, stop during batch/checkpoint, timeout escalation, duplicate starts, lease expiry, abrupt process death, corrupt checkpoint recovery, max duration, no auto-restart, and truthful status reporting. Keep actual training disabled until all required tests pass and the owner separately approves activation.
+Use a stub training worker and generated fixtures; do not start the real model. The current dummy prototype covers explicit start, duplicate-start rejection, local stop at a batch boundary, atomic checkpoint verification, corrupt checkpoint rejection, stale-lock fail-closed behavior, and refusal of unsupported hard-RAM-cap requests. Still required before any real runtime: verified RAM cap enforcement and over-cap behavior on each supported OS, child-process containment, stop during checkpoint, timeout escalation, abrupt process death, previous-valid-checkpoint preservation, maximum duration, and truthful process-exit reporting. Keep actual training disabled until all required tests pass and the owner separately approves activation.
 
 ## Retired backend
 
