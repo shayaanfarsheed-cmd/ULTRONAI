@@ -107,8 +107,8 @@ test("bounded response reader rejects an oversized declared length before readin
   assert.equal(read, false);
 });
 
-test("bounded response reader fails closed without streaming or a trustworthy length", async () => {
-  const response = {headers:new Headers(),arrayBuffer:async () => new Uint8Array([1]).buffer};
+test("bounded response reader fails closed without streaming even when a length is declared", async () => {
+  const response = {headers:new Headers({"content-length":"1"}),arrayBuffer:async () => new Uint8Array([1]).buffer};
   await assert.rejects(runtime.readResponseBytes(response, 8), /cannot safely enforce/);
 });
 
