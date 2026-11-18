@@ -34,6 +34,10 @@ class DashboardStaticTests(unittest.TestCase):
         self.assertIn("prefers-reduced-motion: reduce", styles)
         self.assertIn("env(safe-area-inset-top)", styles)
         self.assertIn("env(safe-area-inset-bottom)", styles)
+        self.assertIn("env(safe-area-inset-left)", styles)
+        self.assertIn("env(safe-area-inset-right)", styles)
+        self.assertIn("@media (pointer: coarse)", styles)
+        self.assertIn("min-height: 44px", styles)
 
     def test_all_static_javascript_id_references_exist(self):
         html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
