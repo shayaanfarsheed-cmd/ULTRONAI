@@ -64,7 +64,7 @@
         <section id="view-devices" class="view-section" hidden>
           <div class="section-intro">
             <div>
-              <div class="eyebrow">CONNECTED DEVICE NETWORK</div>
+              <div class="eyebrow">LOCAL TRAINING RUNTIME</div>
               <h2>Local training runtime</h2>
               <p class="muted-text">Use this dashboard from a computer, phone or tablet. ULTRON does not pair devices or accept remote device commands. Training controls will run locally on the device that performs the training.</p>
             </div>
@@ -82,7 +82,7 @@
           </article>
 
           <div class="device-metric-grid">
-            <article class="metric-card panel"><span class="metric-label">DEVICE CONNECTIONS</span><strong id="deviceCountMetric" class="metric-value">0</strong><small>No remote agents are connected</small></article>
+            <article class="metric-card panel"><span class="metric-label">REMOTE AGENTS</span><strong id="deviceCountMetric" class="metric-value">0</strong><small>Remote agents are not part of ULTRON</small></article>
             <article class="metric-card panel"><span class="metric-label">PLATFORM</span><strong class="metric-value">—</strong><small>Not reported</small></article>
             <article class="metric-card panel"><span class="metric-label">TRAINING STATE</span><strong class="metric-value">IDLE</strong><small>No device run has started</small></article>
             <article class="metric-card panel"><span class="metric-label">MEMORY BUDGET</span><strong id="deviceRamLimitValue" class="metric-value numeric">6 GB</strong><small>Saved preference · not enforced</small></article>
@@ -97,7 +97,7 @@
           <article class="panel section-panel">
             <div class="section-heading"><div><div class="eyebrow">DEVICE COMPATIBILITY</div><h2>Capability-based support</h2></div><span class="status-pill">NOT YET VERIFIED</span></div>
             <div class="device-run-grid">
-              <div><span>WINDOWS / MACOS / LINUX</span><strong>Desktop training agents planned; capability checks required</strong></div>
+              <div><span>WINDOWS / MACOS / LINUX</span><strong>Local runtime planned; capability checks required</strong></div>
               <div><span>IPADOS / IOS / ANDROID</span><strong>Dashboard information only; no remote control or background training</strong></div>
               <div><span>DEVICE MEMORY / CPU / GPU</span><strong>Local measurement only; no remote telemetry</strong></div>
               <div><span>TRAINING ELIGIBILITY</span><strong>Determined by runtime and resource preflight</strong></div>
@@ -110,7 +110,7 @@
           </article>
 
           <article class="panel section-panel">
-            <div class="section-heading"><div><div class="eyebrow">LIVE TELEMETRY</div><h2>Device activity</h2></div><span class="small-pill">WAITING FOR AGENT</span></div>
+            <div class="section-heading"><div><div class="eyebrow">LIVE TELEMETRY</div><h2>Device activity</h2></div><span class="small-pill">LOCAL RUNTIME NOT CONNECTED</span></div>
             <div class="device-telemetry">
               <div><span>CPU usage</span><strong>—</strong></div>
               <div><span>RAM in use</span><strong>—</strong></div>
@@ -275,7 +275,7 @@
               </div>
               <span class="small-pill">DEVICE CAPABILITY PENDING</span>
             </div>
-            <p class="muted-text">Choose a preferred maximum memory budget for a future compatible training device. The safe range will be checked against that device's reported memory before training can start.</p>
+            <p class="muted-text">Choose a preferred memory budget for a future local training runtime. This browser setting is only a preference; the local runtime must verify the actual device limits before training can start.</p>
             <div class="ram-control">
               <div class="ram-value-row">
                 <label for="ramLimitSlider">Training memory budget</label>
@@ -284,8 +284,8 @@
               <input id="ramLimitSlider" class="ram-slider" type="range" min="2" max="10" step="0.5" value="6">
               <div class="ram-scale"><span>2 GB · Light</span><span>10 GB · High</span></div>
             </div>
-            <p id="ramLimitStatus" class="notice notice-warn" role="status">Saved on this browser only. It is not enforced on any device until a compatible agent is connected.</p>
-            <p class="fine-print">A compatible device agent must enforce this limit on the full training process before launch. The selected cap must leave enough memory for the operating system and other apps. This controls system RAM, not GPU VRAM.</p>
+            <p id="ramLimitStatus" class="notice notice-warn" role="status">Saved on this browser only. It does not enforce a memory cap or control a training process.</p>
+            <p class="fine-print">A future local runtime must enforce this limit for the full training process and its child processes before launch. The selected cap must leave enough memory for the operating system and other apps. This controls system RAM, not GPU VRAM.</p>
           </article>
           <div class="two-column">
             <article class="panel section-panel">
