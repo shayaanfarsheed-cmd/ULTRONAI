@@ -444,3 +444,14 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible) { outline: none; }
     transition-duration: .01ms !important;
   }
 }
+
+
+/* Respect landscape safe areas and touch-sized controls */
+.page-shell {
+  padding-left: max(clamp(16px, 4vw, 56px), env(safe-area-inset-left));
+  padding-right: max(clamp(16px, 4vw, 56px), env(safe-area-inset-right));
+}
+@media (pointer: coarse) {
+  button:not(.copy-id-button) { min-height: 44px; }
+  .copy-id-button { min-height: 40px; }
+}
