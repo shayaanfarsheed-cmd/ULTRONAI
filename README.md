@@ -1,3 +1,15 @@
+## Authoritative status — 2026-11-18 (updated for pairing security tests)
+
+- Main includes PR #21 at `3815ed379ddd23d0aa3713d0eec02d9e4f39cf2a`; this supersedes the older PR #20 header below.
+- Production Supabase pairing migration is applied; `device-control` is ACTIVE version 2; the owner secret is user-reported as configured.
+- Pairing remains intentionally disabled. No device is paired, no commands are enabled, and no training has started.
+- The Python heartbeat-only agent exists. A supported computer/server must run it; the iPad browser is dashboard/monitor only.
+- Current work is a PR-only local integration/security suite. It uses an isolated Supabase stack in GitHub Actions and does not use production credentials or mutate production.
+- Pairing must remain disabled until the local CI suite passes and hosted `cf-connecting-ip` gateway behavior is independently verified. Any production migration/function deployment or feature-flag change requires a separate reviewed and explicitly approved step.
+- The RAM slider remains a browser preference, not an OS-level memory cap. The project remains $0 and training remains unstarted.
+
+---
+
 # ULTRONAI — Project status and handoff
 
 **Repository:** [shayaanfarsheed-cmd/ULTRONAI](https://github.com/shayaanfarsheed-cmd/ULTRONAI)  
