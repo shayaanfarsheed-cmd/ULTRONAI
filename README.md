@@ -4,8 +4,9 @@
 - The former agent only sent heartbeats and could not execute commands, but it is no longer needed and is being removed.
 - Future training controls must be local to the device running training. The local user selects the RAM ceiling and operates Start/Stop there; the website cannot control another device.
 - Training remains disabled. No checkpoints or training data are deleted.
-- The old Supabase pairing tables are retained inert for auditability; the Edge Function must be retired with a fail-closed response. No direct browser grants are to be added.
-- PR #22 (pairing security tests) is obsolete under this decision and must not be merged.
+- The old Supabase pairing tables are retained inert for auditability; the production Edge Function has been replaced with a fail-closed HTTP 410 response. No direct browser grants are to be added.
+- PR #22 (pairing security tests) is closed and obsolete. PR #23 removes pairing from the repository; it must pass checks and receive final review before merge.
+- Local training architecture and failure-handling plan: docs/LOCAL_AGENT_ARCHITECTURE.md.
 
 ---
 
@@ -74,6 +75,14 @@
 - Test actual iPad/iPadOS Safari and Chrome, iPhone, Android, and desktop browsers, including narrow/wide layouts, refresh, interrupted network, and keyboard/screen-reader navigation. Do not claim device compatibility unless tested on those devices.
 
 ## Next steps for the next session
+
+1. Review and validate PR #23; do not merge until the three required workflows pass and the exact diff is reviewed.
+2. Verify the deployed device-control Edge Function returns HTTP 410 for all methods; do not delete the private historical tables or training data.
+3. After PR #23 merges, verify GitHub Pages deployment and confirm the dashboard contains no pairing controls or calls.
+4. Implement the local-only RAM enforcement and Start/Stop design in docs/LOCAL_AGENT_ARCHITECTURE.md; use stub workers for tests. No remote device control and no real training.
+5. Continue dashboard/frontend validation before any model training.
+
+<!-- Historical next steps from the previous architecture are retained below for audit context. -->
 
 1. Verify the GitHub Pages deployment for merge commit `7b0dc262a2319c00253f106b9122efe13a388063`.
 2. Test owner sign-in and Guest Mode in the deployed website; report the exact UI error if sign-in fails, but never share the password.

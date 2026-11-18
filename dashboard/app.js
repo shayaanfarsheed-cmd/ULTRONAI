@@ -923,8 +923,6 @@
     $("viewName").textContent = labels[view][0];
     $("pageTitle").textContent = labels[view][1];
     if (view === "overview") scheduleChartDraw();
-    if (view === "devices" && hasVerifiedOwnerSession()) {
-    }
     if (view === "checkpoints") loadCheckpointCandidates().then(renderCheckpointList).catch(function (error) {
       showCheckpointNotice(error.message, "warn");
     });
