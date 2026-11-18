@@ -35,13 +35,12 @@
           <button class="nav-button active" type="button" data-view="overview"><span>◈</span> Overview</button>
           <button class="nav-button" type="button" data-view="devices"><span>▣</span> Devices</button>
           <button class="nav-button" type="button" data-view="servers"><span>⌘</span> Servers</button>
-          <button class="nav-button" type="button" data-view="history"><span>≋</span> History</button>
           <button class="nav-button" type="button" data-view="checkpoints"><span>⬡</span> Checkpoints</button>
           <button class="nav-button" type="button" data-view="settings"><span>⚙</span> Settings</button>
         </nav>
         <div class="sidebar-bottom">
-          <div class="sidebar-label">ACCESS MODE</div>
-          <div class="account-email">PUBLIC DASHBOARD · READ ONLY</div>
+          <div class="sidebar-label">ACCESS</div>
+          <div class="account-email">PUBLIC DASHBOARD</div>
         </div>
       </aside>
 
@@ -253,24 +252,6 @@
           </article>
         </section>
 
-        <section id="view-history" class="view-section" hidden>
-          <div class="section-intro">
-            <div>
-              <div class="eyebrow">AUDIT TRAIL</div>
-              <h2>Switch and session history</h2>
-              <p class="muted-text">Notebook sessions and server-switch requests from your private training tables.</p>
-            </div>
-          </div>
-          <article class="panel table-panel">
-            <div class="section-heading"><h2>Switch requests</h2><span id="switchCount" class="small-pill">0</span></div>
-            <div class="table-scroll"><table><thead><tr><th>Requested</th><th>From</th><th>To</th><th>Reason</th><th>Result</th></tr></thead><tbody id="switchHistoryBody"><tr><td colspan="5" class="empty-cell">No switch requests yet.</td></tr></tbody></table></div>
-          </article>
-          <article class="panel table-panel">
-            <div class="section-heading"><h2>Server sessions</h2><span id="sessionCount" class="small-pill">0</span></div>
-            <div class="table-scroll"><table><thead><tr><th>Server</th><th>Started</th><th>Ended</th><th>GPU hours</th><th>Reason</th></tr></thead><tbody id="sessionHistoryBody"><tr><td colspan="5" class="empty-cell">No sessions recorded yet.</td></tr></tbody></table></div>
-          </article>
-        </section>
-
         <section id="view-checkpoints" class="view-section" hidden>
           <div class="section-intro">
             <div>
@@ -316,13 +297,6 @@
               </div>
               <p class="fine-print">This setting does not create accounts, add payment methods, or bypass provider limits.</p>
             </article>
-            <article class="panel section-panel">
-              <div class="eyebrow">ACCOUNT CONFIGURATION</div>
-              <h2>Notebook owner ID</h2>
-              <p class="muted-text">Copy this UUID into the provider secret named <code>SUPABASE_OWNER_ID</code>. It is an account identifier, not an API key.</p>
-              <div class="copy-field"><code id="ownerIdText">Public dashboard · no account session</code></div>
-              <p class="muted-text">The website uses only the Supabase publishable/anon key. The backend secret belongs only in provider Secrets settings.</p>
-            </article>
           </div>
           <article class="panel section-panel">
             <div class="eyebrow">PROVIDER TERMS</div>
@@ -337,22 +311,12 @@
             <p class="muted-text">Release controls remain locked until held-out evaluation and the export pipeline are implemented and tested. Existing model files will never be overwritten.</p>
             <div class="release-status"><span class="status-dot status-warn"></span> Release pipeline not yet enabled</div>
           </article>
-          <article class="panel section-panel">
-            <div class="eyebrow">DATA CONNECTION</div>
-            <h2>Supabase setup</h2>
-            <ol class="setup-list">
-              <li>Expose <code>training_api</code> as the only Data API schema.</li>
-              <li>Create your Auth account and copy its user UUID.</li>
-              <li>Add the <code>sb_secret_</code> key only to provider Secrets settings.</li>
-              <li>Add the publishable/anon key to <code>dashboard/config.js</code>.</li>
-            </ol>
-            <a class="text-link" href="../supabase/SETUP.md" target="_blank" rel="noopener">Open setup instructions ↗</a>
-          </article>
+
         </section>
 
         <footer class="footer-line">
           <span>ULTRON TRAINING CONTROL</span>
-          <span id="footerConnection">PRIVATE DATA · OWNER-ONLY ACCESS</span>
+          <span id="footerConnection">PUBLIC DASHBOARD</span>
         </footer>
       </div>
     </section>
