@@ -90,37 +90,40 @@ Before finishing a chat, verify the current GitHub branch/commit/PR and CI state
 
 ### Latest handoff — 2026-11-18
 
+- **Handoff timestamp:** 2026-11-18 01:08 UTC
 - **Repository:** `shayaanfarsheed-cmd/ULTRONAI`
 - **Active branch:** `fix/session-heartbeat-fail-closed`
 - **Open PR:** [PR #7 — Fail closed when training heartbeat errors approach lease expiry](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/7)
-- **Latest code commit before this README update:** `0974e2e5371410e2e3d62f3fe56f853466fc56fc`
-- **PR status:** open and unmerged. Do not merge without explicit user approval.
+- **Latest verified PR head before this README update:** `73816d36a85d838f7ae42248160dd821af3a7542`
+- **PR status:** open, mergeable, and unmerged. Do not merge without explicit user approval.
 - **Training status:** no live training or provider job has been started.
 
-#### Changes in this session
+#### Changes and files
 
-- In `ultron_session.py`, split local checkpoint persistence into `save_local_checkpoint()`. The unexpected heartbeat-error path now attempts a local-only checkpoint before stopping near lease expiry. It deliberately does not attempt a remote checkpoint commit while the lease is uncertain.
-- In `tests/test_session.py`, added regression tests for local checkpoint preservation/no remote commit on an unexpected heartbeat failure and heartbeat retry throttling.
-- The first CI run exposed a test clock fixture issue (the fake clock did not track the renewed lease deadline). Fixed the fixture in commit `0974e2e5371410e2e3d62f3fe56f853466fc56fc`.
+- `ultron_session.py`: extracted `save_local_checkpoint()`; the generic unexpected heartbeat-error path now saves locally only when the last known lease window is nearly expired, marks the lease lost, and stops without attempting a remote checkpoint commit.
+- `tests/test_session.py`: added regression coverage for local checkpoint preservation/no remote commit on unexpected heartbeat failure and retry throttling.
+- `README.md`: updated this handoff to record verified CI and the next action.
+- The fake-clock fixture was corrected in commit `0974e2e5371410e2e3d62f3fe56f853466fc56fc`; current PR head before this README edit is `73816d36a85d838f7ae42248160dd821af3a7542`.
 
-#### Validation state
+#### Verified validation on PR head `73816d36a85d838f7ae42248160dd821af3a7542`
 
-- The first validation run failed only in the newly added expiry test because of the fake-clock fixture. The retry-throttling regression test passed, and the other tests shown in that run passed.
-- Fresh workflows were triggered for commit `0974e2e5371410e2e3d62f3fe56f853466fc56fc`:
-  - Test suite: [run 44213001317](https://github.com/shayaanfarsheed-cmd/ULTRONAI/actions/runs/44213001317)
-  - Preflight: [run 44213001391](https://github.com/shayaanfarsheed-cmd/ULTRONAI/actions/runs/44213001391)
-  - Training prototype validation: [run 44213001330](https://github.com/shayaanfarsheed-cmd/ULTRONAI/actions/runs/44213001330)
-- At the last check, these jobs were still running during CPU PyTorch installation. Their final conclusions have not yet been verified. Re-check them before claiming success.
-- This README change itself will create another commit and may trigger another CI cycle. Verify the latest PR head and runs after this edit.
+All three latest pull-request workflows completed successfully:
 
-#### Exact next actions for the next chat
+- Test suite: [run 44213388114](https://github.com/shayaanfarsheed-cmd/ULTRONAI/actions/runs/44213388114) — success. Job steps included dashboard JS validation, JSON/notebook validation, secret scan, Python compilation, unit tests, and model/data/checkpoint/training smoke tests.
+- Preflight: [run 44213388095](https://github.com/shayaanfarsheed-cmd/ULTRONAI/actions/runs/44213388095) — success. Job steps included unit tests, model parameter count, generated mathematics data, checkpoint save/restore, training loop and platform preflight.
+- Training prototype validation: [run 44213388127](https://github.com/shayaanfarsheed-cmd/ULTRONAI/actions/runs/44213388127) — success. Job steps included configuration validation, unit/recovery tests, and bounded data/checkpoint/optimizer smoke tests.
+- Each workflow's job and every listed step completed with conclusion `success`.
+- The combined commit-status endpoint returned no individual status entries; the three workflow-run records above are the verified CI evidence.
+- PR diff reviewed: only `README.md`, `tests/test_session.py`, and `ultron_session.py` changed. The two regression tests are present. No review submissions or inline review threads were returned.
+- The README update itself creates a new commit and may trigger another CI cycle. Re-check the new PR head and workflows before treating validation as final for the updated head.
 
-1. Check PR #7's current head SHA and all latest GitHub Actions runs. Do not rely on stale run IDs if the README commit has triggered newer workflows.
-2. Confirm the corrected test `test_unexpected_heartbeat_error_saves_local_checkpoint_without_remote_commit` passes. If it fails, inspect the fake API/clock setup and the actual lease deadline logic; do not weaken the production safety check just to satisfy the test.
-3. Confirm the retry-throttling test and complete unit suite pass, followed by preflight and training-prototype validation.
-4. Inspect `ultron_session.py` to ensure the local-only save writes a valid, recoverable checkpoint before `finish("dead", ...)`, and that no remote mutation occurs when lease validity is uncertain.
-5. Review the final PR diff and report exact test/CI results to the user. Keep PR #7 open and unmerged until the user explicitly approves merging.
-6. After PR #7 is resolved, continue the broader ULTRON roadmap from the older project handoff below, but first reconcile it with the current repository state because those older deployment and device-control notes may be stale.
+#### Exact next actions
+
+1. Verify the README update commit became the new PR head and check all workflows on that exact SHA.
+2. If the README-only commit passes CI, report PR #7 as fully validated and ask the user whether they explicitly approve merging. Do not merge without that approval.
+3. If the README-only commit triggers failures, inspect and fix them on the same branch, rerun validation, and update this handoff again.
+4. After PR #7 is merged with explicit approval, reconcile the older roadmap below against current repository state, then resume secure Windows training-agent implementation. Do not start training or cloud jobs.
+5. Keep secrets such as `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SUPABASE_OWNER_ID`, `HF_TOKEN`, and `HF_REPO_ID` in provider secret managers only; never ask for or record their values.
 
 ## Current development status and next-chat handoff
 
