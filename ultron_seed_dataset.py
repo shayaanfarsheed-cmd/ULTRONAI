@@ -105,6 +105,8 @@ def scan_dataset(
         ):
             raise DatasetScanError(f"{task_dir.name}: metadata.theorems is invalid")
 
+        if len(set(theorems)) != len(theorems):
+            raise DatasetScanError(f"{task_dir.name}: repeated theorem identifier within task")
         duplicate_theorems = seen_theorems.intersection(theorems)
         if duplicate_theorems:
             raise DatasetScanError(
@@ -113,6 +115,8 @@ def scan_dataset(
             )
 
         task_json = json.loads((task_dir / "tests/task.json").read_text(encoding="utf-8"))
+        if not isinstance(task_json, dict):
+            raise DatasetScanError(f"{task_dir.name}: tests/task.json must contain an object")
         comparator = task_json.get("comparator")
         comparator_theorems = comparator.get("theorem_names") if isinstance(comparator, dict) else None
         if comparator_theorems != theorems:
