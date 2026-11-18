@@ -22,7 +22,9 @@
       </span>
     </a>
     <div class="topbar-right">
-      <span id="connectionBadge" class="connection-badge">NOT CONNECTED</span>
+      <span id="connectionBadge" class="connection-badge">GUEST MODE</span>
+      <button id="ownerSignInButton" class="secondary-button" type="button">Owner sign in</button>
+      <button id="ownerSignOutButton" class="quiet-button" type="button" hidden>Sign out</button>
       <button id="themeToggle" class="icon-button" type="button" aria-label="Toggle light and dark mode">◐</button>
     </div>
   </header>
@@ -321,5 +323,22 @@
       </div>
     </section>
   </main>
+  <dialog id="ownerSignInDialog" class="auth-dialog" aria-labelledby="ownerSignInTitle">
+    <form id="ownerSignInForm" class="auth-card" method="dialog">
+      <div class="eyebrow">RESTRICTED ACCESS</div>
+      <h2 id="ownerSignInTitle">Owner sign in</h2>
+      <p class="muted-text">Sign in to the single ULTRON owner account. Guest access does not require an account.</p>
+      <label for="ownerEmail">Email</label>
+      <input id="ownerEmail" name="email" type="email" autocomplete="username" required maxlength="254">
+      <label for="ownerPassword">Password</label>
+      <input id="ownerPassword" name="password" type="password" autocomplete="current-password" required minlength="8" maxlength="256">
+      <p id="ownerAuthMessage" class="notice" role="status" hidden></p>
+      <div class="auth-actions">
+        <button id="ownerCancelButton" class="quiet-button" type="button">Cancel</button>
+        <button id="ownerSubmitButton" class="primary-button" type="submit">Sign in</button>
+      </div>
+      <p class="fine-print">Account creation is disabled. If owner authentication has not been configured, Guest Mode remains available.</p>
+    </form>
+  </dialog>
 </body>
 </html>
