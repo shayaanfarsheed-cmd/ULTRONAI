@@ -55,7 +55,7 @@
 - [x] Disable Kaggle in provider registry and add regression tests.
 - [x] Strengthen exact configuration validation and add negative owner/guest/platform/Kaggle regression tests.
 - [x] Remove Kaggle from supported runtime platforms and reject direct Kaggle runtime selection.
-- [ ] Re-run JSON validation, Python unit tests, compile checks, JavaScript syntax checks and all CI workflows on the new exact PR head after correcting the stale Kaggle runtime tests.
+- [x] Re-run JSON validation, Python unit tests, compile checks, JavaScript syntax checks and all three CI workflows on exact head `e7147271f97bdca90e1ecdb568c353f16d48a865`; all three workflows passed. A later README-only handoff sync requires another exact-head CI run.
 - [x] Review changed-file inventory and open PR #10; final review remains subject to exact-head CI. Do not merge without explicit approval.
 
 ## Explicitly not done
@@ -74,4 +74,4 @@ The follow-up review identified permissive configuration checks and missing nega
 - Tests cover invalid cases and direct runtime rejection.
 - The first exact-head CI run exposed two pre-existing runtime tests that still chose Kaggle; both now use the enabled Google Colab profile, and the dead Kaggle runtime profile was removed. The failure was in stale tests, not the new policy validator.
 
-The README now contains a current repair handoff and warns against following stale instructions that imply owner authentication is already available. **All validation results must be rechecked on the final resulting PR head; previous green checks are not sufficient.**
+The README now contains a current repair handoff and warns against following stale instructions that imply owner authentication is already available. All three workflows passed on `e7147271f97bdca90e1ecdb568c353f16d48a865`; the subsequent README/audit synchronization requires a fresh exact-head CI run before merge.
