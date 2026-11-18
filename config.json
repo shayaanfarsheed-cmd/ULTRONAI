@@ -46,10 +46,19 @@
     "memory_limit_gb_maximum": 10,
     "memory_limit_step_gb": 0.5,
     "reserve_system_memory_gb": 6,
-    "enforcement": "windows_job_object",
+    "enforcement": "platform_specific_verified",
     "enforce_before_training_process_starts": true,
     "limit_scope": "entire_training_job",
-    "gpu_vram_is_separate": true
+    "gpu_vram_is_separate": true,
+    "platform_enforcement": {
+      "windows": "job_objects",
+      "linux": "cgroups_v2",
+      "macos": "unverified_disabled",
+      "ipados": "monitoring_only",
+      "ios": "monitoring_only",
+      "android": "monitoring_only",
+      "browser": "monitoring_only"
+    }
   },
   "runtime": {
     "platform_detection": true,
@@ -209,7 +218,6 @@
     "mark_switch_done_on_first_valid_heartbeat": true,
     "only_one_active_lease_holder": true,
     "platform_allowlist": [
-      "kaggle",
       "github_actions_cpu"
     ],
     "manual_only_platforms": [
@@ -319,5 +327,21 @@
     "minimum_gpu_tokens_per_second": 0,
     "warmup_steps_before_speed_check": 20,
     "slow_gpu_switch_enabled": false
+  },
+  "access": {
+    "owner_account_limit": 1,
+    "public_self_registration_enabled": false,
+    "owner_authentication_required_for_private_operations": true,
+    "guest_mode_enabled": true,
+    "guest_permissions": [
+      "public_dashboard",
+      "public_mathematics_information"
+    ],
+    "guest_denied_permissions": [
+      "private_training_history",
+      "private_checkpoints",
+      "device_pairing",
+      "remote_training_controls"
+    ]
   }
 }
