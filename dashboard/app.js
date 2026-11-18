@@ -898,6 +898,7 @@
     });
     const labels = {
       overview: ["OVERVIEW", "System overview"],
+      learning: ["HOW ULTRON LEARNS", "Learning system"],
       activity: ["ACTIVITY", "Training activity"],
       servers: ["SERVERS", "Free compute servers"],
       checkpoints: ["CHECKPOINTS", "Verified checkpoints"],
