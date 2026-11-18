@@ -43,6 +43,17 @@ class DashboardStaticTests(unittest.TestCase):
         self.assertIn("setAccessMode(restoredOwner)", javascript)
         self.assertIn('$("ownerPassword").value = ""', javascript)
 
+    def test_session_refresh_is_single_flight_and_invalidated_on_auth_transition(self):
+        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
+        self.assertIn("let sessionRefreshPromise = null;", javascript)
+        self.assertIn("if (sessionRefreshPromise) return sessionRefreshPromise;", javascript)
+        self.assertIn("if (sessionRefreshPromise === refreshPromise) sessionRefreshPromise = null;", javascript)
+        access_mode = javascript.split("function setAccessMode(isOwner)", 1)[1].split("async function verifyOwnerSession", 1)[0]
+        self.assertIn("sessionRefreshPromise = null;", access_mode)
+        refresh = javascript.split("async function ensureSession()", 1)[1].split("async function apiRequest", 1)[0]
+        self.assertIn("generation !== state.authGeneration", refresh)
+        self.assertIn("state.session.refresh_token !== refreshToken", refresh)
+
     def test_private_api_and_storage_require_verified_owner_mode(self):
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
         self.assertIn("function hasVerifiedOwnerSession()", javascript)
