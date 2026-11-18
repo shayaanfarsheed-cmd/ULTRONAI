@@ -32,12 +32,12 @@ Reviewed implementation proposal only. It is not active until the database migra
 4. Configure Edge Function secrets SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_SERVICE_ROLE_KEY in Supabase secrets. Never put the service-role key in GitHub or browser code.
 5. Implement and security-review a compatible device agent before enabling pairing in the dashboard.
 6. Add rate limiting at the Edge Function/gateway layer before public deployment. The database caps guesses per challenge; it does not replace per-IP throttling.
-7. Add gateway/IP-level rate limiting and integration tests against a disposable Supabase project, including concurrent redemption, owner isolation (including a second authenticated user), expired/used codes, revocation, and credential redaction.
+7. Run integration tests against a disposable Supabase project, including concurrent redemption, owner isolation (including a second authenticated user), expired/used codes, rate-limit windows, revocation, and credential redaction.
 
 ## Known limitations
 
 - Control-plane foundation only. No agent installer, OS keychain integration, device command channel, training control, or resource enforcement is included.
 - Heartbeat payloads are not yet deeply schema-validated. Do not treat reported capabilities as trusted for training eligibility.
 - A device credential is a bearer token; production agent code must store it in the OS credential vault and support local credential deletion.
-- The initial code uses SHA-256 for the eight-digit code. Keep the short expiry and attempt cap; add edge-level IP throttling before production use.
+- The initial code uses SHA-256 for the eight-digit code. Keep the short expiry and attempt cap. Challenge creation and redemption are limited to 10 requests per minute per Cloudflare-provided client IP; only a hash of the IP plus endpoint label is stored. Confirm the gateway header behavior and rate-limit window using integration tests before production use.
 - No migration or function has been deployed to production by this change.
