@@ -161,6 +161,29 @@ def validate_project_config(config: Mapping[str, Any], servers: Mapping[str, Any
     if constraints.get("paid_compute_allowed") is not False:
         errors.append("Paid compute must remain disabled")
 
+    access = config.get("access", {})
+    if access.get("owner_account_limit") != 1:
+        errors.append("ULTRON must have exactly one owner account")
+    if access.get("public_self_registration_enabled") is not False:
+        errors.append("Public self-registration must remain disabled")
+    if access.get("owner_authentication_required_for_private_operations") is not True:
+        errors.append("Private operations must require verified owner authentication")
+    if access.get("guest_mode_enabled") is not True:
+        errors.append("Guest Mode must remain enabled")
+    required_guest_denials = {
+        "private_training_history", "private_checkpoints",
+        "device_pairing", "remote_training_controls",
+    }
+    if not required_guest_denials.issubset(set(access.get("guest_denied_permissions", []))):
+        errors.append("Guest Mode must deny all private training and device operations")
+
+    enforcement = config.get("local_training", {}).get("platform_enforcement", {})
+    for platform_name in ("windows", "linux", "macos", "ipados", "ios", "android", "browser"):
+        if not enforcement.get(platform_name):
+            errors.append(f"Missing resource-enforcement policy for {platform_name}")
+    if config.get("switching", {}).get("platform_allowlist") and "kaggle" in config["switching"]["platform_allowlist"]:
+        errors.append("Kaggle must remain excluded from automatic provider selection")
+
     server_items = servers.get("servers", [])
     server_ids = [item.get("id") for item in server_items]
     if len(server_ids) != len(set(server_ids)):
