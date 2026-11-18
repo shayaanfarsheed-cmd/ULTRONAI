@@ -49,10 +49,10 @@
 - [x] Verify main and PR #4 state.
 - [x] Inspect README, account/setup docs, agent architecture, dashboard entry points, config, provider registry, dependencies and workflows.
 - [x] Create this file-by-file repair audit.
-- [ ] Update README with the authoritative product architecture and this handoff.
-- [ ] Rewrite conflicting setup and device-agent documentation.
-- [ ] Add machine-readable access and platform-enforcement policy to config.
-- [ ] Disable Kaggle in provider registry and add regression tests.
+- [x] Update README with the authoritative product architecture and this handoff.
+- [x] Rewrite conflicting setup and device-agent documentation.
+- [x] Add machine-readable access and platform-enforcement policy to config.
+- [x] Disable Kaggle in provider registry and add regression tests.
 - [ ] Run JSON validation, Python unit tests, compile checks, JavaScript syntax checks and all CI workflows on the exact PR head.
 - [ ] Review final diff and open PR; do not merge without explicit approval.
 
