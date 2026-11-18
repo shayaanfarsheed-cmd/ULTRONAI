@@ -38,7 +38,7 @@
         <nav class="side-nav" aria-label="Dashboard sections">
           <button class="nav-button active" type="button" data-view="overview" aria-current="page"><span>◈</span> Overview</button>
           <button class="nav-button" type="button" data-view="activity"><span>≋</span> Activity</button>
-          <button class="nav-button" type="button" data-view="devices"><span>▣</span> Devices</button>
+          <button class="nav-button" type="button" data-view="devices"><span>▣</span> Local training</button>
           <button class="nav-button" type="button" data-view="servers"><span>⌘</span> Servers</button>
           <button class="nav-button" type="button" data-view="checkpoints"><span>⬡</span> Checkpoints</button>
           <button class="nav-button" type="button" data-view="settings"><span>⚙</span> Settings</button>
@@ -65,18 +65,18 @@
           <div class="section-intro">
             <div>
               <div class="eyebrow">CONNECTED DEVICE NETWORK</div>
-              <h2>Your training devices</h2>
+              <h2>Local training runtime</h2>
               <p class="muted-text">Use this dashboard from a computer, phone or tablet. ULTRON does not pair devices or accept remote device commands. Training controls will run locally on the device that performs the training.</p>
             </div>
-            <span class="status-pill">NO DEVICES CONNECTED</span>
+            <span class="status-pill">LOCAL-ONLY</span>
           </div>
 
           <article class="panel device-device-hero">
             <div class="device-device-icon">▣</div>
             <div class="device-device-copy">
-              <div class="eyebrow">DEVICE CONNECTION</div>
-              <h2>ULTRON device agent</h2>
-              <p class="muted-text">Device pairing has been removed. Training must be started and stopped locally on the training device.</p>
+              <div class="eyebrow">LOCAL RUNTIME</div>
+              <h2>Training runs where it is started</h2>
+              <p class="muted-text">No remote device agent is used. The local user controls the training process directly.</p>
             </div>
             <span class="status-pill">NOT CONNECTED</span>
           </article>
@@ -98,27 +98,15 @@
             <div class="section-heading"><div><div class="eyebrow">DEVICE COMPATIBILITY</div><h2>Capability-based support</h2></div><span class="status-pill">NOT YET VERIFIED</span></div>
             <div class="device-run-grid">
               <div><span>WINDOWS / MACOS / LINUX</span><strong>Desktop training agents planned; capability checks required</strong></div>
-              <div><span>IPADOS / IOS / ANDROID</span><strong>Dashboard monitoring and control; local training not promised</strong></div>
-              <div><span>DEVICE MEMORY / CPU / GPU</span><strong>Reported locally by the training device; not connected to this dashboard</strong></div>
+              <div><span>IPADOS / IOS / ANDROID</span><strong>Dashboard information only; no remote control or background training</strong></div>
+              <div><span>DEVICE MEMORY / CPU / GPU</span><strong>Local measurement only; no remote telemetry</strong></div>
               <div><span>TRAINING ELIGIBILITY</span><strong>Determined by runtime and resource preflight</strong></div>
             </div>
           </article>
 
           <article class="panel section-panel">
-            <div class="section-heading"><div><div class="eyebrow">TRAINING CONTROLS</div><h2>Device run control</h2></div><span class="status-pill">LOCKED UNTIL VERIFIED</span></div>
-            <p class="muted-text">Controls activate only after a device is authenticated, its capability and memory limits are verified, resource enforcement is confirmed, and the server grants a valid single-writer training lease.</p>
-            <div class="control-row device-controls">
-              <button class="primary-button" type="button" disabled>Start training</button>
-              <button class="secondary-button" type="button" disabled>Pause</button>
-              <button class="secondary-button" type="button" disabled>Resume</button>
-              <button class="quiet-button" type="button" disabled>Stop</button>
-            </div>
-            <div class="device-run-grid">
-              <div><span>MODEL</span><strong>ULTRON · 4.04M parameters</strong></div>
-              <div><span>INITIALIZATION</span><strong>Random weights</strong></div>
-              <div><span>DATA</span><strong>Generated mathematics</strong></div>
-              <div><span>VERIFICATION</span><strong>Independent verifier</strong></div>
-            </div>
+            <div class="section-heading"><div><div class="eyebrow">LOCAL START / STOP</div><h2>Controls stay on the training device</h2></div><span class="status-pill">NOT IMPLEMENTED</span></div>
+            <p class="muted-text">This hosted dashboard cannot start, pause, resume, or stop another device. The future local runtime will provide the RAM selector and Start/Stop buttons directly beside the training process. Training is currently disabled.</p>
           </article>
 
           <article class="panel section-panel">

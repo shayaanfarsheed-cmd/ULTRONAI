@@ -918,7 +918,7 @@
       servers: ["SERVERS", "Free compute servers"],
       checkpoints: ["CHECKPOINTS", "Verified checkpoints"],
       settings: ["SETTINGS", "System settings"],
-      devices: ["CONNECTED DEVICES", "Connected devices"]
+      devices: ["LOCAL TRAINING", "Local training"]
     };
     $("viewName").textContent = labels[view][0];
     $("pageTitle").textContent = labels[view][1];
