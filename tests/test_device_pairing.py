@@ -16,6 +16,8 @@ class DevicePairingStaticTests(unittest.TestCase):
             self.assertIn('id="' + element_id + '"', html)
             self.assertIn('$("' + element_id + '")', app)
         self.assertIn("assertOwnerAccess(session)", app)
+        self.assertIn("generation !== state.authGeneration", app)
+        self.assertIn("button.disabled = !hasVerifiedOwnerSession()", app)
         self.assertIn('if (view === "devices" && hasVerifiedOwnerSession())', app)
         self.assertIn("data-revoke-device", app)
 
