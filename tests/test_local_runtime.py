@@ -33,7 +33,7 @@ class LocalDummyRuntimeTests(unittest.TestCase):
             self.assertFalse(_pid_exists(4321))
 
     def test_linux_running_process_is_reported_as_running(self):
-        running_stat = "4321 (python worker with spaces) R 1 4321 4321 0 -1 0 0 0 0 0 0 0 0 20 0 1 0 12345"
+        running_stat = "4321 (python worker with spaces) R 1 4321 4321 0 -1 0 0 0 0 0 0 0 0 0 20 0 1 0 12345"
         with patch.object(Path, "read_text", return_value=running_stat):
             self.assertTrue(_pid_exists(4321))
 
