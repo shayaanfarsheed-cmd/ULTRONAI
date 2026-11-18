@@ -330,3 +330,12 @@ A merge commit brought current main into the PR branch while preserving the PR h
 6. Keep PR #4 open and unmerged until explicit approval.
 7. Do not deploy Supabase changes, pair devices, install agents, start live training, or enable dashboard controls.
 8. Update this handoff with actual fresh CI run IDs/results before ending the next work session.
+
+## Stage 2 — Threat model and state-machine review (2026-11-18)
+
+- Added `docs/DEVICE_CONTROL_THREAT_MODEL.md` on PR #4 branch.
+- Covers assets, actors, trust assumptions, 18 threat scenarios, pairing/device/command/credential/lease/process-shutdown state machines, 20 failure-injection cases, residual risks, and approval gates.
+- Reaffirms the public dashboard remains no-login/no-sign-up. Device pairing and privileged controls remain disabled until a separately approved owner-authorization design exists.
+- This is documentation only. No Supabase schema/RLS/grants, Edge Functions, production secrets, device pairing, agent deployment, live training, paid services, or billing were changed or started.
+- Next: review the threat model against the command contract, then design Stage 3 backend contracts and SQL for review only. Do not deploy or alter Supabase without explicit approval.
+- Keep PR #4 open and unmerged until explicit approval.
