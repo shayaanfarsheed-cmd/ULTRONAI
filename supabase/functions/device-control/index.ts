@@ -73,7 +73,7 @@ Deno.serve(async (request) => {
       const deviceName = body.device_name;
       const platform = body.platform;
       const capabilities = body.capabilities && typeof body.capabilities === "object" ? body.capabilities : {};
-      const platforms = ["windows", "macos", "linux", "ios", "ipados", "android", "other"];
+      const platforms = ["windows", "macos", "linux", "other"];
       if (!/^[0-9a-f-]{36}$/i.test(challengeId) || !/^\d{8}$/.test(code) ||
           !validName(deviceName) || !platforms.includes(platform) || Array.isArray(capabilities) ||
           JSON.stringify(capabilities).length > 4096) return json({ error: "Invalid pairing payload." }, 400);
