@@ -14,6 +14,7 @@
   const RAM_LIMIT_KEY = "ultron_training_ram_limit_gb";
   const POLL_MS = 15000;
   const STALE_SECONDS = 720;
+  let sessionRefreshPromise = null;
 
   const $ = function (id) { return document.getElementById(id); };
   const state = {
@@ -115,7 +116,10 @@
 
   function setAccessMode(isOwner) {
     const nextPublicMode = !isOwner;
-    if (state.publicMode !== nextPublicMode) state.authGeneration += 1;
+    if (state.publicMode !== nextPublicMode) {
+      state.authGeneration += 1;
+      sessionRefreshPromise = null;
+    }
     state.publicMode = nextPublicMode;
     if (!isOwner) {
       const previousUserId = state.user && state.user.id;
@@ -278,14 +282,33 @@
       expireOwnerSession();
       throw new Error("Your login expired. Please sign in again.");
     }
+    if (sessionRefreshPromise) return sessionRefreshPromise;
+
+    const refreshToken = state.session.refresh_token;
+    const generation = state.authGeneration;
+    const refreshPromise = (async function () {
+      try {
+        const data = await authRequest("token?grant_type=refresh_token", {refresh_token: refreshToken});
+        const next = sessionFromResponse(data);
+        if (generation !== state.authGeneration || !state.session ||
+            state.session.refresh_token !== refreshToken) {
+          throw new Error("The owner session changed while its token was refreshing.");
+        }
+        saveSession(next);
+        return next;
+      } catch (_) {
+        if (generation === state.authGeneration && state.session &&
+            state.session.refresh_token === refreshToken) {
+          expireOwnerSession();
+        }
+        throw new Error("Your owner session expired. Please sign in again.");
+      }
+    })();
+    sessionRefreshPromise = refreshPromise;
     try {
-      const data = await authRequest("token?grant_type=refresh_token", {refresh_token: state.session.refresh_token});
-      const next = sessionFromResponse(data);
-      saveSession(next);
-      return next;
-    } catch (_) {
-      expireOwnerSession();
-      throw new Error("Your owner session expired. Please sign in again.");
+      return await refreshPromise;
+    } finally {
+      if (sessionRefreshPromise === refreshPromise) sessionRefreshPromise = null;
     }
   }
 
