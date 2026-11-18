@@ -32,7 +32,7 @@ class DevicePairingStaticTests(unittest.TestCase):
         self.assertIn("for update", migration)
         self.assertIn("attempts >= 5", migration)
         self.assertIn("consumed_at", migration)
-        self.assertIn("security definer", migration)
+        self.assertIn("security invoker", migration)
         self.assertIn("grant execute on function", migration)
 
     def test_edge_function_verifies_owner_and_uses_one_time_device_tokens(self):
@@ -52,6 +52,9 @@ class DevicePairingStaticTests(unittest.TestCase):
         self.assertIn("[functions.device-control]", config)
         self.assertIn("verify_jwt = false", config)
         self.assertIn("ownerFromRequest(request)", function)
+        self.assertIn("ULTRON_OWNER_USER_ID", function)
+        self.assertIn("data.user.id !== OWNER_USER_ID", function)
+        self.assertIn("Array.isArray(capabilities)", function)
         self.assertIn("Device authentication required", function)
 
     def test_dashboard_does_not_contain_service_role_or_device_token(self):
