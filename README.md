@@ -6,6 +6,13 @@
 **Current working branch:** `fix/bounded-checkpoint-streams`  
 **Draft PR #13:** [Enforce checkpoint download limits while streaming](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/13) — open, not merged.
 
+## CI coverage for stacked pull requests — in progress
+
+- Root cause: `preflight-tests.yml` and `training-prototype.yml` limited their pull-request trigger to base branch `main`. A stacked dashboard PR targeting `fix/bounded-checkpoint-streams` therefore received only the unfiltered Test Suite workflow.
+- Fix in progress on this branch: remove only the base-branch filter from the two `pull_request` triggers. Push branch filters remain unchanged; no test steps or permissions are weakened.
+- PR #14 Test Suite run `44243965660` passed on head `745df11a933123a863ae19161a3cec85ae51052b`. Preflight and Training Prototype Validation have not yet run for PR #14.
+- After this change, verify all three workflows on the exact updated PR #13 and PR #14 heads.
+
 ## Latest code review and follow-up
 
 - Reviewed the merged PR #12 source, runtime helpers, checkpoint paths, behavioural tests, and handoff documentation.
