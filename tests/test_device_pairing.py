@@ -34,6 +34,8 @@ class DevicePairingStaticTests(unittest.TestCase):
         self.assertIn("consumed_at", migration)
         self.assertIn("security invoker", migration)
         self.assertIn("grant execute on function", migration)
+        self.assertIn("ultron_pairing_rate_limits", migration)
+        self.assertIn("consume_ultron_pairing_rate_limit", migration)
 
     def test_edge_function_verifies_owner_and_uses_one_time_device_tokens(self):
         function = (ROOT / "supabase" / "functions" / "device-control" / "index.ts").read_text(encoding="utf-8")
@@ -55,6 +57,8 @@ class DevicePairingStaticTests(unittest.TestCase):
         self.assertIn("ULTRON_OWNER_USER_ID", function)
         self.assertIn("data.user.id !== OWNER_USER_ID", function)
         self.assertIn("Array.isArray(capabilities)", function)
+        self.assertIn("allowPairingRequest(request, \"redeem\", 10)", function)
+        self.assertIn("cf-connecting-ip", function)
         self.assertIn("Device authentication required", function)
 
     def test_dashboard_does_not_contain_service_role_or_device_token(self):
