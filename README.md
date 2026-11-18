@@ -24,6 +24,7 @@ The static dashboard is in `dashboard/`. The repository root redirects to it.
 - **Active branch:** `ui/public-dashboard-no-personal-history`
 - **Pull request:** [#8 — Remove public read-only messaging and personal training history](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/8)
 - **PR head before this fix:** `cf76192bb030cb55e53a8aacc7c260790f5eb5ed`
+- **Frontend cleanup commit:** `207b3331dd300583fd6adbe5c9bd7206ad181e09` — removes the obsolete history renderer and owner-ID DOM reference.
 - **PR state:** open and unmerged. Do not merge without the user's explicit approval.
 
 ### User-facing dashboard requirements
@@ -44,11 +45,11 @@ GitHub Actions runs reported failing on 2026-11-18:
 
 All three failed at the same unit test, `test_all_static_javascript_id_references_exist`. The dashboard HTML had removed the personal history and owner-ID elements while `dashboard/app.js` still contained unused references to `switchCount`, `sessionCount`, `switchHistoryBody`, `sessionHistoryBody`, and `ownerIdText`. This was a stale frontend reference issue; later smoke steps were skipped. The first fix removes the obsolete history renderer and owner-ID DOM reference rather than restoring the removed UI.
 
-**Validation status:** the above runs failed. The fix must be committed to this branch, then all three workflows must be rerun and confirmed green. Do not claim success until new runs complete.
+**Validation status:** the original three runs failed on the stale DOM references. The frontend cleanup commit above is now on the PR branch. Fresh workflows triggered for that commit: test suite run `44214532032`, prototype validation run `44214532537`, and preflight run `44214531838`; all were `in_progress` at the last check. A README handoff-only follow-up commit is also being made and may trigger another CI set. Fetch the latest PR head and confirm its checks before calling this fixed. Do not claim success until all latest-head runs complete green.
 
 ### Exact next steps for the next chat
 
-1. Read this current-status section first. Fetch the latest PR #8 head SHA; it may have changed after this README update.
+1. Read this current-status section first. Fetch the latest PR #8 head SHA; the README-only handoff commit may have advanced it beyond the frontend cleanup commit recorded above.
 2. Inspect `dashboard/app.js` and ensure public mode never queries, stores, or renders account-specific logs, switch requests, owner IDs, or personal checkpoint history. Remove obsolete unreachable account/history code where safe; preserve public system/server information.
 3. Run `node --check dashboard/app.js`, the dashboard static tests, and the complete Python unit suite locally or through CI.
 4. Verify checkpoint verification, device pairing, automatic starts, and all training controls remain disabled in the public dashboard.
