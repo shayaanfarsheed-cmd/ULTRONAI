@@ -1,3 +1,16 @@
+## Reasoning-model architecture update — 2026-11-18
+
+- New design roadmap is being prepared on branch `architecture/reasoning-model-roadmap`: [docs/REASONING_MODEL_ARCHITECTURE.md](docs/REASONING_MODEL_ARCHITECTURE.md).
+- The repository already contains a from-scratch, randomly initialized decoder-only Transformer baseline: 4,038,478 parameters, 5 layers, 256 hidden dimensions, 8 attention heads, character-level tokenizer, and 192-character context.
+- Existing math data generation, independent verification, supervised training mechanics, topic evaluation, and held-out curriculum controller are implemented. Their tests validate mechanics, not broad mathematical competence.
+- The 192-character context remains below the earlier 1024-token target; resolve tokenizer/context design before a full training run.
+- Planned additions: bounded test-time candidate generation, deterministic specialist routing, independent verification, evaluation by held-out topic/difficulty, and only later verifier-rewarded optimization if evidence justifies it.
+- No additional moderation/filter pipeline is planned for the initial math prototype, as requested. Essential input validation, resource bounds, tool allowlists, and checkpoint integrity remain.
+- PR #25 local dummy-worker prototype remains **open and unmerged**. All three required workflows passed on exact head `ebf5e323c7b909dc0b9eca9185df1f8e6b5ce20f` (runs `44306585275`, `44306585191`, `44306585229`). Do not merge without explicit approval.
+- No real model training has started or been authorized. The dashboard remains read-only for training operations; no device pairing or remote control.
+
+---
+
 ## Authoritative security update — 2026-11-18
 
 - **PR #24 is merged** at `23f87a0a8176626781824d550341d6bed05d22d5`. All three PR checks passed on the exact reviewed PR head `95067c881d0a255da638d151e2f96f09870ba0f4`.
@@ -25,9 +38,10 @@
 ## Current priorities
 
 1. Finish and validate the dashboard/frontend before starting any model training.
-2. Test owner authentication and Guest Mode against the deployed website.
-3. Keep the website usable on iPad/iPhone, Android, and desktop browsers.
-4. Keep all work within the $0 budget.
+2. Review and validate PR #25; it is open/unmerged and must not be merged without explicit approval.
+3. Implement the bounded reasoning controller and specialist modules under docs/REASONING_MODEL_ARCHITECTURE.md.
+4. Resolve tokenizer/context design (192-character implementation versus earlier 1024-token target) before a full training run.
+5. Test owner authentication, Guest Mode, and iPad/browser compatibility; keep all work within the $0 budget.
 
 ## Recently merged work
 
