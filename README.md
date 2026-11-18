@@ -79,3 +79,14 @@
 - No database migration or Edge Function has been applied to production. No device agent exists yet; a code alone cannot connect a device until a compatible agent is implemented.
 - Pairing does not start training or acquire the training lease. Device-reported capabilities are untrusted until validated by a future agent.
 - Before production deployment, add edge/gateway per-IP throttling and disposable-project integration tests for concurrent redemption, expiry, attempt lockout, owner isolation, revocation, and secret redaction.
+
+
+## Device pairing PR #18 — security review update
+
+- Draft PR: [Build secure device pairing control plane](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/18).
+- Implements owner-only pairing challenge creation, one-time redemption, hashed device credentials, device registry/revocation, and heartbeat endpoint.
+- Security review correction: Edge Function now checks the verified Auth user against `ULTRON_OWNER_USER_ID`; the database consume function uses `SECURITY INVOKER` and is executable only by service_role; a newly issued code invalidates older outstanding challenges; capability payloads must be JSON objects within the size limit.
+- Pairing dashboard stays disabled unless `window.ULTRON_CONFIG.deviceControlEnabled === true`.
+- Production deployment still requires explicit approval, migration application, Edge Function deployment, secrets (including the owner Auth UUID) configured in Supabase, and gateway/IP rate limiting.
+- A compatible OS-level agent and disposable-project integration tests are not complete. The iPad browser cannot run this background agent; it can only act as the owner dashboard/monitor unless a native iPad app is later built.
+- No production Supabase changes, device pairing, device commands, or training have occurred.
