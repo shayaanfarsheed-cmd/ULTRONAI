@@ -1141,7 +1141,7 @@
       return;
     }
     container.innerHTML = state.dataFiles.map(function (file) {
-      const name = safeDataFileName(file.name);
+      const name = safeDataRelativePath(file.name);
       const size = Number(file.metadata && file.metadata.size || file.size || 0);
       const updated = file.updated_at || file.created_at || "";
       return '<article class="data-file-card"><div class="data-file-main"><strong>' + escapeHtml(name) + '</strong><small>' + escapeHtml(formatNumber(size / 1048576, 2)) + ' MB · ' + escapeHtml(formatDateTime(updated)) + '</small></div><div class="data-file-actions"><button class="secondary-button" type="button" data-data-download="' + escapeHtml(name) + '">Download</button><button class="quiet-button" type="button" data-data-delete="' + escapeHtml(name) + '">Delete</button></div></article>';
@@ -1205,7 +1205,7 @@
     let totalBytes = 0;
     let skipped = 0;
     for (const file of files) {
-      const name = safeDataFileName(file.name);
+      const name = safeDataRelativePath(file.name);
       const lower = name.toLowerCase();
       if (!ASK_TEXT_EXTENSIONS.some(function (extension) { return lower.endsWith(extension); })) {
         skipped += 1;
@@ -1352,7 +1352,7 @@
 
   async function deleteDataFile(name) {
     if (!hasVerifiedOwnerSession()) throw new Error("Owner sign-in is required.");
-    const safeName = safeDataFileName(name);
+    const safeName = safeDataRelativePath(name);
     if (!window.confirm("Delete " + safeName + " from the shared ULTRON data library? This affects every browser.")) return;
     await dataLibraryRequest("object/" + DATA_LIBRARY_BUCKET, "DELETE", {prefixes: [state.user.id + "/" + safeName]}, false);
     showDataLibraryNotice("Deleted " + safeName + " from the cloud library.", "success");
