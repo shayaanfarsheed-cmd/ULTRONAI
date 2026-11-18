@@ -136,6 +136,22 @@ class DeviceCommandContractTests(unittest.TestCase):
                 del candidate["fencing_token"]
                 self.assert_schema_invalid(candidate)
 
+    def test_pause_and_resume_reject_start_or_stop_only_parameters(self):
+        for action in ("pause", "resume"):
+            for key, value in (("memory_limit_mb", 2048), ("checkpoint_on_stop", True)):
+                with self.subTest(action=action, key=key):
+                    candidate = command_for(action)
+                    candidate["parameters"][key] = value
+                    self.assert_schema_invalid(candidate)
+
+    def test_stop_rejects_memory_budget_but_allows_checkpoint_flag(self):
+        candidate = command_for("stop")
+        candidate["parameters"]["memory_limit_mb"] = 2048
+        self.assert_schema_invalid(candidate)
+        candidate = command_for("stop")
+        candidate["parameters"]["checkpoint_on_stop"] = True
+        self.validator.validate(candidate)
+
     def test_status_rejects_parameters(self):
         candidate = command_for("status")
         candidate["parameters"] = {"run_id": RUN_ID}
