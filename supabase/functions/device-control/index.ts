@@ -104,8 +104,12 @@ Deno.serve(async (request) => {
       const token = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/, "");
       if (!/^[a-f0-9]{64}$/.test(token)) return json({ error: "Device authentication required." }, 401);
       const body = await request.json().catch(() => ({}));
+      const capabilities = body.capabilities && typeof body.capabilities === "object" ? body.capabilities : {};
+      if (Array.isArray(capabilities) || JSON.stringify(capabilities).length > 4096) {
+        return json({ error: "Invalid heartbeat capabilities." }, 400);
+      }
       const { data, error } = await admin.from("ultron_devices")
-        .update({ last_seen_at: new Date().toISOString(), capabilities: body.capabilities || {} })
+        .update({ last_seen_at: new Date().toISOString(), capabilities: capabilities })
         .eq("token_hash", await sha256(token)).eq("status", "paired")
         .select("id").maybeSingle();
       if (error) throw error;
