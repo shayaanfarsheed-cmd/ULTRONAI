@@ -731,7 +731,13 @@ def run_training_session(
                             lease_lost = True
                         return finish("dead", "database_unreachable_lease_expiring")
                 except Exception as error:
-                    last_error = type(error).__name__
+                    # A failed heartbeat must not cause a tight retry loop or allow
+                    # training to continue beyond the last locally known lease window.
+                    last_error = "heartbeat_failed:" + type(error).__name__
+                    last_heartbeat = monotonic()
+                    if monotonic() >= lease_deadline - 30:
+                        lease_lost = True
+                        return finish("dead", "heartbeat_failed_lease_expiring")
 
             batch = stream.next_batch(tokenizer.stoi[" "])
             try:
