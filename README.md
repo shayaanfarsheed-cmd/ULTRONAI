@@ -5,7 +5,7 @@
 - Future training controls must be local to the device running training. The local user selects the RAM ceiling and operates Start/Stop there; the website cannot control another device.
 - Training remains disabled. No checkpoints or training data are deleted.
 - The old Supabase pairing tables are retained inert for auditability; the production Edge Function has been replaced with a fail-closed HTTP 410 response. No direct browser grants are to be added.
-- PR #22 (pairing security tests) is closed and obsolete. PR #23 removes pairing from the repository; its latest CI passed, and final review/merge status must be checked.
+- PR #22 (pairing security tests) is closed and obsolete. PR #23 was reviewed and merged on 2026-11-18; merge commit: `acd9b8a20aac4552592a1b3fa7b72b9d2513bf2c`. All three required PR workflows passed on its exact head.
 - Local training architecture and failure-handling plan: docs/LOCAL_AGENT_ARCHITECTURE.md.
 
 ---
@@ -15,7 +15,7 @@
 **Repository:** [shayaanfarsheed-cmd/ULTRONAI](https://github.com/shayaanfarsheed-cmd/ULTRONAI)  
 **Dashboard:** [GitHub Pages](https://shayaanfarsheed-cmd.github.io/ULTRONAI/)  
 **Main branch:** `main`  
-**Latest merged work:** PR #21 — dashboard deployment-status correction, merged at `3815ed379ddd23d0aa3713d0eec02d9e4f39cf2a`.
+**Latest merged work:** PR #23 — remove remote device pairing and require local training controls, merged at `acd9b8a20aac4552592a1b3fa7b72b9d2513bf2c`.
 
 ## Current priorities
 
@@ -76,11 +76,11 @@
 
 ## Next steps for the next session
 
-1. Review and validate PR #23; do not merge until the three required workflows pass and the exact diff is reviewed.
-2. Verify the deployed device-control Edge Function returns HTTP 410 for all methods; do not delete the private historical tables or training data.
-3. After PR #23 merges, verify GitHub Pages deployment and confirm the dashboard contains no pairing controls or calls.
-4. Implement the local-only RAM enforcement and Start/Stop design in docs/LOCAL_AGENT_ARCHITECTURE.md; use stub workers for tests. No remote device control and no real training.
-5. Continue dashboard/frontend validation before any model training.
+1. Verify the GitHub Pages deployment for merge commit `acd9b8a20aac4552592a1b3fa7b72b9d2513bf2c` and inspect the live Local training page for any remaining pairing UI or remote API calls.
+2. Verify the production `device-control` Edge Function still fails closed with HTTP 410; the direct HTTP invocation test was not available during this work. Keep the historical pairing tables inert and private.
+3. Begin the local-only runtime design/implementation described in `docs/LOCAL_AGENT_ARCHITECTURE.md`: first a stub worker and state machine, then verified RAM enforcement and safe Stop/checkpoint behavior. No remote device control.
+4. Keep training disabled. Do not start real training until the user separately approves it after implementation and validation.
+5. Continue completing and testing the website/frontend on iPad and other browsers before model training.
 
 <!-- Historical next steps from the previous architecture are retained below for audit context. -->
 
@@ -91,7 +91,9 @@
 5. Continue dashboard UX and real-device testing. Do not start real training until the user explicitly approves it.
 
 
-## Retired device-pairing work package (historical record)
+## Retired device-pairing work package (historical record — superseded by PR #23)
+
+All earlier pairing implementation notes later in this README are historical only. They do not describe the current product or authorize restoring pairing, device agents, remote commands, or training.
 
 - Device pairing was implemented and deployed temporarily, then retired at the owner's request in November 2026.
 - The repository no longer contains the pairing UI/API client or Python heartbeat agent. The production Edge Function now fails closed with HTTP 410.
