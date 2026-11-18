@@ -60,7 +60,7 @@
     const badge = $("connectionBadge");
     badge.textContent = label;
     badge.className = "connection-badge" + (kind ? " " + kind : "");
-    $("footerConnection").textContent = kind === "stale" ? "OUT OF DATE · SHOWING LAST KNOWN STATUS" : "PRIVATE DATA · OWNER-ONLY ACCESS";
+    $("footerConnection").textContent = kind === "stale" ? "PUBLIC STATUS · OUT OF DATE" : "PUBLIC DASHBOARD";
   }
 
   function isConfigured() {
@@ -584,19 +584,6 @@
     }).join("");
   }
 
-  function renderHistory() {
-    $("switchCount").textContent = state.switches.length + " requests";
-    $("sessionCount").textContent = state.logs.length + " sessions";
-    const switchBody = $("switchHistoryBody");
-    switchBody.innerHTML = state.switches.length ? state.switches.slice(0,100).map(function (item) {
-      return "<tr><td>" + escapeHtml(formatDateTime(item.requested_at)) + "</td><td>" + escapeHtml(item.from_server || "—") + "</td><td>" + escapeHtml(item.to_server || "—") + "</td><td>" + escapeHtml(item.reason || "—") + "</td><td>" + escapeHtml(item.result || "waiting") + "</td></tr>";
-    }).join("") : '<tr><td colspan="5" class="empty-cell">No switch requests yet.</td></tr>';
-    const sessionBody = $("sessionHistoryBody");
-    sessionBody.innerHTML = state.logs.length ? state.logs.slice(0,200).map(function (item) {
-      return "<tr><td>" + escapeHtml(item.server_name || "—") + (item.manual ? " · manual" : "") + "</td><td>" + escapeHtml(formatDateTime(item.started_at)) + "</td><td>" + escapeHtml(formatDateTime(item.ended_at)) + "</td><td>" + escapeHtml(formatNumber(Number(item.gpu_seconds || 0) / 3600, 2)) + "</td><td>" + escapeHtml(item.end_reason || (item.ended_at ? "unknown" : "running")) + "</td></tr>";
-    }).join("") : '<tr><td colspan="5" class="empty-cell">No sessions recorded yet.</td></tr>';
-  }
-
   function renderSettings() {
     $("autoStartToggle").checked = false;
     $("autoStartToggle").disabled = state.publicMode;
@@ -608,7 +595,6 @@
       if (localRamValue) localRamValue.textContent = state.ramLimitGb + " GB";
       $("ramLimitStatus").textContent = "Saved on this browser only. It is not enforced on a connected device yet.";
     }
-    $("ownerIdText").textContent = state.user ? state.user.id : "—";
     const review = state.projectConfig.terms_review || {};
     const intervalDays = Number(review.reminder_interval_days || 90);
     const lastReview = review.last_reviewed_date || "2026-11-17";
@@ -627,6 +613,10 @@
 
   function renderCheckpointList() {
     const container = $("checkpointList");
+    if (state.publicMode) {
+      container.innerHTML = '<div class="empty-state panel">Checkpoint access is locked on the public dashboard. No personal checkpoint history is loaded or displayed.</div>';
+      return;
+    }
     if (!state.status || !state.status.run_id) {
       container.innerHTML = '<div class="empty-state panel">Start a training run before managing checkpoints.</div>';
       return;
@@ -657,7 +647,6 @@
     renderMastery();
     drawChart();
     renderServers();
-    renderHistory();
     renderSettings();
     renderCheckpointList();
   }
@@ -673,7 +662,6 @@
     const labels = {
       overview: ["OVERVIEW", "System overview"],
       servers: ["SERVERS", "Free compute servers"],
-      history: ["HISTORY", "Switch and session history"],
       checkpoints: ["CHECKPOINTS", "Verified checkpoints"],
       settings: ["SETTINGS", "System settings"],
       devices: ["CONNECTED DEVICES", "Connected devices"]
@@ -1016,9 +1004,9 @@
     await loadServerRegistry();
     state.user = null;
     state.session = null;
-    setConnection("PUBLIC MODE", "connected");
-    $("lastUpdated").textContent = "Public dashboard · private training data is protected";
-    showNotice("Public read-only mode. Account-specific training history, checkpoints, device pairing and training controls remain locked. No login or sign-up is required.", "warn");
+    setConnection("PUBLIC", "connected");
+    $("lastUpdated").textContent = "Public system information · no personal training history";
+    showNotice("Public dashboard. No account or sign-in is required. Personal training history is not collected or displayed; checkpoints, device pairing and training controls are unavailable.", "info");
     renderAll();
   }
 

@@ -16,6 +16,49 @@ The dashboard Settings page now includes a 2–10 GB RAM budget slider (0.5 GB i
 
 The static dashboard is in `dashboard/`. The repository root redirects to it.
 
+## Current status — 2026-11-18 (PR #8 handoff)
+
+**This section supersedes older operational and handoff notes below wherever they conflict.**
+
+- **Repository:** `shayaanfarsheed-cmd/ULTRONAI`
+- **Active branch:** `ui/public-dashboard-no-personal-history`
+- **Pull request:** [#8 — Remove public read-only messaging and personal training history](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/8)
+- **PR head before this fix:** `cf76192bb030cb55e53a8aacc7c260790f5eb5ed`
+- **Frontend cleanup commit:** `207b3331dd300583fd6adbe5c9bd7206ad181e09` — removes the obsolete history renderer and owner-ID DOM reference.
+- **PR state:** open and unmerged. Do not merge without the user's explicit approval.
+
+### User-facing dashboard requirements
+
+- The dashboard is public; no login or sign-up is required.
+- Do not collect, load, cache, or display account-specific training history.
+- Do not display a public-read-only-mode label or warning.
+- Checkpoint access, device pairing, and training controls remain unavailable/locked. Do not enable them as part of this UI cleanup.
+- No live training or provider jobs have been started. No backend schema or secrets were changed.
+
+### PR #8 CI failure diagnosis
+
+GitHub Actions runs reported failing on 2026-11-18:
+
+- Preflight: run `44213979810`, job `134499064277`
+- Test suite: run `44213979643`, job `134499063447`
+- Training prototype validation: run `44213979639`, job `134499063456`
+
+All three failed at the same unit test, `test_all_static_javascript_id_references_exist`. The dashboard HTML had removed the personal history and owner-ID elements while `dashboard/app.js` still contained unused references to `switchCount`, `sessionCount`, `switchHistoryBody`, `sessionHistoryBody`, and `ownerIdText`. This was a stale frontend reference issue; later smoke steps were skipped. The first fix removes the obsolete history renderer and owner-ID DOM reference rather than restoring the removed UI.
+
+**Validation status:** the original three runs failed on the stale DOM references. The frontend cleanup commit above is now on the PR branch. Fresh workflows triggered for that commit: test suite run `44214532032`, prototype validation run `44214532537`, and preflight run `44214531838`; all were `in_progress` at the last check. A README handoff-only follow-up commit is also being made and may trigger another CI set. Fetch the latest PR head and confirm its checks before calling this fixed. Do not claim success until all latest-head runs complete green.
+
+### Exact next steps for the next chat
+
+1. Read this current-status section first. Fetch the latest PR #8 head SHA; the README-only handoff commit may have advanced it beyond the frontend cleanup commit recorded above.
+2. Inspect `dashboard/app.js` and ensure public mode never queries, stores, or renders account-specific logs, switch requests, owner IDs, or personal checkpoint history. Remove obsolete unreachable account/history code where safe; preserve public system/server information.
+3. Run `node --check dashboard/app.js`, the dashboard static tests, and the complete Python unit suite locally or through CI.
+4. Verify checkpoint verification, device pairing, automatic starts, and all training controls remain disabled in the public dashboard.
+5. Inspect fresh CI runs for the updated PR head. Fix failures and rerun; do not bypass tests.
+6. Keep PR #8 open and unmerged until the user explicitly approves merging.
+7. Before ending any future chat/context handoff, update this README again with the actual branch, latest commit SHA, PR state, CI results, and next exact actions.
+
+
+
 Before the dashboard can sign in, edit `dashboard/config.js` and replace `sb_publishable_REPLACE_WITH_YOUR_KEY` with the Supabase publishable/anon key for the `ultron-memory` project. This key is public by design. Never put an `sb_secret_...` key in this file.
 
 To publish with GitHub Pages:
