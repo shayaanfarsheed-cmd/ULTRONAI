@@ -1312,8 +1312,8 @@
   async function loadPairedDevices() {
     if (!DEVICE_CONTROL_ENABLED) {
       state.pairedDevices = [];
-      $("pairedDeviceList").textContent = "Pairing backend is staged but not deployed. No device records are being requested.";
       renderPairedDevices();
+      $("pairedDeviceList").textContent = "Pairing backend is staged but not deployed. No device records are being requested.";
       return;
     }
     if (!hasVerifiedOwnerSession()) {
