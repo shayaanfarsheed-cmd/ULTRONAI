@@ -29,6 +29,8 @@
     switches: [],
     servers: [],
     checkpoints: [],
+    dataFiles: [],
+    dataLibraryBusy: false,
     currentView: "overview",
     lastUpdated: null,
     stale: false,
@@ -136,6 +138,7 @@
       state.logs = [];
       state.switches = [];
       state.checkpoints = [];
+      state.dataFiles = [];
       state.quota = {};
       state.lastUpdated = null;
       state.stale = false;
@@ -215,6 +218,7 @@
       $("ownerSignInDialog").close();
       showNotice("Owner session verified. Private data requests use the authenticated session.", "success");
       await refreshData();
+      if (state.currentView === "data") await loadDataLibrary();
     } catch (error) {
       saveSession(null);
       setAccessMode(false);
@@ -883,6 +887,7 @@
     renderServers();
     renderSettings();
     renderCheckpointList();
+    renderDataLibrary();
   }
 
   function switchView(view) {
@@ -902,12 +907,14 @@
       activity: ["ACTIVITY", "Training activity"],
       servers: ["SERVERS", "Free compute servers"],
       checkpoints: ["CHECKPOINTS", "Verified checkpoints"],
+      data: ["DATA LIBRARY", "Owner data library"],
       settings: ["SETTINGS", "System settings"],
       devices: ["LOCAL TRAINING", "Local training"]
     };
     $("viewName").textContent = labels[view][0];
     $("pageTitle").textContent = labels[view][1];
     if (view === "overview") scheduleChartDraw();
+    if (view === "data") loadDataLibrary().catch(function (error) { showDataLibraryNotice(error.message, "error"); });
     if (view === "checkpoints") loadCheckpointCandidates().then(renderCheckpointList).catch(function (error) {
       showCheckpointNotice(error.message, "warn");
     });
@@ -1067,6 +1074,139 @@
     if (button.hasAttribute("data-checkpoint-download")) return downloadCheckpoint(id);
   }
 
+  const DATA_LIBRARY_BUCKET = "data-library";
+  const DATA_LIBRARY_MAX_BYTES = 20 * 1024 * 1024;
+
+  function showDataLibraryNotice(message, kind) {
+    const box = $("dataLibraryNotice");
+    if (!box) return;
+    box.textContent = message;
+    box.className = "notice" + (kind ? " notice-" + kind : "");
+    box.hidden = !message;
+  }
+
+  function safeDataFileName(value) {
+    const name = String(value || "").trim();
+    if (!/^[A-Za-z0-9][A-Za-z0-9._ -]{0,179}$/.test(name) || name === "." || name === ".." || name.startsWith(".")) {
+      throw new Error("Use a simple file name (1–180 characters), without folders or hidden-file names.");
+    }
+    return name;
+  }
+
+  async function dataLibraryRequest(path, method, body, fileBlob, binary) {
+    const session = await ensureSession();
+    assertOwnerAccess(session);
+    const headers = {"apikey": PUBLISHABLE_KEY, "Authorization": "Bearer " + session.access_token};
+    if (body != null && !fileBlob) headers["Content-Type"] = "application/json";
+    if (fileBlob) {
+      headers["Content-Type"] = "application/octet-stream";
+      headers["x-upsert"] = "true";
+    }
+    const response = await fetch(STORAGE_ROOT + path, {
+      method: method,
+      headers: headers,
+      body: body == null ? undefined : (fileBlob ? fileBlob : JSON.stringify(body)),
+      cache: "no-store"
+    });
+    if (!response.ok) {
+      const rawError = await response.text();
+      const errorData = rawError ? (function () { try { return JSON.parse(rawError); } catch (_) { return rawError; } })() : null;
+      if (response.status === 401) expireOwnerSession();
+      throw new Error(errorData && (errorData.message || errorData.error) || "Private data library request failed (" + response.status + ").");
+    }
+    if (binary) return response.arrayBuffer();
+    const raw = await response.text();
+    const data = raw ? (function () { try { return JSON.parse(raw); } catch (_) { return raw; } })() : null;
+    return data;
+  }
+
+  function renderDataLibrary() {
+    const container = $("dataFileList");
+    if (!container) return;
+    if (!hasVerifiedOwnerSession()) {
+      state.dataFiles = [];
+      container.innerHTML = '<p class="empty-state">Private library locked. Sign in to the verified owner account.</p>';
+      $("dataSyncStatus").textContent = "No private files are loaded in Guest Mode.";
+      return;
+    }
+    if (!state.dataFiles.length) {
+      container.innerHTML = '<p class="empty-state">No files uploaded yet. Choose a file above to add the first item.</p>';
+      return;
+    }
+    container.innerHTML = state.dataFiles.map(function (file) {
+      const name = safeDataFileName(file.name);
+      const size = Number(file.metadata && file.metadata.size || file.size || 0);
+      const updated = file.updated_at || file.created_at || "";
+      return '<article class="data-file-card"><div class="data-file-main"><strong>' + escapeHtml(name) + '</strong><small>' + escapeHtml(formatNumber(size / 1048576, 2)) + ' MB · ' + escapeHtml(formatDateTime(updated)) + '</small></div><div class="data-file-actions"><button class="secondary-button" type="button" data-data-download="' + escapeHtml(name) + '">Download</button><button class="quiet-button" type="button" data-data-delete="' + escapeHtml(name) + '">Delete</button></div></article>';
+    }).join("");
+  }
+
+  async function loadDataLibrary() {
+    if (!hasVerifiedOwnerSession()) {
+      state.dataFiles = [];
+      renderDataLibrary();
+      return [];
+    }
+    const generation = state.authGeneration;
+    const ownerId = state.user.id;
+    const listed = await dataLibraryRequest("object/list/" + DATA_LIBRARY_BUCKET, "POST", {
+      prefix: ownerId, limit: 500, offset: 0, sortBy: {column: "name", order: "asc"}
+    }, false);
+    if (generation !== state.authGeneration || !hasVerifiedOwnerSession() || state.user.id !== ownerId) return [];
+    state.dataFiles = (Array.isArray(listed) ? listed : []).filter(function (item) {
+      return item && typeof item.name === "string" && item.name && item.name.indexOf("/") === -1 && item.name !== "." && item.name !== "..";
+    }).sort(function (a, b) { return a.name.localeCompare(b.name); });
+    $("dataSyncStatus").textContent = "Cloud library · " + state.dataFiles.length + " file(s) · last synced " + new Date().toLocaleTimeString();
+    renderDataLibrary();
+    return state.dataFiles;
+  }
+
+  async function uploadDataFile() {
+    if (!hasVerifiedOwnerSession()) throw new Error("Sign in to the verified owner account before uploading.");
+    const input = $("dataFileInput");
+    const file = input.files && input.files[0];
+    if (!file) throw new Error("Choose a file first.");
+    if (file.size < 1 || file.size > DATA_LIBRARY_MAX_BYTES) throw new Error("Files must be between 1 byte and 20 MiB.");
+    const name = safeDataFileName(file.name);
+    const button = $("dataUploadButton");
+    if (state.dataLibraryBusy) return;
+    state.dataLibraryBusy = true;
+    button.disabled = true;
+    try {
+      await dataLibraryRequest("object/" + DATA_LIBRARY_BUCKET + "/" + objectPath([state.user.id, name]), "POST", file, true);
+      input.value = "";
+      showDataLibraryNotice("Uploaded " + name + ". Other signed-in browsers will see it on their next sync.", "success");
+      await loadDataLibrary();
+    } finally {
+      state.dataLibraryBusy = false;
+      button.disabled = false;
+    }
+  }
+
+  async function downloadDataFile(name) {
+    if (!hasVerifiedOwnerSession()) throw new Error("Owner sign-in is required.");
+    const safeName = safeDataFileName(name);
+    const bytes = await dataLibraryRequest("object/authenticated/" + DATA_LIBRARY_BUCKET + "/" + objectPath([state.user.id, safeName]), "GET", null, false, true);
+    const blob = new Blob([bytes], {type: "application/octet-stream"});
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = safeName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(function () { URL.revokeObjectURL(url); }, 30000);
+  }
+
+  async function deleteDataFile(name) {
+    if (!hasVerifiedOwnerSession()) throw new Error("Owner sign-in is required.");
+    const safeName = safeDataFileName(name);
+    if (!window.confirm("Delete " + safeName + " from the shared ULTRON data library? This affects every browser.")) return;
+    await dataLibraryRequest("object/" + DATA_LIBRARY_BUCKET, "DELETE", {prefixes: [state.user.id + "/" + safeName]}, false);
+    showDataLibraryNotice("Deleted " + safeName + " from the cloud library.", "success");
+    await loadDataLibrary();
+  }
+
   function applyTheme(theme) {
     document.body.setAttribute("data-theme", theme);
     try { localStorage.setItem(THEME_KEY, theme); } catch (_) {}
@@ -1116,6 +1256,20 @@
     });
 
 
+    $("dataUploadForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+      uploadDataFile().catch(function (error) { showDataLibraryNotice(error.message, "error"); });
+    });
+    $("dataRefreshButton").addEventListener("click", function () {
+      loadDataLibrary().catch(function (error) { showDataLibraryNotice(error.message, "error"); });
+    });
+    $("dataFileList").addEventListener("click", function (event) {
+      const button = event.target.closest("[data-data-download], [data-data-delete]");
+      if (!button) return;
+      const name = button.getAttribute("data-data-download") || button.getAttribute("data-data-delete");
+      const action = button.hasAttribute("data-data-download") ? downloadDataFile : deleteDataFile;
+      action(name).catch(function (error) { showDataLibraryNotice(error.message, "error"); });
+    });
     $("checkpointList").addEventListener("click", function (event) {
       const button = event.target.closest("[data-checkpoint-verify], [data-checkpoint-download]");
       if (button) handleCheckpointAction(button).catch(function (error) { showCheckpointNotice(error.message, "error"); });
@@ -1129,8 +1283,17 @@
       }
     }
     document.addEventListener("visibilitychange", function () {
-      if (!document.hidden && state.user) refreshData();
+      if (!document.hidden && state.user) {
+        refreshData();
+        if (hasVerifiedOwnerSession()) loadDataLibrary().catch(function () {});
+      }
     });
+    window.setInterval(function () {
+      if (!document.hidden && hasVerifiedOwnerSession()) {
+        refreshData();
+        loadDataLibrary().catch(function () {});
+      }
+    }, 20000);
   }
 
   async function init() {
