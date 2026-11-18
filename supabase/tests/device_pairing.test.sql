@@ -1,6 +1,6 @@
 begin;
 
-select plan(18);
+select plan(19);
 
 select ok(
   not has_table_privilege('anon', 'public.ultron_devices', 'SELECT')
@@ -11,6 +11,11 @@ select ok(
   not has_table_privilege('anon', 'public.ultron_pairing_challenges', 'SELECT')
   and not has_table_privilege('authenticated', 'public.ultron_pairing_challenges', 'SELECT'),
   'pairing challenges are not directly readable by browser roles'
+);
+select ok(
+  not has_table_privilege('anon', 'public.ultron_pairing_rate_limits', 'SELECT')
+  and not has_table_privilege('authenticated', 'public.ultron_pairing_rate_limits', 'SELECT'),
+  'rate-limit records are not directly readable by browser roles'
 );
 select ok(
   not has_function_privilege('anon', 'public.consume_ultron_pairing_challenge(uuid,text,text,text,jsonb,text)', 'EXECUTE')
