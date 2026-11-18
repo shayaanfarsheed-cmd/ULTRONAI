@@ -1,6 +1,6 @@
 begin;
 
-select plan(13);
+select plan(18);
 
 select ok(
   not has_table_privilege('anon', 'public.ultron_devices', 'SELECT')
@@ -21,6 +21,27 @@ select ok(
   not has_function_privilege('anon', 'public.consume_ultron_pairing_rate_limit(text,integer,integer)', 'EXECUTE')
   and not has_function_privilege('authenticated', 'public.consume_ultron_pairing_rate_limit(text,integer,integer)', 'EXECUTE'),
   'rate-limit RPC is not executable by browser roles'
+);
+
+select ok(
+  (select relrowsecurity from pg_class where oid = 'public.ultron_devices'::regclass),
+  'device registry has row-level security enabled'
+);
+select ok(
+  (select relrowsecurity from pg_class where oid = 'public.ultron_pairing_challenges'::regclass),
+  'pairing challenges have row-level security enabled'
+);
+select ok(
+  (select relrowsecurity from pg_class where oid = 'public.ultron_pairing_rate_limits'::regclass),
+  'rate-limit records have row-level security enabled'
+);
+select ok(
+  not (select prosecdef from pg_proc where oid = 'public.consume_ultron_pairing_challenge(uuid,text,text,text,jsonb,text)'::regprocedure),
+  'challenge consume RPC runs as security invoker'
+);
+select ok(
+  not (select prosecdef from pg_proc where oid = 'public.consume_ultron_pairing_rate_limit(text,integer,integer)'::regprocedure),
+  'rate-limit RPC runs as security invoker'
 );
 
 insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at)
