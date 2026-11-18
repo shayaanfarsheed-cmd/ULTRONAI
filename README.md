@@ -12,6 +12,7 @@
 - The old Supabase pairing tables are retained inert for auditability; the production Edge Function has been replaced with a fail-closed HTTP 410 response. No direct browser grants are to be added.
 - PR #22 (pairing security tests) is closed and obsolete. PR #23 was reviewed and merged on 2026-11-18; merge commit: `acd9b8a20aac4552592a1b3fa7b72b9d2513bf2c`. All three required PR workflows passed on its exact head.
 - Local training architecture and failure-handling plan: docs/LOCAL_AGENT_ARCHITECTURE.md.
+- **PR #25 remains open and unmerged.** Head `5dae93694ae158693c5674413696488c0de6d3e5` failed all three required workflows because Linux zombie worker PIDs were treated as still executing. A targeted Linux `/proc` state fix and regression tests are now on the branch; rerun all required checks on the latest head before final review or merge. Do not weaken process-exit assertions.
 
 ---
 
