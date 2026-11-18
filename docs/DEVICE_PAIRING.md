@@ -41,7 +41,7 @@ Coverage includes:
 - Two concurrent redemption requests yielding exactly one successful device credential.
 - Owner isolation using a second authenticated test user.
 - Device revocation and rejection of subsequent heartbeats.
-- Per-IP challenge endpoint rate limiting (10 allowed; the 11th rejected).
+- Per-IP challenge-creation and redemption endpoint rate limiting (10 allowed; the 11th rejected for each endpoint).
 - SHA-256-only storage for challenge codes and device credentials, plus a check that local function logs do not contain test secrets.
 
 Run locally with Docker, Node.js 22+, and the Supabase CLI:
