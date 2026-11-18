@@ -17,7 +17,7 @@
 - PR #13 remains open, draft, and unmerged. This mobile-accessibility branch is separate and is not yet a pull request.
 - No backend changes, account provisioning, secrets, pairing, provider jobs, or training.
 
-**Next:** resolve CI coverage for stacked PR #14 (current workflows are filtered to pull requests targeting `main`), review the final diff, and perform real-device checks. Keep both PRs unmerged until their exact final heads are validated. Continue frontend work before any training.
+**Next:** verify all three workflows on PR #14's updated head after the base branch CI repair, review the final diff, and perform real-device checks. Keep both PRs unmerged until their exact final heads are validated. Continue frontend work before any training.
 
 ## Latest code review and follow-up
 
