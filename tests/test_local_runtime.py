@@ -28,7 +28,7 @@ class LocalDummyRuntimeTests(unittest.TestCase):
         self.fail(f"Timed out waiting for {expected}; last status={last!r}")
 
     def test_linux_zombie_is_reported_as_exited(self):
-        zombie_stat = "4321 (python worker) Z 1 4321 4321 0 -1 0 0 0 0 0 0 0 0 20 0 1 0 12345"
+        zombie_stat = "4321 (python worker) Z 1 4321 4321 0 -1 0 0 0 0 0 0 0 0 0 20 0 1 0 12345"
         with patch.object(Path, "read_text", return_value=zombie_stat):
             self.assertFalse(_pid_exists(4321))
 
@@ -38,7 +38,7 @@ class LocalDummyRuntimeTests(unittest.TestCase):
             self.assertTrue(_pid_exists(4321))
 
     def test_linux_reused_pid_is_not_mistaken_for_original_worker(self):
-        current_stat = "4321 (unrelated process) R 1 4321 4321 0 -1 0 0 0 0 0 0 0 0 20 0 1 0 99999"
+        current_stat = "4321 (unrelated process) R 1 4321 4321 0 -1 0 0 0 0 0 0 0 0 0 20 0 1 0 99999"
         with patch.object(Path, "read_text", return_value=current_stat):
             self.assertFalse(_pid_exists(4321, expected_start_ticks=12345))
 
