@@ -1309,7 +1309,7 @@
       await refreshData();
     } else {
       $("lastUpdated").textContent = "Public system information · no personal training history";
-      showNotice("Guest Mode is active. Public information is available without an account. Training remains disabled until local device controls and resource safeguards are validated.", "info");
+      showNotice("Guest Mode is active. Public information is available without an account. Private training status, history, checkpoints and device controls are not loaded in Guest Mode. Training remains disabled until local device controls and resource safeguards are validated.", "info");
     }
     renderAll();
   }
