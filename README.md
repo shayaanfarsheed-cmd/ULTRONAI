@@ -34,7 +34,8 @@
 ## Validation state
 
 - PR #11's three GitHub Actions checks passed on its validated head before merge.
-- The optimization branch has not yet been validated. Run all repository workflows against its final exact commit before proposing a PR.
+- All three GitHub Actions workflows passed on implementation commit `e1729ef735157bf45dc5c514d8bddc2335235dbb`: Test Suite run `44236200315`, Training Prototype Validation run `44236200378`, and Preflight run `44236200390`.
+- This README validation sync creates a newer branch commit; rerun all three workflows against the new exact PR head before treating the branch as fully validated.
 - Compatibility testing across iPad/iPhone/Android/desktop remains a separate required phase after feature implementation and code repair.
 
 ---
