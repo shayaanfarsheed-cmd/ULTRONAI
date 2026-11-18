@@ -191,21 +191,6 @@
             <div><span>LEASE</span><strong id="leaseState">—</strong></div>
           </div>
 
-          <div class="panel section-panel">
-            <div class="section-heading">
-              <div>
-                <div class="eyebrow">QUICK CONTROLS</div>
-                <h2>Training controls</h2>
-              </div>
-            </div>
-            <div class="control-row">
-              <button id="switchNowButton" class="primary-button" type="button">Switch now</button>
-              <button id="pauseButton" class="secondary-button" type="button">Pause training</button>
-              <button id="resumeButton" class="secondary-button" type="button">Resume training</button>
-              <button id="safeResumeButton" class="secondary-button" type="button">Safe resume</button>
-            </div>
-            <p class="fine-print">Pause and switch requests are handled by the active notebook at its next heartbeat. A new server must acquire the database lease before it can train.</p>
-          </div>
         </section>
 
         <section id="view-activity" class="view-section" hidden>
@@ -232,25 +217,11 @@
             <div>
               <div class="eyebrow">ORDERED ROTATION</div>
               <h2>Free compute servers</h2>
-              <p class="muted-text">The list and order come from <code>servers.json</code>. Account availability is not guessed.</p>
+              <p class="muted-text">The list and order come from <code>servers.json</code>. Provider availability is not guaranteed. This page cannot start or control training.</p>
             </div>
             <a class="text-link" href="../servers.json" target="_blank" rel="noopener">Edit server list ↗</a>
           </div>
           <div id="serverList" class="server-list"></div>
-          <article class="panel section-panel manual-hours" hidden>
-            <div class="section-heading">
-              <div>
-                <div class="eyebrow">QUOTA ADJUSTMENT</div>
-                <h2>Add a missed session</h2>
-              </div>
-            </div>
-            <form id="manualHoursForm" class="manual-form">
-              <label>Server<select id="manualServer" required></select></label>
-              <label>GPU hours<input id="manualHours" type="number" min="0.01" max="1000" step="0.01" required placeholder="1.5"></label>
-              <label>Note<input id="manualNote" type="text" maxlength="160" placeholder="Session not recorded automatically"></label>
-              <button class="secondary-button" type="submit">Add manual usage</button>
-            </form>
-          </article>
         </section>
 
         <section id="view-checkpoints" class="view-section" hidden>
