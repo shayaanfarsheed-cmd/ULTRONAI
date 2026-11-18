@@ -15,6 +15,7 @@
   const POLL_MS = 15000;
   const STALE_SECONDS = 720;
   let sessionRefreshPromise = null;
+  let chartDrawPending = false;
 
   const $ = function (id) { return document.getElementById(id); };
   const state = {
@@ -698,16 +699,29 @@
     }).join("");
   }
 
+  function scheduleChartDraw() {
+    if (document.hidden || state.currentView !== "overview" || chartDrawPending) return;
+    chartDrawPending = true;
+    window.requestAnimationFrame(function () {
+      chartDrawPending = false;
+      if (!document.hidden && state.currentView === "overview") drawChart();
+    });
+  }
+
   function drawChart() {
+    if (document.hidden || state.currentView !== "overview") return;
     const canvas = $("lossChart");
+    if (!canvas) return;
     const context = canvas.getContext("2d");
     const rect = canvas.getBoundingClientRect();
     const width = Math.max(280, Math.floor(rect.width || 600));
     const height = 190;
     const ratio = window.devicePixelRatio || 1;
-    canvas.width = width * ratio;
-    canvas.height = height * ratio;
-    context.scale(ratio, ratio);
+    const pixelWidth = Math.round(width * ratio);
+    const pixelHeight = Math.round(height * ratio);
+    if (canvas.width !== pixelWidth) canvas.width = pixelWidth;
+    if (canvas.height !== pixelHeight) canvas.height = pixelHeight;
+    context.setTransform(ratio, 0, 0, ratio, 0, 0);
     context.clearRect(0, 0, width, height);
     const points = state.status && Array.isArray(state.status.loss_history) ? state.status.loss_history.filter(function (point) {
       return Number.isFinite(Number(point.loss));
@@ -874,7 +888,7 @@
     $("resumeButton").disabled = state.publicMode || !hasRun || Boolean(finished);
     $("safeResumeButton").disabled = state.publicMode || !hasRun || !state.status || state.status.last_checkpoint_step == null;
     renderMastery();
-    drawChart();
+    scheduleChartDraw();
     renderServers();
     renderSettings();
     renderCheckpointList();
@@ -898,6 +912,7 @@
     };
     $("viewName").textContent = labels[view][0];
     $("pageTitle").textContent = labels[view][1];
+    if (view === "overview") scheduleChartDraw();
     if (view === "checkpoints") loadCheckpointCandidates().then(renderCheckpointList).catch(function (error) {
       showCheckpointNotice(error.message, "warn");
     });
@@ -1216,7 +1231,7 @@
   function bindEvents() {
     $("themeToggle").addEventListener("click", function () {
       applyTheme(document.body.getAttribute("data-theme") === "dark" ? "light" : "dark");
-      drawChart();
+      scheduleChartDraw();
     });
     $("refreshButton").addEventListener("click", refreshData);
     $("ownerSignInButton").addEventListener("click", function () {
@@ -1251,7 +1266,14 @@
       const button = event.target.closest("[data-checkpoint-verify], [data-checkpoint-download], [data-checkpoint-resume]");
       if (button) handleCheckpointAction(button).catch(function (error) { showCheckpointNotice(error.message, "error"); });
     });
-    window.addEventListener("resize", drawChart);
+    window.addEventListener("resize", scheduleChartDraw);
+    if (typeof ResizeObserver === "function") {
+      const chart = $("lossChart");
+      if (chart && chart.parentElement) {
+        const observer = new ResizeObserver(scheduleChartDraw);
+        observer.observe(chart.parentElement);
+      }
+    }
     document.addEventListener("visibilitychange", function () {
       if (!document.hidden && state.user) refreshData();
     });
