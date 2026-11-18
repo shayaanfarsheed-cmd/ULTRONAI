@@ -4,6 +4,62 @@
   const MAX_FILE_BYTES = 64 * 1024 * 1024;
   const MAX_TOTAL_BYTES = 256 * 1024 * 1024;
 
+  async function readResponseBytes(response, maxBytes) {
+    if (!Number.isSafeInteger(maxBytes) || maxBytes < 1) {
+      throw new Error("A valid response size limit is required.");
+    }
+    const rawLength = response && response.headers && response.headers.get("content-length");
+    let declaredLength = null;
+    if (rawLength != null && rawLength !== "") {
+      if (!/^\\d+$/.test(String(rawLength))) throw new Error("Checkpoint response length is invalid.");
+      declaredLength = Number(rawLength);
+      if (!Number.isSafeInteger(declaredLength) || declaredLength > maxBytes) {
+        throw new Error("Checkpoint object exceeds its allowed download size.");
+      }
+    }
+
+    const body = response && response.body;
+    if (!body || typeof body.getReader !== "function") {
+      if (declaredLength == null || typeof response.arrayBuffer !== "function") {
+        throw new Error("This browser cannot safely enforce the checkpoint download limit.");
+      }
+      const fallbackBytes = await response.arrayBuffer();
+      if (fallbackBytes.byteLength > maxBytes) {
+        throw new Error("Checkpoint object exceeds its allowed download size.");
+      }
+      return fallbackBytes;
+    }
+
+    const reader = body.getReader();
+    const chunks = [];
+    let total = 0;
+    try {
+      while (true) {
+        const part = await reader.read();
+        if (part.done) break;
+        const chunk = part.value instanceof Uint8Array ? part.value : new Uint8Array(part.value);
+        if (chunk.byteLength > maxBytes - total) {
+          try { await reader.cancel(); } catch (_) {}
+          throw new Error("Checkpoint object exceeds its allowed download size.");
+        }
+        total += chunk.byteLength;
+        chunks.push(chunk);
+      }
+    } finally {
+      try { reader.releaseLock(); } catch (_) {}
+    }
+    if (declaredLength != null && total !== declaredLength) {
+      throw new Error("Checkpoint response length does not match its header.");
+    }
+    const result = new Uint8Array(total);
+    let offset = 0;
+    for (const chunk of chunks) {
+      result.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    return result.buffer;
+  }
+
   async function mapWithConcurrency(items, limit, mapper) {
     const results = new Array(items.length);
     let nextIndex = 0;
@@ -22,7 +78,7 @@
     if (!manifest || Object.getPrototypeOf(manifest) !== Object.prototype ||
         manifest.checkpoint_id !== checkpointId ||
         !/^ckpt-[A-Za-z0-9_-]{1,80}$/.test(checkpointId) ||
-        !Number.isSafeInteger(Number(manifest.step)) || Number(manifest.step) < 0 ||
+        !Number.isSafeInteger(manifest.step) || manifest.step < 0 ||
         !manifest.files || Object.getPrototypeOf(manifest.files) !== Object.prototype) {
       throw new Error("Checkpoint manifest structure is invalid.");
     }
@@ -71,7 +127,7 @@
     return run;
   }
 
-  const api = {mapWithConcurrency, validateManifest, scheduleFrame, createSingleFlight,
+  const api = {mapWithConcurrency, validateManifest, readResponseBytes, scheduleFrame, createSingleFlight,
     MAX_METADATA_BYTES, MAX_FILE_BYTES, MAX_TOTAL_BYTES};
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.ULTRON_RUNTIME = api;
