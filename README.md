@@ -111,6 +111,7 @@
 - User confirmed that the Supabase Edge Function secret `ULTRON_OWNER_USER_ID` has been configured. The secret value is not retrievable through the connected tooling; record this as user-reported, not independently value-verified.
 - Read-only verification confirms the Supabase project is healthy, `device-control` is ACTIVE (version 2), the three pairing tables exist, RLS is enabled, direct `anon`/`authenticated` SELECT is denied, and both RPC functions are `SECURITY INVOKER` with execute permission limited to `service_role`.
 - Pairing UI remains disabled (`deviceControlEnabled` is not enabled). No device is paired and no training has started.
+- Dashboard copy was corrected in `dashboard/index.html`: it now states that the Supabase migration and Edge Function are deployed and the owner secret is user-confirmed; pairing remains disabled only for the outstanding integration/security test gate. The compatible heartbeat agent exists, but no device has been paired.
 - Remaining gate: safe integration tests for challenge concurrency/single-use, expiry, five-attempt lockout, owner isolation, revocation, and per-IP rate limits. Do not run destructive tests against production or create a paid staging project. If a disposable free environment is unavailable, document that limitation and keep the feature flag off.
 
 
