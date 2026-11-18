@@ -26,7 +26,10 @@
   2. Sequential checkpoint metadata/file reads that can be slow on mobile networks.
   3. Unnecessary chart redraws during full renders and window resize events.
   4. Historical README handoff statements that incorrectly described PR #11 as unmerged.
-- Next: address refresh concurrency with regression coverage, optimize checkpoint loading with bounded concurrency and size safeguards, make chart drawing responsive/visibility-aware, and keep this handoff synchronized.
+- Implemented on PR #12: single-flight refresh-token renewal; auth-generation checks against stale refreshes; checkpoint metadata concurrency capped at three; bounded metadata/file downloads (1 MiB metadata, 64 MiB per file, 256 MiB aggregate); strict manifest structure, path, SHA-256 and safe-integer validation; animation-frame fallback and defensive canvas handling.
+- Added executable Node behavioural tests for bounded concurrency, valid/invalid manifests, aggregate-size rejection, and chart scheduling fallback. Python's dashboard suite now runs these tests.
+- Current PR head is being validated; do not treat prior CI results as validation of these latest fixes. The README itself will trigger another validation run.
+- Remaining: verify actual CI on the final README-synced commit, review any failures, and then run iPad/iPhone/Android/desktop compatibility checks. Keep PR #12 unmerged pending review and explicit user approval.
 - Preserve the $0 budget, no Kaggle, no external AI APIs, no pretrained weights, and no externally generated training data.
 - No production Supabase changes, secrets changes, owner provisioning, device pairing, provider jobs, or real training are authorized by this optimization task.
 - Do not merge optimization work without explicit user approval.
@@ -62,7 +65,7 @@
 
 ## Current implementation truth
 
-- Public GitHub Pages dashboard currently operates in public mode. It does not provide the agreed owner login, logout, recovery, or private owner session yet.
+- Historical note: before PR #11, the dashboard had no owner sign-in UI. Current implementation (PR #11 merged) includes owner sign-in/sign-out UI and a frontend owner-session gate; production authentication remains deliberately inactive until configuration and trusted backend authorization are completed.
 - Guest Mode is intended for public dashboard and public mathematics information only. It must never access private training history, checkpoints, device pairing, or remote training controls.
 - The owner account is intended to be one identity across the system. Public self-registration must not create additional owner accounts. Secure owner provisioning and recovery require a separately reviewed implementation.
 - Backend authorization—not hidden buttons—must protect every private operation. Owner identity must be derived from a verified server-side session. Never trust a browser-supplied owner ID.
@@ -245,6 +248,19 @@ Before finishing a chat, verify the current GitHub branch/commit/PR and CI state
 6. Update this README again before any future chat handoff.
 
 ## Current development status and next-chat handoff
+
+**Latest handoff:** 2026-11-18 05:15 UTC  
+**Repository:** `shayaanfarsheed-cmd/ULTRONAI`  
+**Active branch:** `optimize/dashboard-performance-security`  
+**PR #12:** open, draft, unmerged — [Dashboard performance optimization](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/12).
+
+Latest repair files: `dashboard/runtime.js`, `dashboard/app.js`, `dashboard/index.html`, `tests/dashboard_runtime.test.js`, and `tests/test_dashboard.py`. Checkpoint metadata is capped at 1 MiB, individual checkpoint objects at 64 MiB, and total checkpoint data at 256 MiB; manifest file names, sizes, hashes, step values, and required state file are validated before use. Chart drawing now has a safe fallback when animation-frame or canvas support is unavailable. Behavioural tests exercise concurrency, malformed metadata, size limits, and chart scheduling.
+
+**Validation:** the new code has not yet been validated by GitHub Actions on its final commit. Previous PR #12 workflow successes apply only to the earlier head and must not be carried forward as evidence for these fixes. Compatibility testing is not yet complete.
+
+**Next action:** inspect the latest PR head and run all three required GitHub Actions workflows; fix failures, update this handoff, and revalidate the README-synced final commit. Keep PR #12 unmerged until review is complete and the user explicitly approves. Do not start training or change production Supabase settings.
+
+
 
 **Last updated:** 2026-11-17 13:35 UTC  
 **Repository:** `shayaanfarsheed-cmd/ULTRONAI`  
