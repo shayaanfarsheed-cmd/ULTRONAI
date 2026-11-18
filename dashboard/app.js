@@ -367,11 +367,7 @@
       throw new Error(data.message || data.error || "Storage request failed (" + response.status + ").");
     }
     if (maxBytes != null) {
-      const declaredLength = Number(response.headers.get("content-length") || 0);
-      if (declaredLength > maxBytes) throw new Error("Checkpoint object exceeds its allowed download size.");
-      const bytes = await response.arrayBuffer();
-      if (bytes.byteLength > maxBytes) throw new Error("Checkpoint object exceeds its allowed download size.");
-      return bytes;
+      return ULTRON_RUNTIME.readResponseBytes(response, maxBytes);
     }
     return binary ? response.arrayBuffer() : response.json().catch(function () { return null; });
   }
