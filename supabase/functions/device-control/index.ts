@@ -2,7 +2,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const OWNER_USER_ID = Deno.env.get("ULTRON_OWNER_USER_ID") || "";
 const ALLOWED_ORIGIN = "https://shayaanfarsheed-cmd.github.io";
 const corsHeaders = {
@@ -30,8 +29,9 @@ async function sha256(value: string) {
 }
 async function ownerFromRequest(request: Request) {
   const authorization = request.headers.get("Authorization") || "";
-  if (!authorization.startsWith("Bearer ")) return null;
-  const client = createClient(SUPABASE_URL, ANON_KEY, {
+  const apiKey = request.headers.get("apikey") || "";
+  if (!authorization.startsWith("Bearer ") || !apiKey) return null;
+  const client = createClient(SUPABASE_URL, apiKey, {
     global: { headers: { Authorization: authorization } },
     auth: { persistSession: false, autoRefreshToken: false },
   });
