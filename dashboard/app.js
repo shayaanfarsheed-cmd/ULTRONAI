@@ -800,7 +800,6 @@
   }
 
   function renderSettings() {
-    $("autoStartToggle").checked = false;
     const ramSlider = $("ramLimitSlider");
     if (ramSlider) {
       ramSlider.value = String(state.ramLimitGb);
@@ -1105,7 +1104,6 @@
     document.querySelectorAll("[data-view]").forEach(function (button) {
       button.addEventListener("click", function () { switchView(button.getAttribute("data-view")); });
     });
-    $("autoStartToggle").disabled = true;
     $("ramLimitSlider").addEventListener("input", function () {
       const selected = Math.max(2, Math.min(10, Number($("ramLimitSlider").value)));
       state.ramLimitGb = Math.round(selected * 2) / 2;
