@@ -55,6 +55,7 @@ class DevicePairingStaticTests(unittest.TestCase):
         self.assertIn("verify_jwt = false", config)
         self.assertIn("ownerFromRequest(request)", function)
         self.assertIn("ULTRON_OWNER_USER_ID", function)
+        self.assertIn('request.headers.get("apikey")', function)
         self.assertIn("data.user.id !== OWNER_USER_ID", function)
         self.assertIn("Array.isArray(capabilities)", function)
         self.assertIn("allowPairingRequest(request, \"redeem\", 10)", function)
