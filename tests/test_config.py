@@ -22,6 +22,32 @@ class ConfigurationTests(unittest.TestCase):
         self.assertEqual(len(servers["servers"]), 5)
         self.assertEqual(servers["rotation_rules"]["fallback_server_id"], "github_actions_cpu")
 
+    def test_owner_guest_and_platform_security_policy(self):
+        config = json.loads((ROOT / "config.json").read_text(encoding="utf-8"))
+        access = config["access"]
+        self.assertEqual(access["owner_account_limit"], 1)
+        self.assertFalse(access["public_self_registration_enabled"])
+        self.assertTrue(access["owner_authentication_required_for_private_operations"])
+        self.assertTrue(access["guest_mode_enabled"])
+        self.assertTrue({
+            "private_training_history",
+            "private_checkpoints",
+            "device_pairing",
+            "remote_training_controls",
+        }.issubset(set(access["guest_denied_permissions"])))
+        enforcement = config["local_training"]["platform_enforcement"]
+        for platform_name in ("windows", "linux", "macos", "ipados", "ios", "android", "browser"):
+            self.assertIn(platform_name, enforcement)
+        self.assertEqual(config["local_training"]["enforcement"], "platform_specific_verified")
+
+    def test_kaggle_is_not_selectable(self):
+        config = json.loads((ROOT / "config.json").read_text(encoding="utf-8"))
+        servers = json.loads((ROOT / "servers.json").read_text(encoding="utf-8"))
+        kaggle = next(item for item in servers["servers"] if item["id"] == "kaggle")
+        self.assertFalse(kaggle["enabled"])
+        self.assertNotIn("kaggle", config["switching"]["platform_allowlist"])
+        self.assertEqual(validate_project_config(config, servers), [])
+
     def test_colab_is_manual_until_free_account_eligibility_is_verified(self):
         config = json.loads((ROOT / "config.json").read_text(encoding="utf-8"))
         self.assertIn("google_colab", config["switching"]["manual_only_platforms"])
