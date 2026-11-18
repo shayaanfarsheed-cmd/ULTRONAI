@@ -27,6 +27,7 @@ class LocalDummyRuntimeTests(unittest.TestCase):
             time.sleep(0.02)
         self.fail(f"Timed out waiting for {expected}; last status={last!r}")
 
+    # /proc/<pid>/stat fields after comm include starttime at index 19.
     def test_linux_zombie_is_reported_as_exited(self):
         zombie_stat = "4321 (python worker) Z 1 4321 4321 0 -1 0 0 0 0 0 0 0 0 0 20 0 1 0 12345"
         with patch.object(Path, "read_text", return_value=zombie_stat):
