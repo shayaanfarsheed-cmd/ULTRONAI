@@ -94,8 +94,8 @@ Before finishing a chat, verify the current GitHub branch/commit/PR and CI state
 - **Repository:** `shayaanfarsheed-cmd/ULTRONAI`
 - **Active branch:** `fix/session-heartbeat-fail-closed`
 - **Open PR:** [PR #7 — Fail closed when training heartbeat errors approach lease expiry](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/7)
-- **Latest verified PR head before this README update:** `73816d36a85d838f7ae42248160dd821af3a7542`
-- **PR status:** open, mergeable, and unmerged. Do not merge without explicit user approval.
+- **Current PR head at this handoff:** `7d62664b85e69ae115adcbed9efe7cce6d34b630`
+- **PR status:** open and unmerged; GitHub currently reports mergeability as unstable while checks run. Do not merge without explicit user approval.
 - **Training status:** no live training or provider job has been started.
 
 #### Changes and files
@@ -105,23 +105,22 @@ Before finishing a chat, verify the current GitHub branch/commit/PR and CI state
 - `README.md`: updated this handoff to record verified CI and the next action.
 - The fake-clock fixture was corrected in commit `0974e2e5371410e2e3d62f3fe56f853466fc56fc`; current PR head before this README edit is `73816d36a85d838f7ae42248160dd821af3a7542`.
 
-#### Verified validation on PR head `73816d36a85d838f7ae42248160dd821af3a7542`
+#### Validation on PR head `7d62664b85e69ae115adcbed9efe7cce6d34b630`
 
-All three latest pull-request workflows completed successfully:
+The three workflows on the prior code head `73816d36a85d838f7ae42248160dd821af3a7542` completed successfully. The README-only handoff commit above triggered a fresh CI cycle on the current head; at this handoff all three are still running:
 
-- Test suite: [run 44213388114](https://github.com/shayaanfarsheed-cmd/ULTRONAI/actions/runs/44213388114) — success. Job steps included dashboard JS validation, JSON/notebook validation, secret scan, Python compilation, unit tests, and model/data/checkpoint/training smoke tests.
-- Preflight: [run 44213388095](https://github.com/shayaanfarsheed-cmd/ULTRONAI/actions/runs/44213388095) — success. Job steps included unit tests, model parameter count, generated mathematics data, checkpoint save/restore, training loop and platform preflight.
-- Training prototype validation: [run 44213388127](https://github.com/shayaanfarsheed-cmd/ULTRONAI/actions/runs/44213388127) — success. Job steps included configuration validation, unit/recovery tests, and bounded data/checkpoint/optimizer smoke tests.
-- Each workflow's job and every listed step completed with conclusion `success`.
-- The combined commit-status endpoint returned no individual status entries; the three workflow-run records above are the verified CI evidence.
+- Test suite: [run 44213538444](https://github.com/shayaanfarsheed-cmd/ULTRONAI/actions/runs/44213538444) — in progress.
+- Preflight: [run 44213538520](https://github.com/shayaanfarsheed-cmd/ULTRONAI/actions/runs/44213538520) — in progress.
+- Training prototype validation: [run 44213538416](https://github.com/shayaanfarsheed-cmd/ULTRONAI/actions/runs/44213538416) — in progress.
+- Previous code-head workflow runs (44213388114, 44213388095, 44213388127) all passed, including every listed job step. Do not treat those runs as validation of the current README commit.
 - PR diff reviewed: only `README.md`, `tests/test_session.py`, and `ultron_session.py` changed. The two regression tests are present. No review submissions or inline review threads were returned.
 - The README update itself creates a new commit and may trigger another CI cycle. Re-check the new PR head and workflows before treating validation as final for the updated head.
 
 #### Exact next actions
 
-1. Verify the README update commit became the new PR head and check all workflows on that exact SHA.
-2. If the README-only commit passes CI, report PR #7 as fully validated and ask the user whether they explicitly approve merging. Do not merge without that approval.
-3. If the README-only commit triggers failures, inspect and fix them on the same branch, rerun validation, and update this handoff again.
+1. Check the three current workflow runs above until each has a final conclusion. If any fail, inspect logs and fix on the same branch; then rerun validation.
+2. If all three pass on the current PR head, report PR #7 as validated and ask the user whether they explicitly approve merging. Do not merge without that approval.
+3. If another README handoff update is required, it will create another commit and CI cycle; record the new head and actual run states accurately.
 4. After PR #7 is merged with explicit approval, reconcile the older roadmap below against current repository state, then resume secure Windows training-agent implementation. Do not start training or cloud jobs.
 5. Keep secrets such as `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SUPABASE_OWNER_ID`, `HF_TOKEN`, and `HF_REPO_ID` in provider secret managers only; never ask for or record their values.
 
