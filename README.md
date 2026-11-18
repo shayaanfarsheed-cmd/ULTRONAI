@@ -4,7 +4,7 @@
 - Stage 1 implementation is on branch `data/seed-dataset-scanner`: `ultron_seed_dataset.py`, `tests/test_seed_dataset.py`, and `docs/SEED_DATASET_IMPORT.md`.
 - The scanner reads TOML/JSON metadata, inventories relative file paths, sizes, and SHA-256 hashes, and checks task/theorem consistency. It never executes dataset-provided scripts, Lean files, Dockerfiles, or shell commands.
 - Scanner success means structure/metadata passed only. Proof status remains `not_checked`; dataset task metadata currently marks tasks `unvalidated`. Lean-kernel verification is a later stage.
-- **PR #28 is open as a draft and is not merged**: https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/28. Latest code head: `3df2a9d1d14e42f8c7cf2bfb615be9099306a8e5`. The three required GitHub Actions workflows were queued/in progress at the last check; verify their final results before changing this status. Do not merge without the user's explicit approval.
+- **PR #28 is open as a draft and is not merged**: https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/28. Latest code fix: `fe6e0a2218c3827f01f720f4e0de538f06ea32eb`. Initial CI found one failing test fixture (argument validation ran after a missing-folder check); the scanner now validates the argument first. A fresh CI run is required. The training-prototype workflow was cancelled during the earlier run. Do not merge without the user's explicit approval.
 - No seed dataset source files, reference archives, or proof solutions are committed. The original local download remains unchanged.
 - No model training has started. Do not start training as part of dataset import.
 
