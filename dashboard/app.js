@@ -1108,12 +1108,15 @@
       body: body == null ? undefined : (fileBlob ? fileBlob : JSON.stringify(body)),
       cache: "no-store"
     });
+    if (!response.ok) {
+      const rawError = await response.text();
+      const errorData = rawError ? (function () { try { return JSON.parse(rawError); } catch (_) { return rawError; } })() : null;
+      if (response.status === 401) expireOwnerSession();
+      throw new Error(errorData && (errorData.message || errorData.error) || "Private data library request failed (" + response.status + ").");
+    }
+    if (binary) return response.arrayBuffer();
     const raw = await response.text();
     const data = raw ? (function () { try { return JSON.parse(raw); } catch (_) { return raw; } })() : null;
-    if (!response.ok) {
-      if (response.status === 401) expireOwnerSession();
-      throw new Error(data && (data.message || data.error) || "Private data library request failed (" + response.status + ").");
-    }
     return data;
   }
 
