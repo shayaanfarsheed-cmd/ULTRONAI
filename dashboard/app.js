@@ -344,7 +344,7 @@
     return data;
   }
 
-  async function storageRequest(path, method, body, binary) {
+  async function storageRequest(path, method, body, binary, maxBytes) {
     const session = await ensureSession();
     assertOwnerAccess(session);
     const headers = {
@@ -363,6 +363,13 @@
       const data = await response.json().catch(function () { return {}; });
       if (response.status === 401) expireOwnerSession();
       throw new Error(data.message || data.error || "Storage request failed (" + response.status + ").");
+    }
+    if (maxBytes != null) {
+      const declaredLength = Number(response.headers.get("content-length") || 0);
+      if (declaredLength > maxBytes) throw new Error("Checkpoint object exceeds its allowed download size.");
+      const bytes = await response.arrayBuffer();
+      if (bytes.byteLength > maxBytes) throw new Error("Checkpoint object exceeds its allowed download size.");
+      return bytes;
     }
     return binary ? response.arrayBuffer() : response.json().catch(function () { return null; });
   }
@@ -702,17 +709,19 @@
   function scheduleChartDraw() {
     if (document.hidden || state.currentView !== "overview" || chartDrawPending) return;
     chartDrawPending = true;
-    window.requestAnimationFrame(function () {
+    ULTRON_RUNTIME.scheduleFrame(function () {
       chartDrawPending = false;
       if (!document.hidden && state.currentView === "overview") drawChart();
-    });
+    }, window);
   }
 
   function drawChart() {
     if (document.hidden || state.currentView !== "overview") return;
     const canvas = $("lossChart");
     if (!canvas) return;
-    const context = canvas.getContext("2d");
+    let context = null;
+    try { context = canvas.getContext("2d"); } catch (_) { return; }
+    if (!context || typeof context.setTransform !== "function") return;
     const rect = canvas.getBoundingClientRect();
     const width = Math.max(280, Math.floor(rect.width || 600));
     const height = 190;
@@ -1016,12 +1025,13 @@
     return parts.map(function (part) { return encodeURIComponent(String(part)); }).join("/");
   }
 
-  async function getStorageBytes(path) {
-    return storageRequest("object/authenticated/checkpoints/" + objectPath(path.split("/")), "GET", null, true);
+  async function getStorageBytes(path, maxBytes) {
+    return storageRequest("object/authenticated/checkpoints/" + objectPath(path.split("/")), "GET", null, true,
+      maxBytes == null ? ULTRON_RUNTIME.MAX_FILE_BYTES : maxBytes);
   }
 
   async function getStorageJson(path) {
-    const bytes = await getStorageBytes(path);
+    const bytes = await getStorageBytes(path, ULTRON_RUNTIME.MAX_METADATA_BYTES);
     return JSON.parse(new TextDecoder().decode(bytes));
   }
 
@@ -1030,19 +1040,6 @@
     return Array.from(new Uint8Array(digest)).map(function (value) { return value.toString(16).padStart(2, "0"); }).join("");
   }
 
-  async function mapWithConcurrency(items, limit, mapper) {
-    const results = new Array(items.length);
-    let nextIndex = 0;
-    const workerCount = Math.min(Math.max(1, limit), items.length);
-    await Promise.all(Array.from({length: workerCount}, async function () {
-      while (true) {
-        const index = nextIndex++;
-        if (index >= items.length) return;
-        results[index] = await mapper(items[index], index);
-      }
-    }));
-    return results;
-  }
 
   async function loadCheckpointCandidates() {
     if (!hasVerifiedOwnerSession() || !state.status || !state.status.run_id) {
@@ -1067,7 +1064,7 @@
     const ids = Array.from(new Set((listed || []).map(function (item) {
       return String(item.name || "").split("/")[0];
     }).filter(function (id) { return id.indexOf("ckpt-") === 0; })));
-    const results = await mapWithConcurrency(ids, 3, async function (id) {
+    const results = await ULTRON_RUNTIME.mapWithConcurrency(ids, 3, async function (id) {
       try {
         const base = prefix + "/" + id;
         const metadata = await Promise.all([
@@ -1078,9 +1075,11 @@
         const receipt = metadata[1];
         const manifestHash = await sha256Hex(manifestBytes);
         const manifest = JSON.parse(new TextDecoder().decode(manifestBytes));
+        const manifestStats = ULTRON_RUNTIME.validateManifest(manifest, id);
+        if (manifestStats.totalBytes + manifestBytes.byteLength + ULTRON_RUNTIME.MAX_METADATA_BYTES > ULTRON_RUNTIME.MAX_TOTAL_BYTES) return null;
         if (manifest.checkpoint_id !== id || receipt.checkpoint_id !== id || receipt.manifest_sha256 !== manifestHash) return null;
         if (JSON.stringify(receipt.files) !== JSON.stringify(manifest.files)) return null;
-        const total = Object.values(manifest.files || {}).reduce(function (sum, entry) { return sum + Number(entry.size_bytes || 0); }, manifestBytes.byteLength);
+        const total = manifestStats.totalBytes + manifestBytes.byteLength;
         if (Number(manifest.step) > maximumCommittedStep) return null;
         return Object.assign({}, manifest, {
           checkpoint_id: id,
@@ -1105,19 +1104,24 @@
 
   async function verifyCheckpoint(candidate) {
     const prefix = state.user.id + "/" + state.status.run_id + "/" + candidate.checkpoint_id;
-    const manifestBytes = await getStorageBytes(prefix + "/manifest.json");
-    const receiptBytes = await getStorageBytes(prefix + "/upload_receipt.json");
+    const manifestBytes = await getStorageBytes(prefix + "/manifest.json", ULTRON_RUNTIME.MAX_METADATA_BYTES);
+    const receiptBytes = await getStorageBytes(prefix + "/upload_receipt.json", ULTRON_RUNTIME.MAX_METADATA_BYTES);
     const manifestHash = await sha256Hex(manifestBytes);
     const manifest = JSON.parse(new TextDecoder().decode(manifestBytes));
     const receipt = JSON.parse(new TextDecoder().decode(receiptBytes));
+    const manifestStats = ULTRON_RUNTIME.validateManifest(manifest, candidate.checkpoint_id);
     if (manifest.checkpoint_id !== candidate.checkpoint_id || receipt.checkpoint_id !== candidate.checkpoint_id) throw new Error("Checkpoint identity does not match.");
     if (receipt.manifest_sha256 !== manifestHash) throw new Error("Manifest checksum does not match the upload receipt.");
     if (JSON.stringify(receipt.files) !== JSON.stringify(manifest.files)) throw new Error("Receipt file list does not match the manifest.");
     let stateFile = null;
+    let verifiedBytes = manifestBytes.byteLength + receiptBytes.byteLength;
+    if (verifiedBytes + manifestStats.totalBytes > ULTRON_RUNTIME.MAX_TOTAL_BYTES) throw new Error("Checkpoint exceeds the 256 MiB total size limit.");
     for (const entry of Object.entries(manifest.files || {})) {
       const name = entry[0];
       const metadata = entry[1];
-      const bytes = await getStorageBytes(prefix + "/" + name);
+      const bytes = await getStorageBytes(prefix + "/" + name, ULTRON_RUNTIME.MAX_FILE_BYTES);
+      verifiedBytes += bytes.byteLength;
+      if (verifiedBytes > ULTRON_RUNTIME.MAX_TOTAL_BYTES) throw new Error("Checkpoint exceeds the 256 MiB total size limit.");
       if (bytes.byteLength !== Number(metadata.size_bytes)) throw new Error("File size mismatch: " + name);
       if (await sha256Hex(bytes) !== metadata.sha256) throw new Error("SHA-256 mismatch: " + name);
       if (name === "state.json") stateFile = JSON.parse(new TextDecoder().decode(bytes));
@@ -1126,7 +1130,7 @@
     if (!stateFile.state || Number(stateFile.state.step) !== Number(manifest.step)) throw new Error("Checkpoint step metadata is inconsistent.");
     candidate.full_verified = true;
     candidate.manifest_sha256 = manifestHash;
-    candidate.total_size_bytes = Object.values(manifest.files || {}).reduce(function (sum, entry) { return sum + Number(entry.size_bytes || 0); }, manifestBytes.byteLength);
+    candidate.total_size_bytes = manifestStats.totalBytes + manifestBytes.byteLength + receiptBytes.byteLength;
     candidate.state = stateFile.state;
     return candidate;
   }
@@ -1190,9 +1194,11 @@
   async function downloadCheckpoint(id) {
     const prefix = state.user.id + "/" + state.status.run_id + "/" + id;
     const manifest = await getStorageJson(prefix + "/manifest.json");
+    const stats = ULTRON_RUNTIME.validateManifest(manifest, id);
+    if (stats.totalBytes + ULTRON_RUNTIME.MAX_METADATA_BYTES * 2 > ULTRON_RUNTIME.MAX_TOTAL_BYTES) throw new Error("Checkpoint exceeds the 256 MiB total size limit.");
     const names = Object.keys(manifest.files || {}).concat(["manifest.json", "upload_receipt.json"]);
     for (const name of names) {
-      const bytes = await getStorageBytes(prefix + "/" + name);
+      const bytes = await getStorageBytes(prefix + "/" + name, name === "manifest.json" || name === "upload_receipt.json" ? ULTRON_RUNTIME.MAX_METADATA_BYTES : ULTRON_RUNTIME.MAX_FILE_BYTES);
       triggerDownload(id + "-" + name, bytes);
     }
     showCheckpointNotice("Checkpoint files downloaded separately. Keep every component in the same checkpoint folder.", "success");
