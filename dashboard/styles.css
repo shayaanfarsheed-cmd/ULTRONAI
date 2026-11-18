@@ -540,3 +540,6 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible) { outline: none; }
 .ask-evidence-card strong { display: block; margin-bottom: 8px; color: var(--accent); font-size: 12px; overflow-wrap: anywhere; }
 .ask-evidence-card p { margin: 0; color: var(--text); font-size: 13px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
 @media (max-width: 520px) { .ask-question-form button { width: 100%; } }
+
+.data-upload-form { grid-template-columns: minmax(0, 1fr); }
+.data-upload-form input[type="file"] { min-width: 0; max-width: 100%; }
