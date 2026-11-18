@@ -1,88 +1,107 @@
-# ULTRON Online Dashboard + Cross-Platform Device Agents
+# ULTRON — Browser Dashboard and Device-Agent Architecture
 
-Status: Stage 1 architecture specification. Device agents and pairing are not implemented; no training has started.
+**Status:** target architecture and safety contract. Owner authentication, device registry, pairing endpoints and agents are not implemented. No training has started.
+
+## Product access model
+
+- The website is hosted as a static GitHub Pages application and must work on iPad, phone, tablet and desktop browsers.
+- Guest Mode is public and requires no account. It exposes public dashboard and public mathematics information only.
+- One restricted owner account provides access to private dashboard features after secure authentication is implemented.
+- Public self-registration is disabled. There is one intended owner identity, not a public multi-user signup system.
+- Guests cannot view private training history/checkpoints, pair devices, or issue remote training controls.
+- Hiding a control in JavaScript is not authorization. Every private operation must be authorized by a trusted backend using a verified owner session.
+- The owner ID is derived server-side. Never trust a client-supplied owner ID.
+
+**Current implementation truth:** the dashboard is currently public-mode only. Owner login, logout, password recovery, owner-only provisioning and private backend authorization are not yet implemented. Keep privileged controls locked.
 
 ## Hosting and runtime boundaries
 
-- GitHub Pages hosts the static dashboard at https://shayaanfarsheed-cmd.github.io/ULTRONAI/.
-- Supabase provides authentication and, after approval, the private device/control plane.
-- The dashboard is browser-based and should work on desktop, iPad, iPhone and Android browsers.
-- Training runs only on a compatible device agent, never inside GitHub Pages.
-- Desktop adapters are planned for Windows, macOS and Linux. Mobile browsers are supported for monitoring/control; native mobile training is not promised and requires separate capability and platform validation.
-
-GitHub Pages is static hosting. It cannot execute Python, hold private server credentials, or directly start a local process.
+- GitHub Pages hosts the static website.
+- Supabase is the planned authentication and coordination backend, subject to separate approval for production changes.
+- GitHub Pages cannot execute Python, hold private server credentials, or start a local process.
+- Training runs only on a compatible worker/agent, never inside GitHub Pages.
+- The user may operate the website from an iPad; iPadOS and mobile browsers are control/monitoring clients by default, not assumed training workers.
 
 ## Device capability model
 
-A connected agent must report truthful, measured metadata: platform, architecture, agent/runtime version, available system memory, CPU characteristics, GPU/runtime availability and current training state. Unknown values remain unavailable rather than being guessed.
+A paired agent must report measured metadata: operating system, architecture, agent version, available memory, CPU, accelerator/runtime availability and training state. Unknown values remain unknown; never invent capabilities.
 
-The backend and agent perform capability preflight before any training command. A device may pair successfully yet remain ineligible to train. iPadOS, iOS and Android devices can use the dashboard; they are not automatically training workers. One active training writer is permitted across all devices and providers.
+A device can be paired but still be ineligible to train. Capability preflight, resource enforcement, checkpoint validation and the authoritative lease are all required before launch.
 
-The RAM slider is a browser-saved preference only. A future agent must validate it against actual available memory and enforce it using platform-specific process controls. If strict enforcement is not supported or verified on a platform, training must remain disabled there.
+## Command flow — future implementation
 
-## Command flow
+1. The owner authenticates through the restricted owner account. A guest cannot enter this flow.
+2. The owner requests a one-time, short-lived pairing challenge through a trusted backend endpoint.
+3. The agent redeems the challenge once and receives a unique revocable device credential.
+4. The agent stores its credential in the operating system's protected credential store; the backend stores only a digest.
+5. Owner command requests pass through a narrow trusted endpoint that verifies the owner session, device ownership, device state and action allowlist.
+6. The agent polls over outbound HTTPS and authenticates as the device, not as the owner.
+7. The agent validates command ID, expiry, nonce/idempotency, allowed action and local safety state. It never executes arbitrary shell text.
+8. For a start request, the agent launches only the fixed ULTRON training entry point after platform, memory, path, checkpoint and lease checks.
+9. Heartbeats and telemetry are bounded and redacted.
+10. The worker uses the existing single-writer lease and fencing-token rules for all durable training/checkpoint operations.
 
-1. The user signs in to the dashboard using Supabase Auth.
-2. The user explicitly pairs a device using a short-lived, single-use challenge.
-3. The dashboard requests a narrowly scoped action through a Supabase Edge Function.
-4. The function verifies the user's JWT, device ownership, command allowlist, current state and one-active-run policy.
-5. The device agent polls over outbound HTTPS using its own revocable credential.
-6. The agent validates command ID, expiry, nonce/idempotency, allowed action and local safety state. It never executes arbitrary shell text.
-7. For start, the agent launches only the fixed ULTRON training entry point after capability, memory, path and lease checks.
-8. The agent sends bounded heartbeats and telemetry. Pause/resume/stop are cooperative commands.
-9. Verified checkpoints are committed and synchronized under the existing one-writer lease and fencing-token rules.
+Exactly-once execution cannot be guaranteed across process crashes and lost acknowledgements. Use idempotency and reconciliation; never blindly re-run a command whose execution may have started.
 
 ## Security model
 
-- Never expose Supabase service-role credentials in GitHub Pages, browser JavaScript, notebook output or ordinary agent config.
-- The browser uses only the publishable/anon key and signed-in user JWT.
-- Pairing issues a random per-device credential once. Store only its hash server-side; store the credential in an OS-protected secret store.
-- Edge Functions validate credential, owner, device status, command expiry and idempotency. Revocation disables the registration and invalidates the credential.
-- Commands are an enum (start, pause, resume, stop, status) with validated JSON parameters. No shell command, PowerShell, Python snippet, URL or arbitrary executable path is accepted.
-- Start requires local preflight, fixed project paths, enforced resource limits and a valid single-writer lease.
-- The agent stops training if it loses the authoritative lease or cannot renew it before the deadline.
-- No automatic cloud-server switching in this stage. Future providers must use the same one-writer lease and free-tier-only policy.
+- Never expose Supabase secret/service-role credentials in GitHub Pages, browser JavaScript, notebook output or ordinary agent configuration.
+- A publishable key is public and is not owner authentication.
+- Owner authorization and device authentication are separate trust domains.
+- Pairing codes are high entropy, single-use, short-lived (maximum 10 minutes), rate-limited and stored server-side as digests.
+- Device credentials are unique, revocable, rotatable and stored in an OS-protected credential store.
+- Commands are an enum (start, pause, resume, stop, status) with action-specific validated parameters. No shell, PowerShell, Python snippet, arbitrary URL or executable path is accepted.
+- Revocation denies subsequent device requests and causes active work to fail closed.
+- The existing training lease/fencing mechanism remains the only authoritative single-writer lease.
+- A stale worker cannot commit a checkpoint or perform durable side effects.
+- Audit logs contain bounded redacted metadata, never secrets or arbitrary command output.
 
-## Platform-specific enforcement requirements
+## Platform and resource enforcement
 
-- Windows: use Job Objects for process-tree memory limits; assign the child before allowing it to execute.
-- Linux: use cgroups v2 or a verified systemd scope.
-- macOS: implement and test an appropriate resource-control strategy; if a strict cap cannot be guaranteed, refuse training rather than claim enforcement.
-- iPadOS/iOS/Android: dashboard-only by default. Any future native runtime requires a separate design, compatibility matrix and explicit tests.
-- Browser-only devices: control surface only; never imply browser memory preferences constrain an external training process.
+The RAM slider is currently a browser-local preference. It does not constrain a browser tab, another device, or an external process.
+
+| Platform | Intended role | Enforcement requirement |
+|---|---|---|
+| Windows | Potential desktop worker | Windows Job Objects; assign the process before it executes and contain descendants |
+| Linux | Potential desktop/cloud worker | cgroups v2 or verified systemd scope |
+| macOS | Potential desktop worker | Remains ineligible until a strict enforceable cap is implemented and tested |
+| iPadOS / iOS | Dashboard client | Monitoring/control only by default; no native training claim |
+| Android | Dashboard client | Monitoring/control only by default; no native training claim |
+| Browser-only | Dashboard client | Browser preference only; cannot enforce an external worker's RAM |
+
+The agent must refuse training if the selected platform cannot prove an enforceable memory cap. Tests must attempt to exceed the cap and verify that the operating system stops/contains the workload. A UI slider changing value is not proof of enforcement.
 
 ## Initial command contract
 
 | Action | Required checks | Result |
 |---|---|---|
-| status | Device paired and active | Bounded status and telemetry |
-| start | User confirmation, capability preflight, memory enforcement, no active process, valid lease | Start fixed training entry point |
-| pause | Matching active run | Request checkpointed pause |
-| resume | Paused run, verified checkpoint, valid lease | Resume verified checkpoint |
-| stop | Matching active run | Request graceful checkpoint and stop |
+| status | Active paired device and valid device credential | Bounded status/telemetry |
+| start | Verified owner request, capability preflight, enforced memory cap, no active process, valid lease | Start fixed training entry point |
+| pause | Matching active run and current lease | Request checkpointed pause |
+| resume | Paused run, verified checkpoint and valid lease | Resume verified checkpoint |
+| stop | Matching active run | Graceful bounded shutdown |
 
 No command accepts arbitrary command-line text or code.
 
-## Stage plan
+## Existing backend boundary
 
-1. Architecture and security contract — inspect repository and integration boundaries.
-2. Backend contract — propose private device registry, pairing challenges, command records, RLS and Edge Functions; review negative security tests before implementation.
-3. Device agent skeletons — platform-specific adapters, secure credential storage, outbound polling, allowlisted commands and safe shutdown.
-4. Training adapter — fixed launch contract, preflight, memory enforcement, lease enforcement and checkpointed pause/stop.
-5. Dashboard integration — pairing, capability display, live status, controls and telemetry. Controls remain disabled unless a compatible authenticated agent is online.
-6. Verification — automated tests, desktop OS smoke tests, iPad/mobile browser tests, security review and recovery tests.
-7. Later — sequential free cloud providers after the local workflow is proven.
+The repository documents a `training_api` schema with `training_status`, `server_log` and `switch_requests`, owner-scoped policies, lease/checkpoint RPCs and private checkpoint storage. These repository statements are not a fresh live Supabase verification.
 
-## Existing backend inspection
+No device registry, pairing challenge table, device credential registry, device command queue or device-control Edge Function existed in the reviewed source. Do not write device commands into the existing dashboard-writable training tables. Propose a separate non-public control plane and review its grants, RLS, transaction semantics and negative authorization tests before any deployment.
 
-The Supabase project has an existing `training_api` schema with `training_status`, `server_log` and `switch_requests`; RLS is enabled and owner-scoped. Existing lease/checkpoint RPCs are SECURITY INVOKER and granted to service_role only. Six public memory tables have owner-scoped RLS. Four migrations exist; no Edge Functions or device registry/command queue currently exist. No database changes were made during inspection.
+## Required verification
 
-Do not write device commands into the existing dashboard-writable tables or weaken existing policies. Propose a separate, narrowly scoped control plane and review it before making database changes. Existing public memory tables must remain untouched.
+- Guest cannot read or mutate private rows, RPCs, checkpoints, device records or commands.
+- Owner A cannot access owner B's records by changing identifiers.
+- Agent A cannot poll, claim or acknowledge for device B.
+- Pairing challenge redemption is atomic and single-use.
+- Duplicate command delivery cannot cause duplicate process launch.
+- Revocation and stale fencing fail closed.
+- Claim/execute/ack crash recovery never blindly replays uncertain work.
+- Memory enforcement and descendant process termination are proven on each eligible OS.
+- Lease loss stops work before the last known safe deadline.
+- Checkpoint writes are atomic, integrity-checked and fenced.
 
-## Stage 1 acceptance
+## Approval gates
 
-- Hosting choice: GitHub Pages.
-- Dashboard is cross-device browser UI; compute execution is separated into compatible device agents.
-- Device capabilities and training eligibility are measured, not guessed.
-- Pairing and training controls remain disabled until backend, agents, enforcement and lease checks are implemented.
-- No secret values added and no training started.
+Separate explicit approval is required before any Supabase migration, RLS/grant change, Edge Function deployment, production secret change, owner-account provisioning, device pairing, agent installation, live training, provider job or PR merge. The permanent budget is $0; no paid tier, billing, payment method, paid trial or quota bypass is allowed.
