@@ -253,6 +253,18 @@ class DashboardStaticTests(unittest.TestCase):
         self.assertIn('if (!ASK_TEXT_EXTENSIONS.some', javascript)
         self.assertIn('quoted evidence, not a generated answer', javascript)
 
+    def test_data_library_supports_owner_only_folder_upload_and_nested_paths(self):
+        html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
+        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
+        self.assertIn('id="dataFolderInput" type="file" webkitdirectory directory multiple', html)
+        self.assertIn("async function walkFolder(prefix, depth)", javascript)
+        self.assertIn("function safeDataRelativePath(value)", javascript)
+        self.assertIn("function dataObjectPath(relativePath)", javascript)
+        self.assertIn("file.webkitRelativePath || file.name", javascript)
+        self.assertIn("selected.length > 500", javascript)
+        self.assertIn("500 * 1024 * 1024", javascript)
+        self.assertIn("dataObjectPath(entry.path)", javascript)
+        self.assertIn("if (!hasVerifiedOwnerSession()) throw new Error(\"Sign in to the verified owner account before uploading.\")", javascript)
 
 if __name__ == "__main__":
     unittest.main()
