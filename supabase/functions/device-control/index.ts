@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+const OWNER_USER_ID = Deno.env.get("ULTRON_OWNER_USER_ID") || "";
 const ALLOWED_ORIGIN = "https://shayaanfarsheed-cmd.github.io";
 const corsHeaders = {
   "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
@@ -35,7 +36,7 @@ async function ownerFromRequest(request: Request) {
     auth: { persistSession: false, autoRefreshToken: false },
   });
   const { data, error } = await client.auth.getUser();
-  return error ? null : data.user;
+  return error || !OWNER_USER_ID || data.user.id !== OWNER_USER_ID ? null : data.user;
 }
 function validName(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0 && value.trim().length <= 80;
@@ -50,6 +51,11 @@ Deno.serve(async (request) => {
     if (request.method === "POST" && route === "challenge") {
       const owner = await ownerFromRequest(request);
       if (!owner) return json({ error: "Owner authentication required." }, 401);
+      // Only one live challenge per owner; a newly issued code invalidates older ones.
+      const { error: invalidateError } = await admin.from("ultron_pairing_challenges")
+        .update({ consumed_at: new Date().toISOString() })
+        .eq("owner_id", owner.id).is("consumed_at", null);
+      if (invalidateError) throw invalidateError;
       const code = String(crypto.getRandomValues(new Uint32Array(1))[0] % 100000000).padStart(8, "0");
       const expiresAt = new Date(Date.now() + 5 * 60_000).toISOString();
       const { data, error } = await admin.from("ultron_pairing_challenges")
@@ -67,7 +73,7 @@ Deno.serve(async (request) => {
       const capabilities = body.capabilities && typeof body.capabilities === "object" ? body.capabilities : {};
       const platforms = ["windows", "macos", "linux", "ios", "ipados", "android", "other"];
       if (!/^[0-9a-f-]{36}$/i.test(challengeId) || !/^\d{8}$/.test(code) ||
-          !validName(deviceName) || !platforms.includes(platform) ||
+          !validName(deviceName) || !platforms.includes(platform) || Array.isArray(capabilities) ||
           JSON.stringify(capabilities).length > 4096) return json({ error: "Invalid pairing payload." }, 400);
       const deviceToken = randomHex(32);
       const { data, error } = await admin.rpc("consume_ultron_pairing_challenge", {
