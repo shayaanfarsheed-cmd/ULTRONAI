@@ -1,5 +1,9 @@
 ## Authoritative security update — 2026-11-18
 
+- **PR #24 is merged** at `23f87a0a8176626781824d550341d6bed05d22d5`. All three PR checks passed on the exact reviewed PR head `95067c881d0a255da638d151e2f96f09870ba0f4`.
+- The hosted dashboard is now read-only for training operations: no remote start/stop/pause/resume, switching, automatic-start, checkpoint-resume, server-status mutation, or manual usage writes. Status/history, provider links, and checkpoint verification/download remain read-only.
+- Merge-triggered `main` checks and GitHub Pages deployment are still pending; verify them before claiming the live site has updated.
+
 - **Device pairing has been removed from the product at the owner's request.** The product will not pair remote devices, issue device credentials, or provide dashboard-to-device commands.
 - The former agent only sent heartbeats and could not execute commands, but it is no longer needed and is being removed.
 - Future training controls must be local to the device running training. The local user selects the RAM ceiling and operates Start/Stop there; the website cannot control another device.
@@ -16,7 +20,7 @@
 **Repository:** [shayaanfarsheed-cmd/ULTRONAI](https://github.com/shayaanfarsheed-cmd/ULTRONAI)  
 **Dashboard:** [GitHub Pages](https://shayaanfarsheed-cmd.github.io/ULTRONAI/)  
 **Main branch:** `main`  
-**Latest merged work:** PR #23 — remove remote device pairing and require local training controls, merged at `acd9b8a20aac4552592a1b3fa7b72b9d2513bf2c`.
+**Latest merged work:** PR #24 — make hosted dashboard read-only for training operations, merged at `23f87a0a8176626781824d550341d6bed05d22d5`.
 
 ## Current priorities
 
@@ -75,19 +79,20 @@
 - Confirm sign-out returns to Guest Mode and clears private browser state.
 - Test actual iPad/iPadOS Safari and Chrome, iPhone, Android, and desktop browsers, including narrow/wide layouts, refresh, interrupted network, and keyboard/screen-reader navigation. Do not claim device compatibility unless tested on those devices.
 
-## Latest in-progress change — PR #24
+## Latest merged change — PR #24
 
-- Branch `security/retire-remote-training-controls` removes dashboard switch/pause/resume/automatic-start handlers, checkpoint resume selection, manual server status mutations, and manual usage writes. The hosted dashboard retains status/history display, server recommendations, checkpoint verification/download, and provider links only.
-- Regression tests require the dashboard to have no training-control write paths. RAM selection remains a browser preference only; it does not enforce a cap.
-- PR #24 is being prepared; do not merge until all checks pass and the exact diff is reviewed.
+- PR #24 merged at `23f87a0a8176626781824d550341d6bed05d22d5` after all three required checks passed on the exact reviewed PR head.
+- The hosted dashboard no longer sends training-control writes or offers remote training controls, checkpoint resume, server-status edits, or manual usage writes. Read-only status/history, provider links, and checkpoint verification/download remain.
+- RAM selection remains a browser preference only; it does not enforce a memory cap.
+- Merge-triggered `main` checks and GitHub Pages deployment must be verified before claiming the live site is updated.
 
 ## Next steps for the next session
 
-1. Verify the GitHub Pages deployment for merge commit `acd9b8a20aac4552592a1b3fa7b72b9d2513bf2c` and inspect the live Local training page.
-2. Retire remaining dashboard-to-training commands in PR #24; keep server recommendations, training status and checkpoint verification/download read-only. The website must not send commands to a running device or notebook.
-3. Verify the production `device-control` Edge Function still fails closed with HTTP 410; the direct HTTP invocation test was not available during this work. Keep the historical pairing tables inert and private.
-4. Begin the local-only runtime described in `docs/LOCAL_AGENT_ARCHITECTURE.md`: first a stub worker and state machine, then verified RAM enforcement and safe Stop/checkpoint behavior. No remote device control.
-5. Keep training disabled. Do not start real training until the user separately approves it after implementation and validation. Continue iPad and browser frontend testing before model training.
+1. Verify the merge-triggered GitHub Pages deployment for `23f87a0a8176626781824d550341d6bed05d22d5`, then inspect the live dashboard for absence of all remote training controls and confirm status/checkpoint views remain read-only.
+2. Test owner authentication and Guest Mode in the deployed site; verify private records remain protected.
+3. Verify the production `device-control` Edge Function still fails closed with HTTP 410; direct HTTP invocation was not available during the earlier retirement check. Keep historical pairing tables inert and private.
+4. Continue iPad/browser frontend testing before runtime work. Then implement a local-only dummy-worker state machine with explicit local Start/Stop, verified RAM enforcement, safe checkpointing, and regression tests. No remote device control.
+5. Keep real training disabled. Do not start it until the local runtime is implemented, validated, and the user separately approves it.
 
 <!-- Historical next steps from the previous architecture are retained below for audit context. -->
 
