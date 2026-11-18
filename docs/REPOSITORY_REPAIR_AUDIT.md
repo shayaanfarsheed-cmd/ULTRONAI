@@ -54,7 +54,7 @@
 - [x] Add machine-readable access and platform-enforcement policy to config.
 - [x] Disable Kaggle in provider registry and add regression tests.
 - [ ] Run JSON validation, Python unit tests, compile checks, JavaScript syntax checks and all CI workflows on the exact PR head.
-- [ ] Review final diff and open PR; do not merge without explicit approval.
+- [x] Review changed-file inventory and open PR #10; final review remains subject to exact-head CI. Do not merge without explicit approval.
 
 ## Explicitly not done
 
