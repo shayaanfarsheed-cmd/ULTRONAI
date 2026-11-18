@@ -4,6 +4,7 @@
 - The former agent only sent heartbeats and could not execute commands, but it is no longer needed and is being removed.
 - Future training controls must be local to the device running training. The local user selects the RAM ceiling and operates Start/Stop there; the website cannot control another device.
 - Training remains disabled. No checkpoints or training data are deleted.
+- The dashboard is being made strictly read-only for training operations: no switch, pause, resume, automatic-start, checkpoint-resume, or server-status mutation actions. Checkpoint verification/download and status/history display remain read-only.
 - The old Supabase pairing tables are retained inert for auditability; the production Edge Function has been replaced with a fail-closed HTTP 410 response. No direct browser grants are to be added.
 - PR #22 (pairing security tests) is closed and obsolete. PR #23 was reviewed and merged on 2026-11-18; merge commit: `acd9b8a20aac4552592a1b3fa7b72b9d2513bf2c`. All three required PR workflows passed on its exact head.
 - Local training architecture and failure-handling plan: docs/LOCAL_AGENT_ARCHITECTURE.md.
