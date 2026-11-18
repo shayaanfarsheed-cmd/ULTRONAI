@@ -305,7 +305,7 @@ Key gaps to resolve before implementation:
 ### Stage 1 changes pushed to PR #4 branch
 A merge commit brought current main into the PR branch while preserving the PR history:
 - Stage 1 initial merge commit: `afd90911299f3684f97d74ff4aa2d3bf18eb6c64`
-- Latest PR branch head after action-specific schema/test refinements: `6d275ee0ef3552554bffd5e61d3d01a2da3f2a9c`
+- Latest validated code/test commit (before this README-only handoff update): `468de41ff72f13c74e08fbb194119327ef59a834`
 - Commit message: Harden device command contract and add executable validation
 - Updated `docs/DEVICE_CONTROL_CONTRACT.md`: precise data constraints/indexes, non-exposed schema grants/RLS requirements, no-login authorization boundary, pairing and credential lifecycle, atomic claim/ack state machine, 120-second command TTL, 30-second clock-skew tolerance, replay protection, fencing, 10-second stop target, Windows/Linux memory enforcement, local-agent trust boundary, and explicit deployment approval gate.
 - Updated `schemas/device-command.schema.json`: strict Draft 2020-12 command schema.
@@ -316,15 +316,15 @@ A merge commit brought current main into the PR branch while preserving the PR h
 
 ### Validation status
 - The original PR #4 Test Suite and preflight jobs passed, but they ran before the new Stage 1 changes.
-- Fresh CI on intermediate head `653426c90b061924a08dd28bbc0d72d69df1d28c` passed: Test Suite `44217252926`, preflight `44217253000`, and Training Prototype Validation `44217253051`.
-- Follow-up changes then tightened pause/resume/stop parameter allowlists and aligned the nonce/idempotency documentation. Those follow-up changes are on latest head `6d275ee0ef3552554bffd5e61d3d01a2da3f2a9c` and still require a fresh CI run.
-- A local test attempt against an isolated equivalent fixture ran 22 tests successfully; this is supplemental and is not a substitute for repository CI. A direct repository clone was unavailable in the execution environment.
+- Fresh CI on validated code/test commit `468de41ff72f13c74e08fbb194119327ef59a834` passed all three workflows: Test Suite `44217450668`, preflight `44217450769`, and Training Prototype Validation `44217450665`.
+- Preflight and Training Prototype Validation unit-test steps both completed successfully; the Test Suite also completed compilation, dashboard checks, configuration validation, unit tests, and model/data/checkpoint/training smoke tests successfully.
+- A supplemental isolated local fixture ran all 24 device-contract tests successfully. A direct repository clone was unavailable in the execution environment, so GitHub Actions is the authoritative repository validation.
 - Check that all workflows triggered by the updated PR head pass, including Test Suite, preflight, and Training Prototype Validation if applicable.
 
 ### Next actions (in order)
-1. Verify PR #4 targets current main and its latest head is `6d275ee0ef3552554bffd5e61d3d01a2da3f2a9c`.
+1. Verify PR #4 targets current main and inspect the latest head created by this README-only handoff update.
 2. Inspect the complete updated diff, especially validator edge cases, action-specific parameter restrictions, and documentation consistency.
-3. Verify fresh CI on the exact latest head; fix failures and rerun.
+3. Verify CI on the latest README-only head; source/test code was last validated on `468de41ff72f13c74e08fbb194119327ef59a834`.
 4. Check whether the schema validator's date-time/UUID format checks behave as expected under the pinned Python 3.11 workflow.
 5. Ensure no public login/sign-up UI or privileged dashboard controls were introduced.
 6. Keep PR #4 open and unmerged until explicit approval.
