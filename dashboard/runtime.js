@@ -24,7 +24,7 @@
     }
 
     const reader = body.getReader();
-    const chunks = [];
+    let buffer = new Uint8Array(Math.min(maxBytes, 16 * 1024));
     let total = 0;
     try {
       while (true) {
@@ -35,8 +35,15 @@
           try { await reader.cancel(); } catch (_) {}
           throw new Error("Checkpoint object exceeds its allowed download size.");
         }
-        total += chunk.byteLength;
-        chunks.push(chunk);
+        const required = total + chunk.byteLength;
+        if (required > buffer.byteLength) {
+          const capacity = Math.min(maxBytes, Math.max(required, buffer.byteLength * 2));
+          const expanded = new Uint8Array(capacity);
+          expanded.set(buffer.subarray(0, total));
+          buffer = expanded;
+        }
+        buffer.set(chunk, total);
+        total = required;
       }
     } finally {
       try { reader.releaseLock(); } catch (_) {}
@@ -44,13 +51,7 @@
     if (declaredLength != null && total !== declaredLength) {
       throw new Error("Checkpoint response length does not match its header.");
     }
-    const result = new Uint8Array(total);
-    let offset = 0;
-    for (const chunk of chunks) {
-      result.set(chunk, offset);
-      offset += chunk.byteLength;
-    }
-    return result.buffer;
+    return buffer.subarray(0, total);
   }
 
   async function mapWithConcurrency(items, limit, mapper) {
