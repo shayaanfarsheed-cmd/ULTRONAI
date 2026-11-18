@@ -1,16 +1,18 @@
-# PR #10 code-review repair handoff — 2026-11-18
+# PR #10 validation repair handoff — 2026-11-18
 
-**Current state:** PR #10 is open and unmerged. The latest code-review fixes are being applied on `repair/work-package-1-repository-architecture`. Do not merge until the latest exact-head checks pass and the final diff is reviewed.
+**Current state:** PR #10 is open and unmerged. The latest CI run failed on three workflows because two legacy runtime tests still selected Kaggle after Kaggle had been deliberately disabled.
 
-**Repairs in this pass:**
-- Configuration validation now checks exact platform enforcement policies, exact guest permission boundaries, a strict integer owner limit, and Kaggle exclusion from runtime, automatic selection, and the server registry.
-- The runtime resolver rejects Kaggle instead of silently selecting its runtime profile.
-- Regression tests cover invalid owner limits, public signup, private guest permissions, missing/unknown enforcement policies, Kaggle re-enablement, and direct Kaggle runtime selection.
-- The repository audit and PR description are being synchronized with these findings.
+**Root cause and repair:**
+- Both failures originated in `tests/test_runtime.py`: the GPU-profile and config-override tests used `platform_id="kaggle"`.
+- Updated those tests to use the enabled `google_colab` runtime profile.
+- Removed the now-unreachable Kaggle runtime profile from `train.py`. Kaggle detection remains available for explicit rejection; the provider stays disabled.
+- No test was weakened and no Kaggle restriction was removed.
 
-**Validation:** CI must be checked against the final commit created by this repair pass. Earlier passing CI on older commits does not validate these new changes.
+**Validation:** The failed runs on prior head `adf0add1723bd18488c224522d839368fcfef6e1` were Test Suite `44223719035`, Preflight `44223719167`, and Training Prototype Validation `44223719236`. Each failed at unit tests due to the same two stale runtime tests. Fresh CI is required on the new head after this repair.
 
 **Safety:** No merge, production Supabase change, account provisioning, device pairing, agent installation, provider job, or live training is authorized or performed.
+
+---
 
 ---
 
