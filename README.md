@@ -5,7 +5,7 @@
 **Verified main merge:** `ad8a0d01bcd725f96f8d6a41d682febed3c2e4c7` (PR #10 is merged).  
 **Active feature branch:** `feature/owner-guest-dashboard`  
 **Draft PR:** [#11 — Build owner sign-in and Guest Mode dashboard foundation](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/11)  
-**Code head before this README handoff:** `5f2028106dc29863325ef6bcbd5c1a00ddbdc387`
+**Code head before this README handoff:** `7c71287fb57e571f5bb2156ccf98d6cabd6cb172`
 
 ## Work Package 2 — owner/guest dashboard foundation
 
@@ -19,9 +19,10 @@
 - Sign-out clears local access and private state before attempting server-side token revocation.
 - Sign-in password input is cleared immediately and again when the attempt finishes.
 - Expired or revoked sessions return to Guest Mode; stale in-flight refresh results are discarded using an auth-generation counter.
-- Guest overview no longer recommends starting a training run; it clearly explains that private training data and controls are unavailable in Guest Mode.
+- Guest overview no longer recommends starting a training run; it explains that private training data and controls are unavailable in Guest Mode.
+- Added a private Activity view for owner training-session history and server handoff records. Guest Mode renders an explicit locked state and does not load private rows.
 - Unfinished automatic-start control remains disabled until a real, secured backend action exists.
-- Added regression tests for owner-only request guards, cache isolation, guest transitions, password cleanup, sign-out ordering, expired/revoked sessions, and guest overview behaviour.
+- Added regression tests for owner-only request guards, cache isolation, guest transitions, password cleanup, sign-out ordering, expired/revoked sessions, guest overview behaviour, and private Activity gating.
 
 ### Current safety boundary
 - The frontend UUID allowlist is only a UI/session gate. It is **not** a substitute for backend RLS and server-side authorization.
@@ -32,9 +33,9 @@
 
 ## Validation and next actions
 - All three workflows passed on the earlier PR head `9f54f93ad8b77d2d1fd02850a64d5d26a9ff0667`.
-- Current code and regression tests are on `5f2028106dc29863325ef6bcbd5c1a00ddbdc387`; the README handoff below creates a new commit, so check all three workflows against the latest exact PR head before treating validation as passed.
+- Current code and regression tests are on `7c71287fb57e571f5bb2156ccf98d6cabd6cb172`; this README handoff creates a new commit, so check all three workflows against the latest exact PR head before treating validation as passed.
 - Feature implementation is still in progress. Compatibility testing has **not** started; it follows feature implementation.
-- Next: finish the remaining truthful owner/guest dashboard views, audit every UI action and data path, complete backend authorization design review without changing production, then run compatibility checks and repair any failures.
+- Next: finish remaining owner/guest dashboard sections and audit every UI action/data path, complete backend authorization design review without changing production, then run compatibility checks and repair any failures.
 - PR #11 remains draft and unmerged. Do not merge without the user's explicit approval.
 
 **Permanent constraints:** $0 budget; no paid services, Kaggle, external AI APIs, pretrained weights, or externally generated training data. No live training without separate approval.
