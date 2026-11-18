@@ -3,13 +3,13 @@
 **Repository:** [shayaanfarsheed-cmd/ULTRONAI](https://github.com/shayaanfarsheed-cmd/ULTRONAI)  
 **Dashboard:** [GitHub Pages](https://shayaanfarsheed-cmd.github.io/ULTRONAI/)  
 **Main branch:** `main`  
-**Latest merged work:** PR #15 — README handoff update, merged at `1de739ba0f15dd9d2fda3ba0dd503baeb801c15d`.
+**Latest merged work:** PR #16 — verified owner authentication configuration, merged at `7b0dc262a2319c00253f106b9122efe13a388063`.
 
 ## Current priorities
 
 1. Finish and validate the dashboard/frontend before starting any model training.
-2. Keep the website usable on iPad/iPhone, Android, and desktop browsers.
-3. Verify owner authentication end-to-end and harden owner/guest access without exposing secrets.
+2. Test owner authentication and Guest Mode against the deployed website.
+3. Keep the website usable on iPad/iPhone, Android, and desktop browsers.
 4. Keep all work within the $0 budget.
 
 ## Recently merged work
@@ -18,7 +18,9 @@
   Merged on 2026-11-18 at `b4f7209f4c9572f03e1fb221e9304ba0e211ba88`. Added keyboard skip navigation, selected-navigation semantics, visible focus, iOS safe-area spacing, responsive navigation refinements, reduced-motion support, landscape insets, touch targets, and regression coverage.
 - **PR #15 — [Update README after PR #14 merge](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/15)**  
   Merged on 2026-11-18 at `1de739ba0f15dd9d2fda3ba0dd503baeb801c15d`.
-- PR #14's three required checks passed on its final PR head. GitHub Pages deployment and main-branch workflows passed after PR #14.
+- **PR #16 — [Configure verified owner authentication](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/16)**  
+  Merged on 2026-11-18 at `7b0dc262a2319c00253f106b9122efe13a388063`. Configured the verified owner Auth UUID and public Supabase publishable key in `dashboard/config.js`, and updated regression tests to require valid configuration values. All three required PR workflows passed on the exact final head: preflight, Test Suite, and Training Prototype Validation.
+- GitHub Pages deployment after PR #16 still needs to be verified. Owner sign-in and Guest Mode have not yet been manually tested on the deployed site.
 - **Real-device compatibility testing is still outstanding.** Automated CI does not prove iPad/iPhone, Android, or desktop browser behavior.
 
 ## Product and security constraints
@@ -30,7 +32,7 @@
 - Never put privileged keys, service-role secrets, or passwords in browser code, notebooks, commits, or logs.
 - The Supabase publishable key in `dashboard/config.js` is designed for public browser use; never substitute a secret/service-role key.
 - Guest Mode is the public default. Owner sign-in is a single owner account; public self-registration is disabled.
-- The owner Auth user has been created and email-confirmed in Supabase. PR #16 proposes adding its UUID and the project's publishable key to the dashboard config. Do not treat this as end-to-end sign-in validation until the PR is merged and an owner sign-in is tested in the deployed site.
+- The owner Auth user has been created and email-confirmed in Supabase. Its UUID and the project's publishable key are now configured in the merged main branch. The user must test sign-in using their email/password directly in the website; never ask them to paste the password into chat.
 - Frontend UUID checks and browser session storage are not backend authorization or secure credential storage. Private operations require server-side authorization and RLS.
 - Current inspected database state: RLS is enabled on all six public memory tables and the three `training_api` tables. Owner-scoped policies were present for the inspected memory/training records; Storage has an owner-folder SELECT policy for the `checkpoints` bucket. The browser must still be tested against these policies with both owner and Guest Mode.
 - Supabase Security Advisor reports **Leaked Password Protection Disabled**. Enable it in Supabase Auth password/security settings when ready; no production setting was changed during this work.
@@ -51,18 +53,19 @@
 - PR #13 added incremental checkpoint response streaming, early cancellation at the configured byte cap, declared/actual length checks, fail-closed handling without streaming, strict manifest step validation, and regression tests.
 - The stream reader bounds the retained response buffer, but temporary buffer growth can hold old and new allocations; it is not a hard total browser-process memory cap.
 - PR #14 contains frontend accessibility and responsive-layout changes only; no real-device compatibility test has been performed.
+- PR #16 configures owner authentication but does not provision devices, start training, or enable AutoStart.
 
 ## Required validation
 
-- Run all three GitHub Actions workflows on the exact final PR head: ULTRON preflight tests, ULTRON Test Suite, and ULTRON Training Prototype Validation.
-- Review the complete PR diff and exact head SHA; do not weaken tests or branch protection.
-- After merge/deployment, test owner sign-in and Guest Mode in a real browser. Confirm Guest Mode cannot read private records, and owner mode can access only the configured owner's records.
+- After PR #16 deployment, open the GitHub Pages dashboard and test owner sign-in using the owner's email/password directly in the sign-in dialog.
+- Confirm Guest Mode cannot read private records, and owner mode can access only the configured owner's records. Inspect any auth, RLS, or Storage failures without weakening access controls.
+- Confirm sign-out returns to Guest Mode and clears private browser state.
 - Test actual iPad/iPadOS Safari and Chrome, iPhone, Android, and desktop browsers, including narrow/wide layouts, refresh, interrupted network, and keyboard/screen-reader navigation. Do not claim device compatibility unless tested on those devices.
 
 ## Next steps for the next session
 
-1. Review PR #16's exact diff and run all required workflows on its final head.
-2. If all checks pass and GitHub reports the PR mergeable, merge the owner-auth configuration change.
-3. Test owner sign-in and Guest Mode against the deployed dashboard; inspect any auth, RLS, or Storage failures without weakening access controls.
+1. Verify the GitHub Pages deployment for merge commit `7b0dc262a2319c00253f106b9122efe13a388063`.
+2. Test owner sign-in and Guest Mode in the deployed website; report the exact UI error if sign-in fails, but never share the password.
+3. Verify private memory and checkpoint requests are correctly restricted by Supabase RLS and Storage policies.
 4. Address the Supabase leaked-password-protection warning through the Supabase dashboard when authorized.
-5. Continue dashboard interaction and device-compatibility work. Do not start real training until the user explicitly approves it.
+5. Continue dashboard UX and real-device testing. Do not start real training until the user explicitly approves it.
