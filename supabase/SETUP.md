@@ -1,6 +1,6 @@
 # Supabase and owner-access architecture
 
-**Status (2026-11-18): documentation only. Do not perform migrations, policy changes, key rotation, account creation, or production configuration as part of Work Package 1.**
+**Status (2026-11-18): owner-only cloud data library implementation is proposed on an unmerged branch. Its SQL has not been applied to production. Do not apply migrations or policy changes without separate explicit approval.**
 
 ## Product access model
 
@@ -83,3 +83,10 @@ No provider job or live training run may start without separate explicit approva
 - Do not start training, pair a device, or launch a provider job.
 - Do not add billing, a payment method, paid trials, or quota workarounds.
 
+
+
+## Owner-only shared data library (proposed)
+
+The dashboard branch `feature/owner-data-library-sync` adds a private Supabase Storage bucket named `data-library`. Each object path is `<verified-owner-auth-uuid>/<filename>`. The SQL in `storage-setup.sql` creates the private bucket (20 MiB per file) and owner-folder SELECT, INSERT, UPDATE, and DELETE policies based on `auth.uid()`. No anonymous or guest policy is created.
+
+Every browser must sign in to the same owner account. The dashboard lists the cloud bucket and refreshes every 20 seconds while visible, so changes propagate to other signed-in browsers. This is polling-based sync, not instantaneous push. The UI stores uploaded bytes as opaque data and never executes them or starts training. The SQL remains unapplied until separately approved.
