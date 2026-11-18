@@ -24,6 +24,25 @@ class DashboardStaticTests(unittest.TestCase):
                 source = path.read_text(encoding="utf-8")
                 self.assertIsNone(re.search(r"sb_secret_[A-Za-z0-9]{12,}", source), path.name)
 
+    def test_owner_auth_is_allowlisted_and_has_no_signup_flow(self):
+        html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
+        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
+        config = (DASHBOARD / "config.js").read_text(encoding="utf-8")
+        self.assertIn('id="ownerSignInForm"', html)
+        self.assertIn('id="ownerSignOutButton"', html)
+        self.assertIn("user.id !== OWNER_USER_ID", javascript)
+        self.assertIn("state.publicMode = !isOwner", javascript)
+        self.assertIn('ownerUserId: ""', config)
+        self.assertNotIn("signup", javascript.lower())
+        self.assertNotIn("signUp", html)
+
+    def test_guest_mode_is_default_and_owner_session_is_verified(self):
+        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
+        self.assertIn("publicMode: true", javascript)
+        self.assertIn('AUTH_ROOT + "user"', javascript)
+        self.assertIn("setAccessMode(restoredOwner)", javascript)
+        self.assertIn('$("ownerPassword").value = ""', javascript)
+
     def test_dashboard_has_no_external_ai_api_endpoint(self):
         forbidden = (
             "api.openai.com",
