@@ -39,7 +39,7 @@ declare
   v_device_id uuid;
 begin
   if coalesce(auth.role(), '') <> 'service_role' then raise exception 'service role required'; end if;
-  if p_challenge_id is null or p_code_hash !~ '^[a-f0-9]{64}$'
+  if p_challenge_id is null or p_code_hash is null or p_token_hash is null or p_code_hash !~ '^[a-f0-9]{64}$'
      or p_token_hash !~ '^[a-f0-9]{64}$'
      or nullif(pg_catalog.btrim(p_device_name), '') is null
      or pg_catalog.char_length(p_device_name) > 80
