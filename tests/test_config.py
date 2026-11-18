@@ -29,6 +29,7 @@ class ConfigurationTests(unittest.TestCase):
         self.assertFalse(access["public_self_registration_enabled"])
         self.assertTrue(access["owner_authentication_required_for_private_operations"])
         self.assertTrue(access["guest_mode_enabled"])
+        self.assertEqual(set(access["guest_permissions"]), {"public_dashboard", "public_mathematics_information"})
         self.assertTrue({
             "private_training_history",
             "private_checkpoints",
