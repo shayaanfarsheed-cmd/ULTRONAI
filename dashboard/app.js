@@ -1062,7 +1062,7 @@
   }
 
   async function handleCheckpointAction(button) {
-    const id = button.getAttribute("data-checkpoint-verify") || button.getAttribute("data-checkpoint-download") || button.getAttribute("data-checkpoint-resume");
+    const id = button.getAttribute("data-checkpoint-verify") || button.getAttribute("data-checkpoint-download");
     if (button.hasAttribute("data-checkpoint-verify")) return verifyOneCheckpoint(id);
     if (button.hasAttribute("data-checkpoint-download")) return downloadCheckpoint(id);
   }
