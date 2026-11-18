@@ -2,14 +2,14 @@
 
 - **PR:** [#10 — Repair repository docs and owner/guest configuration baseline](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/10)
 - **Branch:** `repair/work-package-1-repository-architecture`
-- **Verified PR head before this README sync:** `5af64e2bb68c02693a15bbdd5da184780407c1e1`. This README sync creates a newer commit; fetch PR #10 for the exact live head.
+- **Validated PR head before this README sync:** `4b8bc0afe572e748e195d48e736eaa737b4e2f30`. All three GitHub Actions workflows passed on that exact head: Preflight `44222226674`, Training Prototype Validation `44222226690`, and Test Suite `44222226680`. This README sync creates a newer commit; recheck CI on the new exact head.
 - **Base:** `main` at `397f1492c300371821b2651ddfbc7342adc9f60c`
-- **PR #10 status:** open, unmerged. CI for the exact head has not yet been returned by the workflow-run lookup; verify all checks before accepting this package.
+- **PR #10 status at the validated head:** open, unmerged, and GitHub reported mergeable. All three workflows passed on the validated head listed above. Recheck mergeability and CI after this handoff-only README update.
 - **Files changed:** `README.md`, `config.json`, `docs/LOCAL_AGENT_ARCHITECTURE.md`, `docs/REPOSITORY_REPAIR_AUDIT.md`, `servers.json`, `supabase/SETUP.md`, `tests/test_config.py`, `train.py`.
 - **Key decisions:** one restricted owner account plus public Guest Mode; no public signup; private operations require verified owner authorization; guests are limited to public content; Kaggle disabled; resource enforcement is platform-specific and training must fail closed when not verified.
 - **Not implemented:** owner login/recovery, production backend authorization, device registry/pairing, agents, and enforced resource limits.
 - **Safety:** no Supabase production changes, secrets, pairing, agent installation, training, provider jobs or merges.
-- **Next:** inspect PR #10 diff and exact-head CI; fix failures without weakening tests; update this handoff with final run IDs and results. Then continue the remaining Phase 1 file audit before starting account implementation.
+- **Validation:** all three workflows passed on validated head `4b8bc0afe572e748e195d48e736eaa737b4e2f30`: Preflight run `44222226674`; Training Prototype Validation run `44222226690`; Test Suite run `44222226680`. Every job step in all three runs completed successfully. GitHub reported `mergeable: true` for this head. The following README handoff update requires a fresh exact-head CI/mergeability check.
 
 ---
 
