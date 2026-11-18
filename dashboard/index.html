@@ -277,12 +277,15 @@
           </div>
           <article class="panel section-panel">
             <div class="section-heading"><div><div class="eyebrow">UPLOAD DATA</div><h2>Add a file to ULTRON</h2></div><span class="small-pill">20 MB MAX / FILE</span></div>
-            <p class="muted-text">Files are stored as data only. ULTRON will not execute uploaded files. Uploading does not start training or add a file to a training dataset automatically.</p>
+            <p class="muted-text">Files and folders are stored as data only. ULTRON will not execute uploaded files. Uploading does not start training or add files to a training dataset automatically.</p>
             <form id="dataUploadForm" class="data-upload-form">
-              <label for="dataFileInput">Choose a data file</label>
-              <input id="dataFileInput" type="file" required>
-              <button id="dataUploadButton" class="primary-button" type="submit">Upload file</button>
+              <label for="dataFileInput">Choose individual files</label>
+              <input id="dataFileInput" type="file" multiple>
+              <label for="dataFolderInput">Or choose an entire dataset folder</label>
+              <input id="dataFolderInput" type="file" webkitdirectory directory multiple>
+              <button id="dataUploadButton" class="primary-button" type="submit">Upload selected data</button>
             </form>
+            <p class="fine-print">Folder uploads preserve relative paths. Limits: 20 MiB per file, 500 files and 500 MiB per batch. Keep this page open until upload completes.</p>
             <p id="dataLibraryNotice" class="notice" role="status" hidden></p>
           </article>
           <article class="panel table-panel">
