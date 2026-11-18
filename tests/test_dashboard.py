@@ -84,6 +84,15 @@ class DashboardStaticTests(unittest.TestCase):
         signout = javascript.split("async function signOutOwner()", 1)[1].split("function sessionFromResponse", 1)[0]
         self.assertLess(signout.index("saveSession(null);"), signout.index('fetch(AUTH_ROOT + "logout"'))
 
+    def test_chart_redraw_is_scheduled_and_skips_hidden_views(self):
+        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
+        self.assertIn("function scheduleChartDraw()", javascript)
+        self.assertIn("window.requestAnimationFrame", javascript)
+        self.assertIn('if (document.hidden || state.currentView !== "overview") return;', javascript)
+        self.assertIn("new ResizeObserver(scheduleChartDraw)", javascript)
+        self.assertIn("context.setTransform(ratio, 0, 0, ratio, 0, 0)", javascript)
+        self.assertIn("if (canvas.width !== pixelWidth) canvas.width = pixelWidth;", javascript)
+
     def test_checkpoint_metadata_reads_are_bounded_and_auth_generation_checked(self):
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
         self.assertIn("async function mapWithConcurrency(items, limit, mapper)", javascript)
