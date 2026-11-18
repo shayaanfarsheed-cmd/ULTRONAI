@@ -18,7 +18,7 @@ Reviewed implementation proposal only. It is not active until the database migra
 - The browser never receives the service-role key or device bearer credential.
 - Owner routes verify the Supabase access token using Auth getUser() and derive owner_id from that verified user.
 - Device registry and challenge tables have RLS enabled and no grants to anon or authenticated; only the Edge Function service role accesses them.
-- The consume function is executable only by service_role, locks the challenge row, expires and consumes codes atomically, and caps attempts.
+- The consume function uses `SECURITY INVOKER`, is executable only by `service_role`, checks the verified service-role claim, locks the challenge row, expires and consumes codes atomically, and caps attempts. Only one active challenge is allowed per owner; issuing a new code invalidates the previous one.
 - Pairing codes and device tokens are returned only in the relevant one-time response. The Edge Function does not log request bodies or credentials.
 - CORS is restricted to the GitHub Pages origin. CORS is not authentication; owner/device credentials remain mandatory.
 - Capabilities are untrusted metadata until independently validated by a future device agent.
@@ -32,7 +32,7 @@ Reviewed implementation proposal only. It is not active until the database migra
 4. Configure Edge Function secrets SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_SERVICE_ROLE_KEY in Supabase secrets. Never put the service-role key in GitHub or browser code.
 5. Implement and security-review a compatible device agent before enabling pairing in the dashboard.
 6. Add rate limiting at the Edge Function/gateway layer before public deployment. The database caps guesses per challenge; it does not replace per-IP throttling.
-7. Add integration tests against a disposable Supabase project, including concurrent redemption, owner isolation, expired/used codes, revocation, and credential redaction.
+7. Add gateway/IP-level rate limiting and integration tests against a disposable Supabase project, including concurrent redemption, owner isolation (including a second authenticated user), expired/used codes, revocation, and credential redaction.
 
 ## Known limitations
 
