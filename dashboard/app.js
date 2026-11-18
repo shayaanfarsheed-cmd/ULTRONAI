@@ -36,7 +36,9 @@
     checkpointBusy: false,
     quota: {},
     projectConfig: {},
-    ramLimitGb: 6
+    ramLimitGb: 6,
+    pairedDevices: [],
+    pairingChallenge: null
   };
 
   function escapeHtml(value) {
