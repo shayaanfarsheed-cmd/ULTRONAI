@@ -1,3 +1,19 @@
+# PR #10 code-review repair handoff — 2026-11-18
+
+**Current state:** PR #10 is open and unmerged. The latest code-review fixes are being applied on `repair/work-package-1-repository-architecture`. Do not merge until the latest exact-head checks pass and the final diff is reviewed.
+
+**Repairs in this pass:**
+- Configuration validation now checks exact platform enforcement policies, exact guest permission boundaries, a strict integer owner limit, and Kaggle exclusion from runtime, automatic selection, and the server registry.
+- The runtime resolver rejects Kaggle instead of silently selecting its runtime profile.
+- Regression tests cover invalid owner limits, public signup, private guest permissions, missing/unknown enforcement policies, Kaggle re-enablement, and direct Kaggle runtime selection.
+- The repository audit and PR description are being synchronized with these findings.
+
+**Validation:** CI must be checked against the final commit created by this repair pass. Earlier passing CI on older commits does not validate these new changes.
+
+**Safety:** No merge, production Supabase change, account provisioning, device pairing, agent installation, provider job, or live training is authorized or performed.
+
+---
+
 ## Work Package 1 handoff — 2026-11-18
 
 - **PR:** [#10 — Repair repository docs and owner/guest configuration baseline](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/10)
@@ -113,7 +129,7 @@ To publish with GitHub Pages:
 4. Save and wait for the Pages deployment.
 5. Open `https://shayaanfarsheed-cmd.github.io/ULTRONAI/`.
 
-The dashboard requires `training_api` to be the only exposed Data API schema. Follow `supabase/SETUP.md` before signing in.
+Historical setup note — do not follow this as an instruction to sign in or change production settings. Owner authentication is not implemented. Any future Supabase exposure, grants, RLS, or schema changes require a separately reviewed plan and explicit approval.
 
 ## Provider secrets
 
@@ -289,7 +305,7 @@ These are optional until the private repository is configured. The Supabase back
 ### Current operational state
 
 - Dashboard source is committed; GitHub Pages still needs to be enabled and `dashboard/config.js` needs the Supabase publishable/anon key.
-- A Supabase Auth user must exist before a live training run can be created.
+- Owner authentication and trusted backend authorization are not implemented yet; do not create accounts or start a live training run as part of this work package.
 - The user primarily works from an iPad; all website setup instructions must work in a browser and must not assume a Windows device.
 - Live provider accounts, actual quotas, GPU availability, Hugging Face private storage, browser sign-in and cross-provider recovery still need user-side setup or live verification.
 - Keep automatic starts disabled until platform policy, secrets and safety limits are verified. Guided switching must remain available.
