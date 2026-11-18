@@ -218,6 +218,7 @@
       $("ownerSignInDialog").close();
       showNotice("Owner session verified. Private data requests use the authenticated session.", "success");
       await refreshData();
+      if (state.currentView === "data") await loadDataLibrary();
     } catch (error) {
       saveSession(null);
       setAccessMode(false);
