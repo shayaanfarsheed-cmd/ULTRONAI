@@ -1,4 +1,5 @@
 import re
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -8,6 +9,13 @@ DASHBOARD = ROOT / "dashboard"
 
 
 class DashboardStaticTests(unittest.TestCase):
+    def test_dashboard_runtime_behaviour(self):
+        result = subprocess.run(
+            ["node", "--test", str(ROOT / "tests" / "dashboard_runtime.test.js")],
+            cwd=ROOT, capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_all_static_javascript_id_references_exist(self):
         html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
