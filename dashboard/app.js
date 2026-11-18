@@ -4,6 +4,7 @@
   const CONFIG = window.ULTRON_CONFIG || {};
   const SUPABASE_URL = String(CONFIG.supabaseUrl || "").replace(/\/$/, "");
   const PUBLISHABLE_KEY = String(CONFIG.supabasePublishableKey || "");
+  const OWNER_USER_ID = String(CONFIG.ownerUserId || "").trim();
   const API_ROOT = SUPABASE_URL + "/rest/v1/";
   const AUTH_ROOT = SUPABASE_URL + "/auth/v1/";
   const STORAGE_ROOT = SUPABASE_URL + "/storage/v1/";
@@ -79,8 +80,116 @@
   function saveSession(session) {
     state.session = session;
     state.user = session && session.user ? session.user : null;
-    if (session) sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
-    else sessionStorage.removeItem(SESSION_KEY);
+    try {
+      if (session) sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+      else sessionStorage.removeItem(SESSION_KEY);
+    } catch (_) {
+      if (session) throw new Error("This browser cannot retain the sign-in session. Enable session storage or use Guest Mode.");
+    }
+  }
+
+  function setAccessMode(isOwner) {
+    state.publicMode = !isOwner;
+    const signIn = $("ownerSignInButton");
+    const signOut = $("ownerSignOutButton");
+    const account = document.querySelector(".account-email");
+    if (signIn) signIn.hidden = Boolean(isOwner);
+    if (signOut) signOut.hidden = !isOwner;
+    if (account) account.textContent = isOwner ? "OWNER MODE" : "GUEST MODE";
+    setConnection(isOwner ? "OWNER" : "GUEST MODE", isOwner ? "connected" : "");
+    renderAll();
+  }
+
+  async function verifyOwnerSession() {
+    if (!state.session || !state.session.access_token) return false;
+    if (!OWNER_USER_ID) { saveSession(null); return false; }
+    try {
+      const session = await ensureSession();
+      const response = await fetch(AUTH_ROOT + "user", {
+        headers: {"apikey": PUBLISHABLE_KEY, "Authorization": "Bearer " + session.access_token}
+      });
+      const user = await response.json().catch(function () { return {}; });
+      if (!response.ok || !user.id || user.id !== OWNER_USER_ID) {
+        saveSession(null);
+        return false;
+      }
+      saveSession(Object.assign({}, session, {user: user}));
+      return true;
+    } catch (_) {
+      saveSession(null);
+      return false;
+    }
+  }
+
+  function showAuthMessage(message, kind) {
+    const box = $("ownerAuthMessage");
+    if (!box) return;
+    box.textContent = message;
+    box.className = "notice" + (kind ? " notice-" + kind : "");
+    box.hidden = !message;
+  }
+
+  async function signInOwner(event) {
+    event.preventDefault();
+    const submit = $("ownerSubmitButton");
+    if (!isConfigured()) {
+      showAuthMessage("Authentication is not configured yet. Guest Mode remains available.", "warn");
+      return;
+    }
+    if (!OWNER_USER_ID) {
+      showAuthMessage("Owner verification is not configured. Sign-in is safely disabled.", "warn");
+      return;
+    }
+    const email = $("ownerEmail").value.trim();
+    const password = $("ownerPassword").value;
+    if (!email || !password) {
+      showAuthMessage("Enter the owner email and password.", "error");
+      return;
+    }
+    submit.disabled = true;
+    showAuthMessage("Verifying owner credentials…", "");
+    try {
+      const data = await authRequest("token?grant_type=password", {email: email, password: password});
+      const next = sessionFromResponse(data);
+      if (!next.access_token || !next.refresh_token || !next.user || next.user.id !== OWNER_USER_ID) {
+        if (next.access_token) {
+          await fetch(AUTH_ROOT + "logout", {method: "POST", headers: {"apikey": PUBLISHABLE_KEY, "Authorization": "Bearer " + next.access_token}}).catch(function () {});
+        }
+        throw new Error("This account is not the configured ULTRON owner account.");
+      }
+      saveSession(next);
+      setAccessMode(true);
+      $("ownerPassword").value = "";
+      $("ownerSignInDialog").close();
+      showNotice("Owner session verified. Private data requests use the authenticated session.", "success");
+      await refreshData();
+    } catch (error) {
+      saveSession(null);
+      showAuthMessage(error.message || "Owner sign-in failed.", "error");
+    } finally {
+      submit.disabled = false;
+    }
+  }
+
+  async function signOutOwner() {
+    const session = state.session;
+    try {
+      if (session && session.access_token && isConfigured()) {
+        await fetch(AUTH_ROOT + "logout", {
+          method: "POST",
+          headers: {"apikey": PUBLISHABLE_KEY, "Authorization": "Bearer " + session.access_token}
+        });
+      }
+    } catch (_) {
+      showNotice("Could not confirm server-side sign-out. The local session has still been cleared.", "warn");
+    }
+    saveSession(null);
+    state.status = null;
+    state.logs = [];
+    state.switches = [];
+    state.checkpoints = [];
+    setAccessMode(false);
+    showNotice("Signed out. You are now using Guest Mode.", "info");
   }
 
   function sessionFromResponse(data) {
@@ -962,6 +1071,14 @@
       drawChart();
     });
     $("refreshButton").addEventListener("click", refreshData);
+    $("ownerSignInButton").addEventListener("click", function () {
+      showAuthMessage("", "");
+      if (typeof $("ownerSignInDialog").showModal === "function") $("ownerSignInDialog").showModal();
+      else showAuthMessage("This browser does not support the sign-in dialog. Update the browser or continue in Guest Mode.", "warn");
+    });
+    $("ownerSignOutButton").addEventListener("click", function () { signOutOwner().catch(function (error) { showNotice(error.message, "error"); }); });
+    $("ownerSignInForm").addEventListener("submit", signInOwner);
+    $("ownerCancelButton").addEventListener("click", function () { $("ownerSignInDialog").close(); });
     document.querySelectorAll("[data-view]").forEach(function (button) {
       button.addEventListener("click", function () { switchView(button.getAttribute("data-view")); });
     });
@@ -1002,11 +1119,17 @@
     } catch (_) {}
     bindEvents();
     await loadServerRegistry();
-    state.user = null;
-    state.session = null;
-    setConnection("PUBLIC", "connected");
-    $("lastUpdated").textContent = "Public system information · no personal training history";
-    showNotice("Public dashboard. No account or sign-in is required. Personal training history is not collected or displayed; checkpoints, device pairing and training controls are unavailable.", "info");
+    state.session = loadSavedSession();
+    state.user = state.session && state.session.user ? state.session.user : null;
+    const restoredOwner = await verifyOwnerSession();
+    setAccessMode(restoredOwner);
+    if (restoredOwner) {
+      $("lastUpdated").textContent = "Restored verified owner session.";
+      await refreshData();
+    } else {
+      $("lastUpdated").textContent = "Public system information · no personal training history";
+      showNotice("Guest Mode is active. Public information is available without an account. Private history, checkpoints, device pairing and remote training controls require verified owner access and a configured backend.", "info");
+    }
     renderAll();
   }
 
