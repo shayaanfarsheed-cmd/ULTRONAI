@@ -211,8 +211,22 @@ class LocalDummyRuntime:
 
 
 def _pid_exists(pid: int) -> bool:
+    """Return whether a process is executing; Linux zombies have already exited."""
     if pid <= 0:
         return False
+    proc_stat = Path("/proc") / str(pid) / "stat"
+    try:
+        stat_text = proc_stat.read_text(encoding="utf-8")
+    except OSError:
+        stat_text = None
+    if stat_text is not None:
+        try:
+            # comm is parenthesized and may contain spaces or closing parentheses.
+            fields_after_comm = stat_text.rsplit(")", 1)[1].split()
+            return fields_after_comm[0] not in {"Z", "X"}
+        except (IndexError, OSError):
+            # Malformed proc data is not proof that the process has exited.
+            return True
     try:
         os.kill(pid, 0)
         return True
