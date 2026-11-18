@@ -169,7 +169,11 @@ class LocalDummyRuntime:
             process = subprocess.Popen(command, stdin=subprocess.DEVNULL,
                                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                                        close_fds=True)
-            _atomic_json(self.process_file, {"run_id": run_id, "pid": process.pid})
+            process_identity = {"run_id": run_id, "pid": process.pid}
+            start_ticks = _proc_start_ticks(process.pid)
+            if start_ticks is not None:
+                process_identity["start_ticks"] = start_ticks
+            _atomic_json(self.process_file, process_identity)
             return run_id
         except Exception:
             _write_status(self.root, run_id, "FAILED", error_type="ProcessStartError")
@@ -198,9 +202,15 @@ class LocalDummyRuntime:
         except (FileNotFoundError, json.JSONDecodeError, RuntimeErrorState):
             pass
         pid = process_info.get("pid")
+        identity_matches = (
+            process_info.get("run_id") == status.get("run_id")
+            and isinstance(pid, int) and pid > 0
+        )
         if status.get("state") in TERMINAL_STATES:
-            # Terminal worker status is written immediately before process exit.
-            if pid and _pid_exists(int(pid)):
+            # Missing/mismatched identity is unknown, not proof of process exit.
+            if not identity_matches:
+                status["process_exited"] = False
+            elif _pid_exists(pid, process_info.get("start_ticks")):
                 status["process_exited"] = False
             else:
                 status["process_exited"] = True
@@ -210,8 +220,19 @@ class LocalDummyRuntime:
         return status
 
 
-def _pid_exists(pid: int) -> bool:
-    """Return whether a process is executing; Linux zombies have already exited."""
+def _proc_start_ticks(pid: int) -> int | None:
+    """Read Linux process start-time ticks to distinguish PID reuse."""
+    try:
+        stat_text = (Path("/proc") / str(pid) / "stat").read_text(encoding="utf-8")
+        fields_after_comm = stat_text.rsplit(")", 1)[1].split()
+        # Field 22 (starttime); fields_after_comm begins at field 3 (state).
+        return int(fields_after_comm[19])
+    except (OSError, ValueError, IndexError):
+        return None
+
+
+def _pid_exists(pid: int, expected_start_ticks: int | None = None) -> bool:
+    """Return whether this process identity is executing; Linux zombies have exited."""
     if pid <= 0:
         return False
     proc_stat = Path("/proc") / str(pid) / "stat"
@@ -221,12 +242,16 @@ def _pid_exists(pid: int) -> bool:
         stat_text = None
     if stat_text is not None:
         try:
-            # comm is parenthesized and may contain spaces or closing parentheses.
             fields_after_comm = stat_text.rsplit(")", 1)[1].split()
-            return fields_after_comm[0] not in {"Z", "X"}
-        except (IndexError, OSError):
-            # Malformed proc data is not proof that the process has exited.
+            process_state = fields_after_comm[0]
+            actual_start_ticks = int(fields_after_comm[19])
+            if expected_start_ticks is not None and actual_start_ticks != expected_start_ticks:
+                return False
+            return process_state not in {"Z", "X"}
+        except (ValueError, IndexError):
             return True
+    # Without procfs there is no portable PID-reuse check. Signal-zero is
+    # conservative: unknown/permission-denied means still potentially alive.
     try:
         os.kill(pid, 0)
         return True
