@@ -5,7 +5,7 @@
 **Verified main merge:** `ad8a0d01bcd725f96f8d6a41d682febed3c2e4c7` (PR #10 is merged).  
 **Active feature branch:** `feature/owner-guest-dashboard`  
 **Draft PR:** [#11 — Build owner sign-in and Guest Mode dashboard foundation](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/11)  
-**Code head before this README handoff:** `7c71287fb57e571f5bb2156ccf98d6cabd6cb172`
+**Code and test head before this README handoff:** `39975a2e4253bae4fee14fd87579249d4ae1c273`
 
 ## Work Package 2 — owner/guest dashboard foundation
 
@@ -33,7 +33,8 @@
 
 ## Validation and next actions
 - All three workflows passed on the earlier PR head `9f54f93ad8b77d2d1fd02850a64d5d26a9ff0667`.
-- Current code and regression tests are on `7c71287fb57e571f5bb2156ccf98d6cabd6cb172`; this README handoff creates a new commit, so check all three workflows against the latest exact PR head before treating validation as passed.
+- A preflight run on an intermediate commit exposed one outdated static assertion expecting the previous guest-mode assignment expression. The assertion was corrected to check the current equivalent state transition; no tests were removed or weakened.
+- Current code and regression tests are on `39975a2e4253bae4fee14fd87579249d4ae1c273`; this README handoff creates a new commit, so recheck all three workflows against the latest exact PR head before treating validation as passed.
 - Feature implementation is still in progress. Compatibility testing has **not** started; it follows feature implementation.
 - Next: finish remaining owner/guest dashboard sections and audit every UI action/data path, complete backend authorization design review without changing production, then run compatibility checks and repair any failures.
 - PR #11 remains draft and unmerged. Do not merge without the user's explicit approval.
