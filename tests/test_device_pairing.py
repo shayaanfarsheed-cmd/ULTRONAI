@@ -30,7 +30,8 @@ class NoRemoteDevicePairingTests(unittest.TestCase):
         app = (ROOT / "dashboard" / "app.js").read_text(encoding="utf-8")
         html = (ROOT / "dashboard" / "index.html").read_text(encoding="utf-8")
         for forbidden in ("switchNow", "pauseTraining", "resumeTraining", "toggleAutomaticStart",
-                          "insertSwitchRequest", "updateStatus", "requestResume", "safeResume"):
+                          "insertSwitchRequest", "updateStatus", "requestResume", "safeResume",
+                          "verifyCheckpointsButton"):
             self.assertNotIn(forbidden, app)
         for forbidden in ("switchNowButton", "pauseButton", "resumeButton", "safeResumeButton",
                           "data-checkpoint-resume", "manualHoursForm", "data-server-ready",
