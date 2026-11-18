@@ -69,3 +69,27 @@
 3. Verify private memory and checkpoint requests are correctly restricted by Supabase RLS and Storage policies.
 4. Address the Supabase leaked-password-protection warning through the Supabase dashboard when authorized.
 5. Continue dashboard UX and real-device testing. Do not start real training until the user explicitly approves it.
+
+
+## Secure device pairing work package (PR in progress)
+
+- Pairing control-plane source is being added on branch feature/secure-device-pairing.
+- Proposed design: five-minute one-time pairing challenge, five attempts maximum, atomic single-use redemption, 256-bit per-device bearer credential stored hashed server-side, owner-scoped device listing and revocation, and outbound HTTPS heartbeats.
+- Dashboard UI can request a one-time code and list/revoke devices after the Edge Function and migration are deployed.
+- No database migration or Edge Function has been applied to production. No device agent exists yet; a code alone cannot connect a device until a compatible agent is implemented.
+- Pairing does not start training or acquire the training lease. Device-reported capabilities are untrusted until validated by a future agent.
+- Before production deployment, add edge/gateway per-IP throttling and disposable-project integration tests for concurrent redemption, expiry, attempt lockout, owner isolation, revocation, and secret redaction.
+
+
+## Device pairing PR #18 — security review update
+
+- Draft PR: [Build secure device pairing control plane](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/18).
+- Implements owner-only pairing challenge creation, one-time redemption, hashed device credentials, device registry/revocation, and heartbeat endpoint.
+- Security review correction: Edge Function now checks the verified Auth user against `ULTRON_OWNER_USER_ID`; the database consume function uses `SECURITY INVOKER` and is executable only by service_role; a newly issued code invalidates older outstanding challenges; capability payloads must be JSON objects within the size limit.
+- Pairing dashboard stays disabled unless `window.ULTRON_CONFIG.deviceControlEnabled === true`.
+- Production deployment still requires explicit approval, migration application, Edge Function deployment, secrets (including the owner Auth UUID) configured in Supabase, and integration tests for concurrency, owner isolation, expiry, revocation, and rate-limit windows.
+- A compatible OS-level agent and disposable-project integration tests are not complete. The iPad browser cannot run this background agent; it can only act as the owner dashboard/monitor unless a native iPad app is later built.
+- No production Supabase changes, device pairing, device commands, or training have occurred.
+
+
+- Added `agents/device_agent.py`: minimal Python heartbeat-only agent for Linux/macOS/Windows/server environments. It prompts for the one-time challenge, holds the device token in memory, never prints or writes it to disk, and can resume using a provider secret named `ULTRON_DEVICE_TOKEN`. It does not execute remote commands or training. iPad remains the owner dashboard/monitor; iPadOS agent support would require a native application.
