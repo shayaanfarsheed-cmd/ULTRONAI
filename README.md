@@ -346,3 +346,21 @@ A merge commit brought current main into the PR branch while preserving the PR h
 - All three workflows passed on that exact Stage 2 head: Test Suite `44217854553`, preflight `44217854500`, and Training Prototype Validation `44217854478`.
 - Test Suite compilation, dashboard checks, configuration validation, unit tests, and model/data/checkpoint/training smoke tests succeeded. Preflight and Training Prototype Validation also completed successfully.
 - No Supabase, production, pairing, agent, live-training, paid-service, or billing operations were performed.
+
+## Stage 3 — Backend architecture review (2026-11-18)
+
+- Added `docs/BACKEND_ARCHITECTURE_REVIEW.md` on the PR #4 branch.
+- Reviewed the current `training_api` schema, lease/checkpoint RPCs, private checkpoint bucket policies, Python client/tests, setup guide, and local-agent architecture.
+- Recommendation: keep the device-control plane in a separate non-public schema; do not add device commands to the existing training tables or create a second training lease. Use a minimal trusted Edge Function boundary, server-derived owner identity, atomic per-device command claims, durable replay protection, idempotent acknowledgement, and the existing training lease/fencing checks.
+- Identified a blocking documentation/product contradiction: the public dashboard requirement is no-login/no-sign-up, while `supabase/SETUP.md` and `docs/LOCAL_AGENT_ARCHITECTURE.md` still describe Supabase Auth sign-in/account creation. Anonymous public users cannot securely authorize owner-specific device control. Interim decision: keep pairing, owner-specific device operations, and privileged controls disabled until an owner-authorization model is explicitly chosen and approved.
+- This is a design review only. No Supabase project was connected or modified; no migration, RLS/grant change, Edge Function, production secret, pairing, agent, live training, paid service, billing, or PR merge was performed.
+- Exact next task: resolve the no-login versus owner-authorization product decision, then prepare migration-by-migration SQL/RPC/Edge Function implementation proposals and executable authorization/concurrency tests for review. Obtain explicit approval before any Supabase change.
+
+### Stage 3 repository and CI handoff
+
+- Review document commit: `c7ae36f1f10c2587d0810524aad02de059c48ba3`.
+- Verified review document blob: `0456c80b7a94fbbbbcd9437dcf6fdf15effded2b`.
+- PR #4 remains open and unmerged; its base is main `397f1492c300371821b2651ddfbc7342adc9f60c`; current head after Stage 3 document commit is `c7ae36f1f10c2587d0810524aad02de059c48ba3`.
+- At handoff, Test Suite, preflight, and Training Prototype Validation checks on this new head were in progress. Do not claim they passed until their final conclusions are checked.
+- The Stage 2 checks passed on the previous head `fc1cfd0eaaa4424f66ea2368779510aa33845294`: Test Suite `44217854553`, preflight `44217854500`, Training Prototype Validation `44217854478`.
+- Permanent project budget remains $0. Never enable billing, use paid trials, bypass quotas, or depend on paid services.
