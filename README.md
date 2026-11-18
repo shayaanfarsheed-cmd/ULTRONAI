@@ -75,6 +75,12 @@
 - Confirm sign-out returns to Guest Mode and clears private browser state.
 - Test actual iPad/iPadOS Safari and Chrome, iPhone, Android, and desktop browsers, including narrow/wide layouts, refresh, interrupted network, and keyboard/screen-reader navigation. Do not claim device compatibility unless tested on those devices.
 
+## Latest in-progress change — PR #24
+
+- Branch `security/retire-remote-training-controls` removes dashboard switch/pause/resume/automatic-start handlers, checkpoint resume selection, manual server status mutations, and manual usage writes. The hosted dashboard retains status/history display, server recommendations, checkpoint verification/download, and provider links only.
+- Regression tests require the dashboard to have no training-control write paths. RAM selection remains a browser preference only; it does not enforce a cap.
+- PR #24 is being prepared; do not merge until all checks pass and the exact diff is reviewed.
+
 ## Next steps for the next session
 
 1. Verify the GitHub Pages deployment for merge commit `acd9b8a20aac4552592a1b3fa7b72b9d2513bf2c` and inspect the live Local training page.
