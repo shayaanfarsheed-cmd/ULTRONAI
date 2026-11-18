@@ -79,6 +79,31 @@ class SeedDatasetScannerTests(unittest.TestCase):
             with self.assertRaisesRegex(DatasetScanError, "Duplicate task name"):
                 scan_dataset(root, expected_count=2)
 
+    def test_rejects_duplicate_theorems_within_one_task(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            task = make_task(root, theorem="Example.demo")
+            (task / "task.toml").write_text(
+                (task / "task.toml").read_text(encoding="utf-8").replace(
+                    'theorems = ["Example.demo"]',
+                    'theorems = ["Example.demo", "Example.demo"]',
+                ),
+                encoding="utf-8",
+            )
+            (task / "tests" / "task.json").write_text(
+                json.dumps({"comparator": {"theorem_names": ["Example.demo", "Example.demo"]}}),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(DatasetScanError, "repeated theorem identifier"):
+                scan_dataset(root, expected_count=1)
+
+    def test_rejects_non_object_task_json(self):
+        with tempfile.TemporaryDirectory() as temp:
+            task = make_task(Path(temp))
+            (task / "tests" / "task.json").write_text("[]", encoding="utf-8")
+            with self.assertRaisesRegex(DatasetScanError, "must contain an object"):
+                scan_dataset(temp, expected_count=1)
+
     def test_rejects_invalid_expected_count(self):
         with tempfile.TemporaryDirectory() as temp:
             with self.assertRaisesRegex(DatasetScanError, "positive integer"):
