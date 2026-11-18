@@ -289,6 +289,14 @@ class TrainingSessionTests(unittest.TestCase):
         clock = Clock()
 
         class FailingControlsAPI(FakeAPI):
+            def renew_lease(self, run_id, lease_holder, fencing_token, ttl_seconds, status_values=None):
+                renewed = super().renew_lease(
+                    run_id, lease_holder, fencing_token, ttl_seconds, status_values=status_values
+                )
+                if renewed:
+                    clock.lease_deadline = clock.value + ttl_seconds
+                return renewed
+
             def controls(self, run_id):
                 clock.value = clock.lease_deadline - 20
                 raise RuntimeError("temporary control read failure")
