@@ -31,7 +31,7 @@ class DashboardStaticTests(unittest.TestCase):
         self.assertIn('id="ownerSignInForm"', html)
         self.assertIn('id="ownerSignOutButton"', html)
         self.assertIn("user.id !== OWNER_USER_ID", javascript)
-        self.assertIn("state.publicMode = !isOwner", javascript)
+        self.assertIn("state.publicMode = nextPublicMode", javascript)
         self.assertIn('ownerUserId: ""', config)
         self.assertNotIn("signup", javascript.lower())
         self.assertNotIn("signUp", html)
