@@ -3,7 +3,7 @@
 **Audit date:** 2026-11-18  
 **Audit base:** `main` at `397f1492c300371821b2651ddfbc7342adc9f60c`  
 **Working branch:** `repair/work-package-1-repository-architecture`  
-**Scope:** inspection only; this audit does not authorize Supabase changes, authentication deployment, device pairing, training, or merging.
+**Scope:** repository inspection and code-review repairs; this audit does not authorize Supabase changes, authentication deployment, device pairing, training, or merging.
 
 ## Verified GitHub baseline
 
@@ -21,12 +21,12 @@
 | `README.md` | Opening text still describes a Windows-only agent and an older no-login product. Later sections instruct users to create a normal Supabase Auth account and imply the website is already configured for signed-in access. Several handoff sections conflict. | Establish one current authoritative status/handoff; describe one owner account plus Guest Mode as the target, clearly mark it not implemented, remove Windows-only assumptions, and state that legacy setup instructions must not be followed. |
 | `supabase/SETUP.md` | Contains public self-registration instructions, says dashboard auth is ready, and gives Kaggle secret/setup instructions. This conflicts with restricted single-owner provisioning and the user's decision not to use Kaggle. | Rewrite as a staged, non-executable setup guide. No account creation, migration, RLS/grant, secret, or production setting changes until separately approved. Remove Kaggle as an active provider path. |
 | `docs/LOCAL_AGENT_ARCHITECTURE.md` | Command flow assumes every user signs in; platform/resource sections need to consistently distinguish desktop workers from iPad/mobile browser clients. | Document owner-only control versus public Guest Mode, device-generic terminology, OS-specific enforcement adapters, and fail-closed eligibility. |
-| `config.json` | Project stage metadata is stale; local memory enforcement is hard-coded as `windows_job_object`; no machine-readable owner/guest access contract exists. Sequence length remains 192. | Add explicit product-access policy and platform enforcement capability map. Keep sequence length unchanged until model/context compatibility is separately tested. |
+| `config.json` | Project stage metadata is stale; local memory enforcement was hard-coded as `windows_job_object`; no machine-readable owner/guest access contract existed. Sequence length remains 192. | Add explicit owner/guest policy and exact per-platform enforcement values. Keep sequence length unchanged until model/context compatibility is separately tested. |
 | `servers.json` | Kaggle remains enabled and appears first, despite the user's explicit decision not to use Kaggle. | Disable Kaggle for selection; preserve the record only as a disabled provider entry so old IDs/config references do not silently break. |
 | `dashboard/app.js` | `publicMode` is permanently true; initialization sets user/session to null. Auth helpers exist but are not connected to a real login/owner experience. The dashboard does not load private owner data. | Do not pretend owner authentication exists. Keep Guest Mode safe. Owner login is a later package; backend authorization must precede enabling controls. |
 | `dashboard/index.html` | Device page says “Sign in here” although there is no sign-in UI. Several controls are deliberately disabled; overview contains legacy training control surfaces. | Correct misleading wording in the dashboard package after its interaction inventory; do not enable privileged controls in this documentation/config package. |
 | `dashboard/config.js` | Supabase publishable key is a placeholder. | Leave placeholder intact; do not request or commit secrets. A publishable key is not owner authorization. |
-| `tests/test_config.py` | Validates JSON and existing training/provider invariants but not owner/guest policy or disabled provider rules. | Add regression tests for new config invariants. Do not claim these tests implement runtime authorization. |
+| `tests/test_config.py` | Original tests did not exercise invalid policy values or direct Kaggle runtime selection. | Add positive and negative regression tests for exact owner/guest/platform policies and Kaggle runtime/provider rejection. Do not claim these tests implement runtime authorization. |
 | `.github/workflows/test-suite.yml` | Validates JSON, JavaScript syntax, compilation and tests. | Preserve; run on the new PR head. |
 | `.github/workflows/preflight-tests.yml` | Installs only numpy/safetensors on `main`; PR #4 adds JSON Schema validation dependency only on its separate branch. | Keep PR #4 unmerged and separate. Reconcile dependency ownership after the contract PR decision; avoid duplicate or conflicting dependency edits. |
 | `requirements.txt` | Contains numpy, safetensors and Hugging Face Hub; no development dependency split. | Avoid removing packages without usage evidence. Check imports before any dependency removal. |
@@ -53,9 +53,24 @@
 - [x] Rewrite conflicting setup and device-agent documentation.
 - [x] Add machine-readable access and platform-enforcement policy to config.
 - [x] Disable Kaggle in provider registry and add regression tests.
-- [ ] Run JSON validation, Python unit tests, compile checks, JavaScript syntax checks and all CI workflows on the exact PR head.
+- [x] Strengthen exact configuration validation and add negative owner/guest/platform/Kaggle regression tests.
+- [x] Remove Kaggle from supported runtime platforms and reject direct Kaggle runtime selection.
+- [ ] Run JSON validation, Python unit tests, compile checks, JavaScript syntax checks and all CI workflows on the final exact PR head.
 - [x] Review changed-file inventory and open PR #10; final review remains subject to exact-head CI. Do not merge without explicit approval.
 
 ## Explicitly not done
 
 No owner account was created. No auth UI was implemented. No Supabase schema, RLS, grants, Edge Functions, production secrets or live settings were changed. No device was paired. No agent was installed. No training or cloud provider job was started. No PR was merged.
+
+
+## Code-review repair pass — 2026-11-18
+
+The follow-up review identified permissive configuration checks and missing negative tests. These have now been addressed in the working branch:
+- Owner limit requires the exact integer value `1`; booleans are rejected.
+- Guest permissions must exactly match the two public permissions; private permission additions are rejected.
+- Required guest denials and owner-authentication flags are checked.
+- Each platform must use its exact supported enforcement policy; unknown, missing, or swapped policy values are rejected.
+- Kaggle is rejected in the runtime allowlist, automatic-selection allowlist, and server registry if enabled; direct runtime resolution raises an explicit error.
+- Tests cover invalid cases and direct runtime rejection.
+
+The README now contains a current repair handoff and warns against following stale instructions that imply owner authentication is already available. **All validation results must be rechecked on the final resulting PR head; previous green checks are not sufficient.**
