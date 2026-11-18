@@ -46,7 +46,7 @@ If a backend is approved later, all control-plane tables belong in a non-exposed
 - Allowlisted action and schema-validated parameters.
 - Server-generated issued_at, expires_at, claimed_at, claim_expires_at and completion timestamps.
 - Random nonce with unique constraint on (device_id, nonce).
-- Idempotency key unique per device.
+- The nonce is the command idempotency key and is unique per device.
 - Monotonic fencing token for run-affecting actions.
 - Bounded result code and bounded result payload (maximum 4 KiB).
 
@@ -56,7 +56,7 @@ If a backend is approved later, all control-plane tables belong in a non-exposed
 - CHECK (expires_at > issued_at).
 - CHECK (expires_at <= issued_at + INTERVAL '120 seconds') for commands.
 - Pairing challenge expiry no greater than 10 minutes.
-- Unique (device_id, nonce) and (device_id, idempotency_key).
+- Unique (device_id, nonce); the nonce is the idempotency key.
 - Index pending commands by (device_id, issued_at).
 - Index device ownership by (owner_id, id).
 - Partial unique index allowing at most one active claimed/executing command per device.
