@@ -4,6 +4,7 @@
 - The former agent only sent heartbeats and could not execute commands, but it is no longer needed and is being removed.
 - Future training controls must be local to the device running training. The local user selects the RAM ceiling and operates Start/Stop there; the website cannot control another device.
 - Training remains disabled. No checkpoints or training data are deleted.
+- The dashboard is being made strictly read-only for training operations: no switch, pause, resume, automatic-start, checkpoint-resume, or server-status mutation actions. Checkpoint verification/download and status/history display remain read-only.
 - The old Supabase pairing tables are retained inert for auditability; the production Edge Function has been replaced with a fail-closed HTTP 410 response. No direct browser grants are to be added.
 - PR #22 (pairing security tests) is closed and obsolete. PR #23 was reviewed and merged on 2026-11-18; merge commit: `acd9b8a20aac4552592a1b3fa7b72b9d2513bf2c`. All three required PR workflows passed on its exact head.
 - Local training architecture and failure-handling plan: docs/LOCAL_AGENT_ARCHITECTURE.md.
@@ -74,10 +75,16 @@
 - Confirm sign-out returns to Guest Mode and clears private browser state.
 - Test actual iPad/iPadOS Safari and Chrome, iPhone, Android, and desktop browsers, including narrow/wide layouts, refresh, interrupted network, and keyboard/screen-reader navigation. Do not claim device compatibility unless tested on those devices.
 
+## Latest in-progress change — PR #24
+
+- Branch `security/retire-remote-training-controls` removes dashboard switch/pause/resume/automatic-start handlers, checkpoint resume selection, manual server status mutations, and manual usage writes. The hosted dashboard retains status/history display, server recommendations, checkpoint verification/download, and provider links only.
+- Regression tests require the dashboard to have no training-control write paths. RAM selection remains a browser preference only; it does not enforce a cap.
+- PR #24 is being prepared; do not merge until all checks pass and the exact diff is reviewed.
+
 ## Next steps for the next session
 
 1. Verify the GitHub Pages deployment for merge commit `acd9b8a20aac4552592a1b3fa7b72b9d2513bf2c` and inspect the live Local training page.
-2. **Audit and retire remaining dashboard-to-training commands** (`switchNow`, pause/resume, automatic-start toggles, and any related database writes). Keep server availability/recommendations and training status read-only; the website must not send commands to a running device or notebook.
+2. Retire remaining dashboard-to-training commands in PR #24; keep server recommendations, training status and checkpoint verification/download read-only. The website must not send commands to a running device or notebook.
 3. Verify the production `device-control` Edge Function still fails closed with HTTP 410; the direct HTTP invocation test was not available during this work. Keep the historical pairing tables inert and private.
 4. Begin the local-only runtime described in `docs/LOCAL_AGENT_ARCHITECTURE.md`: first a stub worker and state machine, then verified RAM enforcement and safe Stop/checkpoint behavior. No remote device control.
 5. Keep training disabled. Do not start real training until the user separately approves it after implementation and validation. Continue iPad and browser frontend testing before model training.
@@ -149,3 +156,13 @@ All earlier pairing implementation notes later in this README are historical onl
 - **Verified after the user's secret-configuration confirmation:** Supabase project is `ACTIVE_HEALTHY`; `device-control` is ACTIVE (version 2); all three pairing tables exist with RLS enabled; `anon` and `authenticated` have no direct table SELECT privileges; both RPC functions are `SECURITY INVOKER` and executable only by `service_role`.
 - **Testing limitation:** integration tests for concurrent redemption, owner isolation, expiry, attempt lockout, revocation, and rate-limit windows have not yet run against a disposable Supabase project. Do not claim production pairing is fully validated. Do not create a billable staging project; keep within the $0 budget.
 - Next action: complete a no-cost integration-validation plan without destructive tests against production. Only then prepare a separate reviewed PR to enable the dashboard control.
+
+
+## Current project status — 2026-11-18 (supersedes earlier pairing plans)
+
+- **Device pairing is permanently retired for this design.** Do not re-enable pairing, device agents, device registries, remote command channels, or remote start/stop/pause/resume controls. The retired `device-control` endpoint fails closed with HTTP 410; historical private database objects are retained inert for auditability.
+- **PR #23 is merged** (merge commit `acd9b8a20aac4552592a1b3fa7b72b9d2513bf2c`).
+- **PR #24 is open**: hosted dashboard training operations are being made read-only. It removes dashboard training-control mutations while retaining permitted read-only status/history and checkpoint verification/download. The RAM slider remains a local browser preference only and does not enforce a memory cap.
+- PR #24's initial CI runs exposed one stale assertion in `tests/test_dashboard.py` that expected the removed `autoStartToggle` handler. The test now verifies that the obsolete control is absent from both dashboard HTML and JavaScript, while confirming guest messaging says training remains disabled. Re-run all required CI checks against the new PR head before considering merge.
+- **No real training has started.** After PR #24 passes review and merges, verify GitHub Pages deployment and the live dashboard. Then implement a local-only dummy-worker runtime with explicit local Start/Stop, verified resource-limit semantics, safe checkpointing, and regression tests. Do not begin real model training until that prototype is validated and the user separately approves it.
+- This status section supersedes older README passages that describe enabling device pairing or remotely controlling a worker; those are obsolete and must not be followed.

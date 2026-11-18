@@ -652,9 +652,9 @@
     const server = next.server;
     title.textContent = derived === "dead" ? "The previous run appears dead" : "Handoff needed";
     if (server.id === "github_actions_cpu") {
-      text.textContent = status.automatic_start_enabled ? "The switcher may start the CPU fallback after its cooldown and lease checks." : "Open GitHub Actions, select ULTRON CPU Training, and press Run workflow.";
+      text.textContent = status.automatic_start_enabled ? "CPU fallback is only a provider option; training must be started inside the provider session." : "Open GitHub Actions, select ULTRON CPU Training, and press Run workflow.";
     } else if (server.id === "kaggle") {
-      text.textContent = status.automatic_start_enabled ? "The switcher may push the Kaggle notebook after its safety checks. If it does not start, open Kaggle and run the notebook." : "Open Kaggle, choose the free GPU if available, and press Run All.";
+      text.textContent = status.automatic_start_enabled ? "Open the provider notebook and make any training decision inside that session." : "Open Kaggle, choose the free GPU if available, and press Run All.";
     } else if (server.id === "google_colab") {
       text.textContent = "Open Colab, select a free GPU if offered, then press Runtime → Run all.";
     } else if (server.id === "lightning_ai") {
@@ -783,33 +783,23 @@
       const status = serverState(server);
       const quota = quotaUsage(server);
       const quotaText = quota.percent == null ? quota.label : quota.label + " · " + formatNumber(quota.percent, 0) + "%" + (quota.percent >= 80 ? " · WARNING" : "");
-      const statusMap = state.status && state.status.server_statuses ? state.status.server_statuses : {};
-      const saved = statusMap[server.id] || {};
-      const untilDate = saved.unavailable_until ? new Date(saved.unavailable_until) : null;
-      const untilValue = untilDate && !Number.isNaN(untilDate.getTime()) ? new Date(untilDate.getTime() - untilDate.getTimezoneOffset() * 60000).toISOString().slice(0,16) : "";
       const startUrl = server.notebook_open_url || server.notebook_url || server.documentation_url || "#";
       const limitHours = server.limits && (server.limits.session_limit_hours || server.limits.free_studio_restart_hours || server.limits.job_execution_limit_hours || server.limits.session_hours);
       const limitText = limitHours ? limitHours + (server.limits.job_execution_limit_hours ? "h job" : "h session") : "Session varies";
       return '<article class="server-card' + (server.id === nextId ? ' next-server' : '') + '">' +
         '<div class="server-main">' +
           '<div class="server-title-row"><span class="server-number">0' + (index + 1) + '</span><strong class="server-title">' + escapeHtml(server.name) + '</strong><span class="status-pill ' + escapeHtml(status) + '">' + escapeHtml(status.replace(/_/g, " ")) + '</span>' + (server.id === nextId ? '<span class="next-flag">NEXT</span>' : '') + '</div>' +
-          '<div class="server-sub">' + escapeHtml(server.role || "compute server") + ' · ' + escapeHtml(limitText) + ' · Automatic start: ' + escapeHtml(server.automatic_start || "no") + '</div>' +
+          '<div class="server-sub">' + escapeHtml(server.role || "compute server") + ' · ' + escapeHtml(limitText) + ' · Provider automation: not controlled by this dashboard</div>' +
           '<div class="server-meta"><span class="meta-chip">' + escapeHtml(server.hardware && (server.hardware.cpu_only ? "CPU" : server.hardware.free_gpu_options ? "GPU / CPU" : server.hardware.preferred || "Compute")) + '</span><span class="meta-chip">' + escapeHtml(quotaText) + '</span><span class="meta-chip">Order ' + escapeHtml(server.order) + '</span></div>' +
           '<div class="quota-line"><div class="quota-top"><span>Quota usage</span><span>' + escapeHtml(quota.percent == null ? "Not measurable" : formatNumber(quota.percent, 1) + "%") + '</span></div><div class="quota-track"><div class="quota-fill" style="width:' + (quota.percent == null ? 0 : Math.max(0, Math.min(100, quota.percent))) + '%"></div></div></div>' +
           '<div class="server-sub">' + escapeHtml(server.status_reason || server.limits && server.limits.quota_notes || "") + '</div>' +
         '</div>' +
-        '<div class="server-actions"><a class="secondary-button button-link" href="' + escapeHtml(startUrl) + '" target="_blank" rel="noopener">Open server ↗</a><button class="quiet-button" type="button" data-server-ready="' + escapeHtml(server.id) + '" disabled>Mark ready</button><input type="datetime-local" aria-label="Unavailable until for ' + escapeHtml(server.name) + '" value="' + escapeHtml(untilValue) + '" data-server-until="' + escapeHtml(server.id) + '" disabled><button class="quiet-button" type="button" data-server-unavailable="' + escapeHtml(server.id) + '" disabled>Set unavailable</button></div>' +
+          '<div class="server-actions"><a class="secondary-button button-link" href="' + escapeHtml(startUrl) + '" target="_blank" rel="noopener">Open provider ↗</a></div>' +
       '</article>';
-    }).join("");
-    const select = $("manualServer");
-    select.innerHTML = state.servers.map(function (server) {
-      return '<option value="' + escapeHtml(server.id) + '">' + escapeHtml(server.name) + '</option>';
     }).join("");
   }
 
   function renderSettings() {
-    $("autoStartToggle").checked = false;
-    $("autoStartToggle").disabled = true;
     const ramSlider = $("ramLimitSlider");
     if (ramSlider) {
       ramSlider.value = String(state.ramLimitGb);
@@ -853,7 +843,7 @@
       return '<article class="checkpoint-card">' +
         '<div><div class="checkpoint-title">' + escapeHtml(item.checkpoint_id) + '</div>' +
         '<div class="checkpoint-details"><span class="meta-chip">Step ' + escapeHtml(formatNumber(item.step, 0)) + '</span><span class="meta-chip">' + escapeHtml(formatNumber(Number(item.total_size_bytes || 0) / 1048576, 1)) + ' MB</span><span class="meta-chip">' + escapeHtml(verified) + '</span><span class="meta-chip">' + escapeHtml(item.created_at || "Time not recorded") + '</span></div></div>' +
-        '<div class="checkpoint-actions"><button class="secondary-button" type="button" data-checkpoint-verify="' + escapeHtml(item.checkpoint_id) + '">Verify</button><button class="secondary-button" type="button" data-checkpoint-download="' + escapeHtml(item.checkpoint_id) + '">Download</button><button class="primary-button" type="button" data-checkpoint-resume="' + escapeHtml(item.checkpoint_id) + '">Mark to resume</button></div>' +
+        '<div class="checkpoint-actions"><button class="secondary-button" type="button" data-checkpoint-verify="' + escapeHtml(item.checkpoint_id) + '">Verify</button><button class="secondary-button" type="button" data-checkpoint-download="' + escapeHtml(item.checkpoint_id) + '">Download</button></div>' +
       '</article>';
     }).join("");
   }
@@ -888,12 +878,6 @@
     renderNextAction();
     renderMetrics();
     renderActivity();
-    const hasRun = Boolean(state.status && state.status.run_id);
-    const finished = state.status && state.status.state === "finished";
-    $("switchNowButton").disabled = state.publicMode || !hasRun || finished;
-    $("pauseButton").disabled = state.publicMode || !hasRun || !state.status || state.status.state !== "running";
-    $("resumeButton").disabled = state.publicMode || !hasRun || Boolean(finished);
-    $("safeResumeButton").disabled = state.publicMode || !hasRun || !state.status || state.status.last_checkpoint_step == null;
     renderMastery();
     scheduleChartDraw();
     renderServers();
@@ -926,100 +910,6 @@
     if (view === "checkpoints") loadCheckpointCandidates().then(renderCheckpointList).catch(function (error) {
       showCheckpointNotice(error.message, "warn");
     });
-  }
-
-  async function updateStatus(values) {
-    if (!state.status || !state.status.run_id) throw new Error("No active training run exists yet.");
-    const query = "run_id=eq." + encodeURIComponent(state.status.run_id) + "&owner_id=eq." + encodeURIComponent(state.user.id);
-    await apiRequest("training_status", "PATCH", query, values);
-    await refreshData();
-  }
-
-  async function insertSwitchRequest(reason, target) {
-    const current = state.status && state.status.current_server
-      ? state.servers.find(function (server) { return server.name === state.status.current_server; })
-      : null;
-    const row = {
-      owner_id: state.user.id,
-      run_id: state.status ? state.status.run_id : null,
-      from_server: current ? current.id : null,
-      to_server: target || null,
-      reason: reason,
-      result: "waiting",
-      automatic: false,
-      metadata: {source: "dashboard"}
-    };
-    await apiRequest("switch_requests", "POST", "", row);
-  }
-
-  async function switchNow() {
-    if (!state.status) throw new Error("No training run is available.");
-    const next = chooseNextServer();
-    await updateStatus({handoff_requested: true});
-    await insertSwitchRequest("user_requested", next ? next.server.id : "github_actions_cpu");
-    showNotice("Switch request recorded. The active notebook will checkpoint and release its lease before another server starts.", "success");
-  }
-
-  async function pauseTraining() {
-    await updateStatus({pause_requested: true, handoff_requested: false});
-    showNotice("Pause requested. Wait for the notebook to save and release its lease.", "success");
-  }
-
-  async function resumeTraining() {
-    if (!state.status) throw new Error("No training run is available.");
-    await updateStatus({pause_requested: false, handoff_requested: true});
-    const next = chooseNextServer();
-    await insertSwitchRequest("user_requested", next ? next.server.id : "github_actions_cpu");
-    showNotice("Resume requested. Start the recommended server only after the previous lease has been released.", "success");
-  }
-
-  async function toggleAutomaticStart(enabled) {
-    await updateStatus({automatic_start_enabled: Boolean(enabled)});
-    showNotice(enabled ? "Automatic starts enabled. Only the configured allowlist can be launched." : "Automatic starts disabled globally.", "success");
-  }
-
-  async function markServerReady(serverId) {
-    const statuses = Object.assign({}, state.status && state.status.server_statuses ? state.status.server_statuses : {});
-    statuses[serverId] = {status: "ready", checked_at: new Date().toISOString(), reason: "Manually checked in dashboard"};
-    await updateStatus({server_statuses: statuses});
-    showNotice("Server marked Ready. Confirm its provider account and quota before starting.", "success");
-  }
-
-  async function markServerUnavailable(serverId) {
-    const input = document.querySelector('[data-server-until="' + CSS.escape(serverId) + '"]');
-    if (!input || !input.value) throw new Error("Choose an unavailable-until date and time first.");
-    const date = new Date(input.value);
-    if (Number.isNaN(date.getTime()) || date.getTime() <= Date.now()) throw new Error("Choose a future date and time.");
-    const statuses = Object.assign({}, state.status && state.status.server_statuses ? state.status.server_statuses : {});
-    statuses[serverId] = {status: "unavailable_until", unavailable_until: date.toISOString(), reason: "Manually unavailable"};
-    await updateStatus({server_statuses: statuses});
-    showNotice("Server marked unavailable until " + date.toLocaleString() + ".", "success");
-  }
-
-  async function addManualHours(event) {
-    event.preventDefault();
-    const serverId = $("manualServer").value;
-    const server = state.servers.find(function (item) { return item.id === serverId; });
-    const hours = Number($("manualHours").value);
-    if (!server || !Number.isFinite(hours) || hours <= 0) throw new Error("Enter a valid server and positive hour amount.");
-    const ended = new Date();
-    const started = new Date(ended.getTime() - hours * 3600000);
-    const row = {
-      owner_id: state.user.id,
-      run_id: state.status ? state.status.run_id : null,
-      server_name: server.name,
-      started_at: started.toISOString(),
-      ended_at: ended.toISOString(),
-      gpu_seconds: Math.round(hours * 3600),
-      end_reason: "manual_entry",
-      manual: true,
-      details: {note: $("manualNote").value.trim(), server_id: server.id, manual_device: "gpu"}
-    };
-    await apiRequest("server_log", "POST", "", row);
-    $("manualHours").value = "";
-    $("manualNote").value = "";
-    await refreshData();
-    showNotice("Manual GPU usage added to quota history.", "success");
   }
 
   function objectPath(parts) {
@@ -1136,41 +1026,6 @@
     return candidate;
   }
 
-  async function requestResume(candidate) {
-    if (!state.status || !state.status.run_id) throw new Error("No training run exists.");
-    await updateStatus({
-      requested_resume_checkpoint_id: candidate.checkpoint_id,
-      pause_requested: true,
-      handoff_requested: false
-    });
-    showCheckpointNotice("Checkpoint " + candidate.checkpoint_id + " (step " + candidate.step + ") is verified and selected. Press Resume training after the current notebook releases its lease.", "success");
-  }
-
-  async function safeResume() {
-    if (state.checkpointBusy) return;
-    if (!state.status || !state.status.run_id) throw new Error("No training run exists.");
-    state.checkpointBusy = true;
-    $("safeResumeButton").disabled = true;
-    $("verifyCheckpointsButton").disabled = true;
-    showCheckpointNotice("Verifying checkpoints from newest to oldest. Large checkpoints may take a little time.", "");
-    try {
-      const candidates = await loadCheckpointCandidates();
-      for (const candidate of candidates) {
-        try {
-          await verifyCheckpoint(candidate);
-          await requestResume(candidate);
-          renderCheckpointList();
-          return;
-        } catch (_) {}
-      }
-      throw new Error("No valid checkpoint could be verified. Existing remote files were left untouched.");
-    } finally {
-      state.checkpointBusy = false;
-      $("safeResumeButton").disabled = false;
-      $("verifyCheckpointsButton").disabled = false;
-    }
-  }
-
   async function verifyOneCheckpoint(id) {
     const candidate = state.checkpoints.find(function (item) { return item.checkpoint_id === id; });
     if (!candidate) throw new Error("Checkpoint not found in the current list.");
@@ -1206,16 +1061,9 @@
   }
 
   async function handleCheckpointAction(button) {
-    const id = button.getAttribute("data-checkpoint-verify") || button.getAttribute("data-checkpoint-download") || button.getAttribute("data-checkpoint-resume");
+    const id = button.getAttribute("data-checkpoint-verify") || button.getAttribute("data-checkpoint-download");
     if (button.hasAttribute("data-checkpoint-verify")) return verifyOneCheckpoint(id);
     if (button.hasAttribute("data-checkpoint-download")) return downloadCheckpoint(id);
-    if (button.hasAttribute("data-checkpoint-resume")) {
-      const candidate = state.checkpoints.find(function (item) { return item.checkpoint_id === id; });
-      if (!candidate) throw new Error("Checkpoint not found.");
-      await verifyCheckpoint(candidate);
-      await requestResume(candidate);
-      renderCheckpointList();
-    }
   }
 
   function applyTheme(theme) {
@@ -1256,12 +1104,6 @@
     document.querySelectorAll("[data-view]").forEach(function (button) {
       button.addEventListener("click", function () { switchView(button.getAttribute("data-view")); });
     });
-    $("switchNowButton").addEventListener("click", function () { switchNow().catch(function (error) { showNotice(error.message, "error"); }); });
-    $("pauseButton").addEventListener("click", function () { pauseTraining().catch(function (error) { showNotice(error.message, "error"); }); });
-    $("resumeButton").addEventListener("click", function () { resumeTraining().catch(function (error) { showNotice(error.message, "error"); }); });
-    $("safeResumeButton").addEventListener("click", function () { safeResume().catch(function (error) { showCheckpointNotice(error.message, "error"); }); });
-    $("verifyCheckpointsButton").addEventListener("click", function () { safeResume().catch(function (error) { showCheckpointNotice(error.message, "error"); }); });
-    $("autoStartToggle").disabled = true;
     $("ramLimitSlider").addEventListener("input", function () {
       const selected = Math.max(2, Math.min(10, Number($("ramLimitSlider").value)));
       state.ramLimitGb = Math.round(selected * 2) / 2;
@@ -1274,7 +1116,7 @@
 
 
     $("checkpointList").addEventListener("click", function (event) {
-      const button = event.target.closest("[data-checkpoint-verify], [data-checkpoint-download], [data-checkpoint-resume]");
+      const button = event.target.closest("[data-checkpoint-verify], [data-checkpoint-download]");
       if (button) handleCheckpointAction(button).catch(function (error) { showCheckpointNotice(error.message, "error"); });
     });
     window.addEventListener("resize", scheduleChartDraw);

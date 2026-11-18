@@ -153,10 +153,13 @@ class DashboardStaticTests(unittest.TestCase):
         self.assertIn("renderActivity();", javascript)
 
     def test_guest_overview_does_not_recommend_starting_training(self):
+        html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
         self.assertIn("Welcome to the ULTRON guest dashboard", javascript)
         self.assertIn("Private training status, history, checkpoints and device controls are not loaded", javascript)
-        self.assertIn('$("autoStartToggle").disabled = true;', javascript)
+        self.assertIn("Training remains disabled", javascript)
+        self.assertNotIn('id="autoStartToggle"', html)
+        self.assertNotIn("autoStartToggle", javascript)
 
     def test_dashboard_has_no_external_ai_api_endpoint(self):
         forbidden = (
