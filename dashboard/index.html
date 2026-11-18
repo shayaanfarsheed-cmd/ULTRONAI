@@ -39,6 +39,7 @@
           <button class="nav-button active" type="button" data-view="overview" aria-current="page"><span>◈</span> Overview</button>
           <button class="nav-button" type="button" data-view="learning"><span>∿</span> How ULTRON learns</button>
           <button class="nav-button" type="button" data-view="data"><span>▤</span> Data library</button>
+          <button class="nav-button" type="button" data-view="ask"><span>⌕</span> Ask ULTRON</button>
           <button class="nav-button" type="button" data-view="activity"><span>≋</span> Activity</button>
           <button class="nav-button" type="button" data-view="devices"><span>▣</span> Local training</button>
           <button class="nav-button" type="button" data-view="servers"><span>⌘</span> Servers</button>
@@ -290,6 +291,32 @@
             <div id="dataFileList" class="data-file-list"><p class="empty-state">The library is private to the verified owner.</p></div>
           </article>
           <p class="fine-print">Synchronization is cloud-backed and refreshes every 20 seconds while this page is open. Every browser must sign in to the same owner account. Guests cannot list, upload, download or delete these files.</p>
+        </section>
+
+
+        <section id="view-ask" class="view-section" hidden>
+          <div class="section-intro">
+            <div>
+              <div class="eyebrow">OWNER-ONLY DATA QUESTIONS</div>
+              <h2>Ask ULTRON</h2>
+              <p class="muted-text">Ask questions about your uploaded files. ULTRON searches their contents and shows matching evidence with its source filename.</p>
+            </div>
+            <span class="status-pill">PRIVATE</span>
+          </div>
+          <article class="panel section-panel">
+            <div class="eyebrow">YOUR QUESTION</div>
+            <form id="askQuestionForm" class="ask-question-form">
+              <label for="askQuestionInput">What do you want to know?</label>
+              <textarea id="askQuestionInput" maxlength="500" rows="3" placeholder="For example: What does the dataset say about displacement shift?" required></textarea>
+              <button id="askSubmitButton" class="primary-button" type="submit">Search my data</button>
+            </form>
+            <p id="askStatus" class="fine-print">Your private files are searched only after owner verification.</p>
+          </article>
+          <article class="panel table-panel">
+            <div class="section-heading"><div><div class="eyebrow">GROUNDED RESULTS</div><h2>Evidence from your files</h2></div></div>
+            <div id="askResults" class="ask-results" aria-live="polite"><p class="empty-state">Ask a question to search the contents of your Data Library.</p></div>
+          </article>
+          <p class="fine-print">First version: browser-based text search with source evidence. It does not call an external AI API, invent answers, execute uploaded files, or start training. Supported: TXT, MD, CSV, JSON, LEAN, TOML, YAML, PY, JS, TS, HTML, XML and LOG. PDF and other binary formats are not supported yet. Maximum 5 MiB per file and 15 MiB total per search.</p>
         </section>
 
         <section id="view-activity" class="view-section" hidden>
