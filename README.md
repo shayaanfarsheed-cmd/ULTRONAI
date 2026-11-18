@@ -3,7 +3,8 @@
 **Repository:** `shayaanfarsheed-cmd/ULTRONAI`  
 **Main branch:** `main`  
 **Latest merged work:** PR #12 — [Dashboard performance optimization](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/12), merged at `02ddff7437f6a4ac89f78c52ceb36cef6d3f944b`.  
-**Current working branch:** `fix/bounded-checkpoint-streams`  
+**Current working branch:** `feature/mobile-dashboard-accessibility`  
+**Draft PR #14:** [Mobile accessibility and safe-area layout](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/14) — open, not merged; stacked on PR #13.
 **Draft PR #13:** [Enforce checkpoint download limits while streaming](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/13) — open, not merged.
 
 ## Dashboard accessibility and mobile layout — in progress
@@ -16,7 +17,7 @@
 - PR #13 remains open, draft, and unmerged. This mobile-accessibility branch is separate and is not yet a pull request.
 - No backend changes, account provisioning, secrets, pairing, provider jobs, or training.
 
-**Next:** run the test suite and inspect the resulting changes; then open a draft PR and validate its exact head. Continue frontend work before any training.
+**Next:** resolve CI coverage for stacked PR #14 (current workflows are filtered to pull requests targeting `main`), review the final diff, and perform real-device checks. Keep both PRs unmerged until their exact final heads are validated. Continue frontend work before any training.
 
 ## Latest code review and follow-up
 
