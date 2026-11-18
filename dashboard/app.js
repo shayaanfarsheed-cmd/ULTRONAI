@@ -584,19 +584,6 @@
     }).join("");
   }
 
-  function renderHistory() {
-    $("switchCount").textContent = state.switches.length + " requests";
-    $("sessionCount").textContent = state.logs.length + " sessions";
-    const switchBody = $("switchHistoryBody");
-    switchBody.innerHTML = state.switches.length ? state.switches.slice(0,100).map(function (item) {
-      return "<tr><td>" + escapeHtml(formatDateTime(item.requested_at)) + "</td><td>" + escapeHtml(item.from_server || "—") + "</td><td>" + escapeHtml(item.to_server || "—") + "</td><td>" + escapeHtml(item.reason || "—") + "</td><td>" + escapeHtml(item.result || "waiting") + "</td></tr>";
-    }).join("") : '<tr><td colspan="5" class="empty-cell">No switch requests yet.</td></tr>';
-    const sessionBody = $("sessionHistoryBody");
-    sessionBody.innerHTML = state.logs.length ? state.logs.slice(0,200).map(function (item) {
-      return "<tr><td>" + escapeHtml(item.server_name || "—") + (item.manual ? " · manual" : "") + "</td><td>" + escapeHtml(formatDateTime(item.started_at)) + "</td><td>" + escapeHtml(formatDateTime(item.ended_at)) + "</td><td>" + escapeHtml(formatNumber(Number(item.gpu_seconds || 0) / 3600, 2)) + "</td><td>" + escapeHtml(item.end_reason || (item.ended_at ? "unknown" : "running")) + "</td></tr>";
-    }).join("") : '<tr><td colspan="5" class="empty-cell">No sessions recorded yet.</td></tr>';
-  }
-
   function renderSettings() {
     $("autoStartToggle").checked = false;
     $("autoStartToggle").disabled = state.publicMode;
@@ -608,7 +595,6 @@
       if (localRamValue) localRamValue.textContent = state.ramLimitGb + " GB";
       $("ramLimitStatus").textContent = "Saved on this browser only. It is not enforced on a connected device yet.";
     }
-    $("ownerIdText").textContent = state.user ? state.user.id : "—";
     const review = state.projectConfig.terms_review || {};
     const intervalDays = Number(review.reminder_interval_days || 90);
     const lastReview = review.last_reviewed_date || "2026-11-17";
