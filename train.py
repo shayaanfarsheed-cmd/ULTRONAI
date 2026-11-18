@@ -100,7 +100,6 @@ def resolve_runtime_settings(
         platform_id = "other"
 
     profiles = {
-        "kaggle": {"gpu_batch_size": 32, "cpu_batch_size": 8, "workers": 2, "cpu_threads": 4},
         "google_colab": {"gpu_batch_size": 32, "cpu_batch_size": 8, "workers": 2, "cpu_threads": 4},
         "lightning_ai": {"gpu_batch_size": 32, "cpu_batch_size": 8, "workers": 2, "cpu_threads": 4},
         "github_actions": {"gpu_batch_size": 8, "cpu_batch_size": 8, "workers": 0, "cpu_threads": 4},
