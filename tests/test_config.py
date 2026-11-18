@@ -49,6 +49,43 @@ class ConfigurationTests(unittest.TestCase):
         self.assertNotIn("kaggle", config["switching"]["platform_allowlist"])
         self.assertEqual(validate_project_config(config, servers), [])
 
+    def test_invalid_owner_guest_and_platform_policies_are_rejected(self):
+        config = json.loads((ROOT / "config.json").read_text(encoding="utf-8"))
+        servers = json.loads((ROOT / "servers.json").read_text(encoding="utf-8"))
+
+        invalid_cases = [
+            ("multiple owners", lambda c: c["access"].update(owner_account_limit=2)),
+            ("boolean owner limit", lambda c: c["access"].update(owner_account_limit=True)),
+            ("public signup", lambda c: c["access"].update(public_self_registration_enabled=True)),
+            ("private guest permission", lambda c: c["access"]["guest_permissions"].append("private_checkpoints")),
+            ("missing guest denial", lambda c: c["access"]["guest_denied_permissions"].remove("device_pairing")),
+            ("unknown enforcement", lambda c: c["local_training"]["platform_enforcement"].update(windows="anything")),
+            ("missing enforcement", lambda c: c["local_training"]["platform_enforcement"].pop("linux")),
+            ("Kaggle runtime", lambda c: c["runtime"]["supported_platforms"].append("kaggle")),
+            ("Kaggle auto selection", lambda c: c["switching"]["platform_allowlist"].append("kaggle")),
+        ]
+
+        for label, mutate in invalid_cases:
+            with self.subTest(label=label):
+                candidate = json.loads(json.dumps(config))
+                mutate(candidate)
+                self.assertTrue(validate_project_config(candidate, servers), label)
+
+    def test_kaggle_runtime_is_rejected(self):
+        from train import resolve_runtime_settings
+
+        config = json.loads((ROOT / "config.json").read_text(encoding="utf-8"))
+        with self.assertRaisesRegex(ValueError, "Kaggle is disabled"):
+            resolve_runtime_settings(config, "kaggle", torch_module=False)
+
+    def test_reenabled_kaggle_registry_entry_is_rejected(self):
+        config = json.loads((ROOT / "config.json").read_text(encoding="utf-8"))
+        servers = json.loads((ROOT / "servers.json").read_text(encoding="utf-8"))
+        kaggle = next(item for item in servers["servers"] if item["id"] == "kaggle")
+        kaggle["enabled"] = True
+        self.assertIn("Kaggle must exist exactly once in the registry and remain disabled",
+                      validate_project_config(config, servers))
+
     def test_colab_is_manual_until_free_account_eligibility_is_verified(self):
         config = json.loads((ROOT / "config.json").read_text(encoding="utf-8"))
         self.assertIn("google_colab", config["switching"]["manual_only_platforms"])
