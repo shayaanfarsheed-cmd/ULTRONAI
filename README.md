@@ -10,17 +10,11 @@
 
 ---
 
-## Latest update — 2026-11-18 (seed dataset scanner — PR in progress)
+## Seed dataset scanner status — 2026-11-18
 
-- Approved seed source: Hugging Face dataset `bkhtmm/openai-math-lemmas`, pinned to revision `d7056fd31c19fd1a0aed0a0bc3e99026d412b2ca`. The user downloaded the repository locally and confirmed 47 task folders.
-- Stage 1 implementation is on branch `data/seed-dataset-scanner`: `ultron_seed_dataset.py`, `tests/test_seed_dataset.py`, and `docs/SEED_DATASET_IMPORT.md`.
-- The scanner reads TOML/JSON metadata, inventories relative file paths, sizes, and SHA-256 hashes, and checks task/theorem consistency. It never executes dataset-provided scripts, Lean files, Dockerfiles, or shell commands.
-- Scanner success means structure/metadata passed only. Proof status remains `not_checked`; dataset task metadata currently marks tasks `unvalidated`. Lean-kernel verification is a later stage.
-- **PR #28 is open as a draft and is not merged**: https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/28. Latest code fix: `fe6e0a2218c3827f01f720f4e0de538f06ea32eb`. Initial CI found one failing test fixture (argument validation ran after a missing-folder check); the scanner now validates the argument first. A fresh CI run is required. The training-prototype workflow was cancelled during the earlier run. Do not merge without the user's explicit approval.
-- No seed dataset source files, reference archives, or proof solutions are committed. The original local download remains unchanged.
-- No model training has started. Do not start training as part of dataset import.
-
----
+- PR #28 merged at `caac7e37c935df0ddd0e18d66f828f8675d47b69`. The scanner inventories the approved local seed dataset; it does not validate Lean proofs or execute source files.
+- PR #29 corrects earlier stale README status and remains separate from the data-library proposal.
+- The original 47-task source dataset remains local; no raw dataset files have been committed. No training has started.
 
 ## Latest update — 2026-11-18
 
