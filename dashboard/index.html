@@ -38,6 +38,7 @@
         <nav class="side-nav" aria-label="Dashboard sections">
           <button class="nav-button active" type="button" data-view="overview" aria-current="page"><span>◈</span> Overview</button>
           <button class="nav-button" type="button" data-view="learning"><span>∿</span> How ULTRON learns</button>
+          <button class="nav-button" type="button" data-view="data"><span>▤</span> Data library</button>
           <button class="nav-button" type="button" data-view="activity"><span>≋</span> Activity</button>
           <button class="nav-button" type="button" data-view="devices"><span>▣</span> Local training</button>
           <button class="nav-button" type="button" data-view="servers"><span>⌘</span> Servers</button>
@@ -262,6 +263,33 @@
           </article>
 
           <div class="notice notice-warn">Training is not running. This page describes the intended learning process; it does not report simulated progress or start a training job. Actual training requires completed frontend/runtime safeguards and your separate approval.</div>
+        </section>
+
+        <section id="view-data" class="view-section" hidden>
+          <div class="section-intro">
+            <div>
+              <div class="eyebrow">PRIVATE OWNER DATA</div>
+              <h2>Shared data library</h2>
+              <p class="muted-text">Files are stored in private cloud storage under the verified owner account. Sign in on each browser to access the same library. Changes appear in other signed-in browsers automatically.</p>
+            </div>
+            <span class="status-pill">OWNER ONLY</span>
+          </div>
+          <article class="panel section-panel">
+            <div class="section-heading"><div><div class="eyebrow">UPLOAD DATA</div><h2>Add a file to ULTRON</h2></div><span class="small-pill">20 MB MAX / FILE</span></div>
+            <p class="muted-text">Files are stored as data only. ULTRON will not execute uploaded files. Uploading does not start training or add a file to a training dataset automatically.</p>
+            <form id="dataUploadForm" class="data-upload-form">
+              <label for="dataFileInput">Choose a data file</label>
+              <input id="dataFileInput" type="file" required>
+              <button id="dataUploadButton" class="primary-button" type="submit">Upload file</button>
+            </form>
+            <p id="dataLibraryNotice" class="notice" role="status" hidden></p>
+          </article>
+          <article class="panel table-panel">
+            <div class="section-heading"><div><div class="eyebrow">CLOUD LIBRARY</div><h2>Your files</h2></div><button id="dataRefreshButton" class="quiet-button" type="button">↻ Refresh</button></div>
+            <p id="dataSyncStatus" class="fine-print">Sign in to load your private data library.</p>
+            <div id="dataFileList" class="data-file-list"><p class="empty-state">The library is private to the verified owner.</p></div>
+          </article>
+          <p class="fine-print">Synchronization is cloud-backed and refreshes periodically while this page is open. Every browser must sign in to the same owner account. Guests cannot list, upload, download or delete these files.</p>
         </section>
 
         <section id="view-activity" class="view-section" hidden>
