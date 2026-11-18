@@ -73,6 +73,55 @@ node --check dashboard/app.js
 node --check dashboard/config.js
 ```
 
+## Mandatory next-chat handoff rule (current)
+
+**This section supersedes the older handoff notes further below.** At the end of every ChatGPT work session, before the conversation context is closed or handed to a new chat, update this README with a concise, factual handoff. Do not assume the next chat can see the previous conversation.
+
+Every handoff must record:
+- Date/time (UTC), repository, active branch, latest commit SHA, and open PR number/link.
+- What changed in this session and the exact files touched.
+- Tests and CI runs with their actual results; clearly label anything still running, failed, or not yet verified.
+- Current deployment/runtime state and known limitations.
+- The next tasks in priority order, including the exact first file or test to inspect.
+- Outstanding user decisions/approvals. Never imply approval to merge or start training.
+- Secret names and where they belong (provider secret manager only), never secret values.
+
+Before finishing a chat, verify the current GitHub branch/commit/PR and CI state, then update this section. In the next chat, read this section first, inspect the referenced commit and files, and continue from that state. Do not repeat completed work or overwrite newer changes. If no code changed, still update the handoff date and next action when the project state or test status changed.
+
+### Latest handoff — 2026-11-18
+
+- **Repository:** `shayaanfarsheed-cmd/ULTRONAI`
+- **Active branch:** `fix/session-heartbeat-fail-closed`
+- **Open PR:** [PR #7 — Fail closed when training heartbeat errors approach lease expiry](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/7)
+- **Latest code commit before this README update:** `0974e2e5371410e2e3d62f3fe56f853466fc56fc`
+- **PR status:** open and unmerged. Do not merge without explicit user approval.
+- **Training status:** no live training or provider job has been started.
+
+#### Changes in this session
+
+- In `ultron_session.py`, split local checkpoint persistence into `save_local_checkpoint()`. The unexpected heartbeat-error path now attempts a local-only checkpoint before stopping near lease expiry. It deliberately does not attempt a remote checkpoint commit while the lease is uncertain.
+- In `tests/test_session.py`, added regression tests for local checkpoint preservation/no remote commit on an unexpected heartbeat failure and heartbeat retry throttling.
+- The first CI run exposed a test clock fixture issue (the fake clock did not track the renewed lease deadline). Fixed the fixture in commit `0974e2e5371410e2e3d62f3fe56f853466fc56fc`.
+
+#### Validation state
+
+- The first validation run failed only in the newly added expiry test because of the fake-clock fixture. The retry-throttling regression test passed, and the other tests shown in that run passed.
+- Fresh workflows were triggered for commit `0974e2e5371410e2e3d62f3fe56f853466fc56fc`:
+  - Test suite: [run 44213001317](https://github.com/shayaanfarsheed-cmd/ULTRONAI/actions/runs/44213001317)
+  - Preflight: [run 44213001391](https://github.com/shayaanfarsheed-cmd/ULTRONAI/actions/runs/44213001391)
+  - Training prototype validation: [run 44213001330](https://github.com/shayaanfarsheed-cmd/ULTRONAI/actions/runs/44213001330)
+- At the last check, these jobs were still running during CPU PyTorch installation. Their final conclusions have not yet been verified. Re-check them before claiming success.
+- This README change itself will create another commit and may trigger another CI cycle. Verify the latest PR head and runs after this edit.
+
+#### Exact next actions for the next chat
+
+1. Check PR #7's current head SHA and all latest GitHub Actions runs. Do not rely on stale run IDs if the README commit has triggered newer workflows.
+2. Confirm the corrected test `test_unexpected_heartbeat_error_saves_local_checkpoint_without_remote_commit` passes. If it fails, inspect the fake API/clock setup and the actual lease deadline logic; do not weaken the production safety check just to satisfy the test.
+3. Confirm the retry-throttling test and complete unit suite pass, followed by preflight and training-prototype validation.
+4. Inspect `ultron_session.py` to ensure the local-only save writes a valid, recoverable checkpoint before `finish("dead", ...)`, and that no remote mutation occurs when lease validity is uncertain.
+5. Review the final PR diff and report exact test/CI results to the user. Keep PR #7 open and unmerged until the user explicitly approves merging.
+6. After PR #7 is resolved, continue the broader ULTRON roadmap from the older project handoff below, but first reconcile it with the current repository state because those older deployment and device-control notes may be stale.
+
 ## Current development status and next-chat handoff
 
 **Last updated:** 2026-11-17 13:35 UTC  
