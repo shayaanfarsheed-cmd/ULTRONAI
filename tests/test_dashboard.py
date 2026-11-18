@@ -33,6 +33,7 @@ class DashboardStaticTests(unittest.TestCase):
         self.assertIn(".skip-link:focus", styles)
         self.assertIn("prefers-reduced-motion: reduce", styles)
         self.assertIn("env(safe-area-inset-top)", styles)
+        self.assertIn("padding-top: env(safe-area-inset-top)", styles)
         self.assertIn("env(safe-area-inset-bottom)", styles)
         self.assertIn("env(safe-area-inset-left)", styles)
         self.assertIn("env(safe-area-inset-right)", styles)

@@ -410,6 +410,8 @@ code { color: var(--red); font-size: .92em; }
 }
 button:focus:not(:focus-visible), a:focus:not(:focus-visible) { outline: none; }
 .topbar {
+  height: calc(76px + env(safe-area-inset-top));
+  padding-top: env(safe-area-inset-top);
   padding-left: max(14px, env(safe-area-inset-left));
   padding-right: max(14px, env(safe-area-inset-right));
 }
