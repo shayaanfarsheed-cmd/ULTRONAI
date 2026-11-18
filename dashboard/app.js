@@ -1015,12 +1015,29 @@
     return Array.from(new Uint8Array(digest)).map(function (value) { return value.toString(16).padStart(2, "0"); }).join("");
   }
 
+  async function mapWithConcurrency(items, limit, mapper) {
+    const results = new Array(items.length);
+    let nextIndex = 0;
+    const workerCount = Math.min(Math.max(1, limit), items.length);
+    await Promise.all(Array.from({length: workerCount}, async function () {
+      while (true) {
+        const index = nextIndex++;
+        if (index >= items.length) return;
+        results[index] = await mapper(items[index], index);
+      }
+    }));
+    return results;
+  }
+
   async function loadCheckpointCandidates() {
     if (!hasVerifiedOwnerSession() || !state.status || !state.status.run_id) {
       state.checkpoints = [];
       return [];
     }
-    const prefix = state.user.id + "/" + state.status.run_id;
+    const generation = state.authGeneration;
+    const ownerId = state.user.id;
+    const runId = state.status.run_id;
+    const prefix = ownerId + "/" + runId;
     const listed = await storageRequest("object/list/checkpoints", "POST", {
       prefix: prefix,
       limit: 1000,
@@ -1031,27 +1048,37 @@
     const ids = Array.from(new Set((listed || []).map(function (item) {
       return String(item.name || "").split("/")[0];
     }).filter(function (id) { return id.indexOf("ckpt-") === 0; })));
-    const candidates = [];
-    for (const id of ids) {
+    const results = await mapWithConcurrency(ids, 3, async function (id) {
       try {
         const base = prefix + "/" + id;
-        const manifestBytes = await getStorageBytes(base + "/manifest.json");
-        const receipt = await getStorageJson(base + "/upload_receipt.json");
+        const metadata = await Promise.all([
+          getStorageBytes(base + "/manifest.json"),
+          getStorageJson(base + "/upload_receipt.json")
+        ]);
+        const manifestBytes = metadata[0];
+        const receipt = metadata[1];
         const manifestHash = await sha256Hex(manifestBytes);
         const manifest = JSON.parse(new TextDecoder().decode(manifestBytes));
-        if (manifest.checkpoint_id !== id || receipt.checkpoint_id !== id || receipt.manifest_sha256 !== manifestHash) continue;
-        if (JSON.stringify(receipt.files) !== JSON.stringify(manifest.files)) continue;
+        if (manifest.checkpoint_id !== id || receipt.checkpoint_id !== id || receipt.manifest_sha256 !== manifestHash) return null;
+        if (JSON.stringify(receipt.files) !== JSON.stringify(manifest.files)) return null;
         const total = Object.values(manifest.files || {}).reduce(function (sum, entry) { return sum + Number(entry.size_bytes || 0); }, manifestBytes.byteLength);
-        if (Number(manifest.step) > maximumCommittedStep) continue;
-        candidates.push(Object.assign({}, manifest, {
+        if (Number(manifest.step) > maximumCommittedStep) return null;
+        return Object.assign({}, manifest, {
           checkpoint_id: id,
           manifest_sha256: manifestHash,
           total_size_bytes: total,
           full_verified: false,
           created_at: manifest.created_at || manifest.timestamp || null
-        }));
-      } catch (_) {}
+        });
+      } catch (_) {
+        return null;
+      }
+    });
+    if (generation !== state.authGeneration || !hasVerifiedOwnerSession() ||
+        state.user.id !== ownerId || !state.status || state.status.run_id !== runId) {
+      return [];
     }
+    const candidates = results.filter(Boolean);
     candidates.sort(function (a, b) { return Number(b.step || 0) - Number(a.step || 0); });
     state.checkpoints = candidates;
     return candidates;
