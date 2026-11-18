@@ -55,7 +55,7 @@ class LocalDummyRuntimeTests(unittest.TestCase):
             )
             status = runtime.status()
             self.assertFalse(status["process_exited"])
-            self.assertTrue(runtime.lock.exists() is False)
+            self.assertFalse(runtime.lock.exists())
 
     def test_hard_ram_cap_is_refused_before_start(self):
         with tempfile.TemporaryDirectory() as temp:
