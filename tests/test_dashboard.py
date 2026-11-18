@@ -95,7 +95,7 @@ class DashboardStaticTests(unittest.TestCase):
     def test_chart_redraw_is_scheduled_and_skips_hidden_views(self):
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
         self.assertIn("function scheduleChartDraw()", javascript)
-        self.assertIn("window.requestAnimationFrame", javascript)
+        self.assertIn("ULTRON_RUNTIME.scheduleFrame", javascript)
         self.assertIn('if (document.hidden || state.currentView !== "overview") return;', javascript)
         self.assertIn("new ResizeObserver(scheduleChartDraw)", javascript)
         self.assertIn("context.setTransform(ratio, 0, 0, ratio, 0, 0)", javascript)
@@ -103,8 +103,8 @@ class DashboardStaticTests(unittest.TestCase):
 
     def test_checkpoint_metadata_reads_are_bounded_and_auth_generation_checked(self):
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
-        self.assertIn("async function mapWithConcurrency(items, limit, mapper)", javascript)
-        self.assertIn("mapWithConcurrency(ids, 3", javascript)
+        self.assertIn("async function mapWithConcurrency(items, limit, mapper)", (DASHBOARD / "runtime.js").read_text(encoding="utf-8"))
+        self.assertIn("ULTRON_RUNTIME.mapWithConcurrency(ids, 3", javascript)
         loader = javascript.split("async function loadCheckpointCandidates()", 1)[1].split("async function verifyCheckpoint", 1)[0]
         self.assertIn('Promise.all([', loader)
         self.assertIn("generation !== state.authGeneration", loader)
