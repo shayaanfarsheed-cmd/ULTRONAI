@@ -1314,7 +1314,10 @@
       renderPairedDevices();
       return;
     }
+    const generation = state.authGeneration;
+    const ownerId = state.user.id;
     const data = await deviceControlRequest("devices", "GET");
+    if (generation !== state.authGeneration || !hasVerifiedOwnerSession() || state.user.id !== ownerId) return;
     state.pairedDevices = Array.isArray(data.devices) ? data.devices : [];
     renderPairedDevices();
   }
@@ -1322,8 +1325,11 @@
   async function createPairingCode() {
     const button = $("generatePairingCodeButton");
     button.disabled = true;
+    const generation = state.authGeneration;
+    const ownerId = state.user && state.user.id;
     try {
       const data = await deviceControlRequest("challenge", "POST", {});
+      if (generation !== state.authGeneration || !hasVerifiedOwnerSession() || state.user.id !== ownerId) return;
       state.pairingChallenge = data;
       $("pairingCode").textContent = data.code;
       $("pairingChallengeId").textContent = data.challenge_id;
@@ -1331,7 +1337,7 @@
       $("pairingCodePanel").hidden = false;
       showNotice("One-time pairing code created. It is displayed only in this owner session.", "success");
     } finally {
-      button.disabled = false;
+      button.disabled = !hasVerifiedOwnerSession();
     }
   }
 
