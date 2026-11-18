@@ -1,0 +1,4 @@
+project_id = "euhmejpaswmdpsutbtse"
+
+[functions.device-control]
+verify_jwt = false
