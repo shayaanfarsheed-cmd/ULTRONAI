@@ -259,6 +259,7 @@ class DashboardStaticTests(unittest.TestCase):
         self.assertIn('id="dataFolderInput" type="file" webkitdirectory directory multiple', html)
         self.assertIn("async function walkFolder(prefix, depth)", javascript)
         self.assertIn("function safeDataRelativePath(value)", javascript)
+        self.assertIn("safeDataRelativePath(file.name)", javascript)
         self.assertIn("function dataObjectPath(relativePath)", javascript)
         self.assertIn("file.webkitRelativePath || file.name", javascript)
         self.assertIn("selected.length > 500", javascript)
