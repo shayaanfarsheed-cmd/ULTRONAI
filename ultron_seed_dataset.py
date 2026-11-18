@@ -55,6 +55,9 @@ def scan_dataset(
     expected_count: int = EXPECTED_TASK_COUNT,
 ) -> dict[str, Any]:
     """Return a deterministic metadata and SHA-256 inventory for task folders."""
+    if isinstance(expected_count, bool) or not isinstance(expected_count, int) or expected_count < 1:
+        raise DatasetScanError("expected_count must be a positive integer")
+
     root = Path(dataset_root).expanduser().resolve()
     tasks_root = root / "tasks"
 
@@ -62,8 +65,6 @@ def scan_dataset(
         raise DatasetScanError(f"Dataset directory does not exist: {root}")
     if not tasks_root.is_dir():
         raise DatasetScanError("Dataset is missing its 'tasks' directory")
-    if isinstance(expected_count, bool) or expected_count < 1:
-        raise DatasetScanError("expected_count must be a positive integer")
 
     task_dirs = sorted(path for path in tasks_root.iterdir() if path.is_dir())
     if len(task_dirs) != expected_count:
