@@ -79,3 +79,42 @@ test("single-flight shares one in-flight refresh and permits a fresh run after r
   releaseOld();
   assert.equal(await oldRun, "old");
 });
+
+test("bounded response reader accepts a stream exactly at the configured limit", async () => {
+  const response = new Response(new Uint8Array([1,2,3,4]), {headers:{"content-length":"4"}});
+  const bytes = await runtime.readResponseBytes(response, 4);
+  assert.deepEqual(Array.from(new Uint8Array(bytes)), [1,2,3,4]);
+});
+
+test("bounded response reader cancels a stream that crosses the limit", async () => {
+  let cancelled = false;
+  const stream = new ReadableStream({
+    start(controller) { controller.enqueue(new Uint8Array([1,2,3])); },
+    cancel() { cancelled = true; }
+  });
+  const response = {headers:new Headers(),body:stream};
+  await assert.rejects(runtime.readResponseBytes(response, 2), /allowed download size/);
+  assert.equal(cancelled, true);
+});
+
+test("bounded response reader rejects an oversized declared length before reading", async () => {
+  let read = false;
+  const response = {
+    headers:new Headers({"content-length":"9"}),
+    body:{getReader(){read = true; throw new Error("must not read");}}
+  };
+  await assert.rejects(runtime.readResponseBytes(response, 8), /allowed download size/);
+  assert.equal(read, false);
+});
+
+test("bounded response reader fails closed without streaming or a trustworthy length", async () => {
+  const response = {headers:new Headers(),arrayBuffer:async () => new Uint8Array([1]).buffer};
+  await assert.rejects(runtime.readResponseBytes(response, 8), /cannot safely enforce/);
+});
+
+test("manifest validator rejects numeric strings for the checkpoint step", () => {
+  const manifest = {checkpoint_id:"ckpt-step",step:"12",files:{
+    "state.json":{size_bytes:1,sha256:"a".repeat(64)}
+  }};
+  assert.throws(() => runtime.validateManifest(manifest, "ckpt-step"), /structure is invalid/);
+});
