@@ -249,3 +249,37 @@ These are optional until the private repository is configured. The Supabase back
 - The user has an iPad and no laptop; all setup instructions must use browser interfaces.
 - Live provider accounts, actual quotas, GPU availability, Hugging Face private storage, browser sign-in and cross-provider recovery still need user-side setup or live verification.
 - Keep automatic starts disabled until platform policy, secrets and safety limits are verified. Guided switching must remain available.
+
+
+## PR #4 security review and repair plan — 2026-11-18
+
+**PR:** [#4 — Define secure ULTRON device control contract](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/4)  
+**Reviewed head:** `1bac6ba86b60576f19cc70ffd1504c049f2ef1d4`  
+**Status:** Open, not merged. Contract/schema/tests only; no device-control backend or agent is deployed.
+
+### Review conclusion
+
+The proposal has good foundational boundaries: no arbitrary shell/script commands, owner-bound authorization, one-time pairing, outbound-only agent polling, per-device credentials, lease fencing, and explicit OS memory-enforcement requirements. It is not implementation-ready yet. The existing six tests mostly inspect schema structure and do not execute the JSON Schema against valid and adversarial command instances.
+
+Key gaps to resolve before implementation:
+1. Define the complete database security model: exact table columns/constraints/indexes, non-exposed schema grants, service-role-only writes, Edge Function JWT verification, and negative cross-owner tests. The current proposal says "private schema" but does not spell out the actual grants/RLS model.
+2. Define atomic command claiming and idempotency: transaction/locking semantics, claim lease/timeout, retry behaviour, duplicate acknowledgement, ordering, and what happens when an agent crashes after claiming but before execution/acknowledgement.
+3. Define command time semantics: server-authoritative expiry, maximum command lifetime, issued/expiry relationship, clock-skew tolerance, stale/replayed command rejection, and bounded result payloads.
+4. Define credential lifecycle: token entropy/encoding, cryptographic hash choice for high-entropy secrets, one-time display, rotation, overlap/revocation behaviour, recovery after OS key-store loss, and redaction from all logs.
+5. Tighten lease fencing: authoritative lease validation and token comparison immediately before process launch and before every checkpoint/side effect; local agent must stop on lease uncertainty, revocation, stale token, or heartbeat timeout. Specify the stop deadline and crash recovery.
+6. Make resource enforcement testable: Windows Job Object assignment before child execution (including descendants), Linux cgroup v2 delegation/limits, explicit rejection when unavailable, measured memory headroom, and platform-specific integration tests. macOS stays ineligible until an enforceable cap is proven.
+7. Specify the local agent trust boundary: signed/reproducible releases, update verification/rollback, installation-directory permissions, process ownership, safe termination, secure local IPC, and protection against another local user altering the executable/config.
+8. Add actual JSON Schema validator tests for each action and invalid cases. Validate UUID/date-time formats, action-specific parameter combinations, unknown fields, boundary values, and expiry policy. The schema alone cannot enforce dynamic facts such as expiry relative to server time or current fencing token.
+
+### Ordered repair plan
+
+1. **Contract hardening (docs/schema/tests only):** write explicit database grants/RLS and Edge Function auth requirements; define atomic state transitions for pairing and command claim/ack; define token lifecycle, time bounds, lease-loss behaviour, and platform eligibility. Replace structural-only tests with validator-driven positive and negative fixtures.
+2. **Threat model and state-machine review:** document attacker capabilities (malicious browser, stolen pairing code, stolen device credential, compromised local user, replayed network request, stale worker); draw pairing, command, revocation, lease and shutdown state transitions. Add failure-injection tests.
+3. **Backend design review (no deployment yet):** produce migration SQL and Edge Function contracts separately, including least-privilege grants, owner scoping, rate limits, audit events, atomic SQL/RPC operations, and secret redaction. Review all SQL and function code before requesting approval.
+4. **Approval gate:** request explicit approval before any Supabase migration, Edge Function deployment, RLS/grant change, or secret configuration. Keep the public dashboard controls disabled until end-to-end security tests pass.
+5. **Agent prototype:** begin with status-only polling and a fake command server. Add Windows first with OS secret storage, signed package/update verification, fixed training entry point, Job Object memory cap, and lease-loss fail-stop behaviour. Do not enable start until tests prove enforcement.
+6. **Platform expansion:** add Linux only after cgroup v2 enforcement tests; keep macOS and mobile browsers as monitoring/control clients until their enforcement and runtime constraints are independently proven.
+7. **End-to-end validation:** test cross-user isolation, concurrent pairing redemption, credential theft/revocation, command replay/expiry, claim crashes, stale fencing tokens, duplicate delivery, process-tree termination, memory-limit refusal, and recovery after agent restart. Run all repository CI on the refreshed PR head.
+8. **Merge decision:** update PR #4 against current `main`, incorporate contract/test fixes, run CI, review the final diff, then merge only after all checks pass and explicit approval.
+
+**Do not do yet:** no Supabase schema changes, Edge Functions, device pairing, agent installation, live training, or unlocking dashboard controls. PR #4 should remain unmerged until the contract and executable tests are hardened.
