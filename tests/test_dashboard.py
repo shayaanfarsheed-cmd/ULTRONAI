@@ -73,6 +73,12 @@ class DashboardStaticTests(unittest.TestCase):
         signout = javascript.split("async function signOutOwner()", 1)[1].split("function sessionFromResponse", 1)[0]
         self.assertLess(signout.index("saveSession(null);"), signout.index('fetch(AUTH_ROOT + "logout"'))
 
+    def test_guest_overview_does_not_recommend_starting_training(self):
+        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
+        self.assertIn("Welcome to the ULTRON guest dashboard", javascript)
+        self.assertIn("Private training status, history, checkpoints and device controls are not loaded", javascript)
+        self.assertIn('$("autoStartToggle").disabled = true;', javascript)
+
     def test_dashboard_has_no_external_ai_api_endpoint(self):
         forbidden = (
             "api.openai.com",
