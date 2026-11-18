@@ -3,7 +3,8 @@
 **Repository:** `shayaanfarsheed-cmd/ULTRONAI`  
 **Main branch:** `main`  
 **Latest merged work:** PR #12 — [Dashboard performance optimization](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/12), merged at `02ddff7437f6a4ac89f78c52ceb36cef6d3f944b`.  
-**Current working branch:** `fix/bounded-checkpoint-streams` (follow-up hardening; PR not yet opened).
+**Current working branch:** `fix/bounded-checkpoint-streams`  
+**Draft PR #13:** [Enforce checkpoint download limits while streaming](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/13) — open, not merged.
 
 ## Latest code review and follow-up
 
@@ -14,9 +15,9 @@
 - Added regression tests for exact-limit streams, stream cancellation, early declared-length rejection, unsafe fallback rejection, and malformed step types.
 - No production Supabase changes, secrets, account provisioning, device pairing, agent installation, provider jobs, or real training.
 
-**Validation:** follow-up code is not yet validated. Run the three required GitHub Actions workflows against the final follow-up commit before opening/merging the PR. Device compatibility testing remains outstanding.
+**Validation:** GitHub Actions is running the three required workflows for PR #13. Recheck them on the exact final head after this README update. Device compatibility testing remains outstanding.
 
-**Next actions:** inspect the updated files and diff; run Node behavioural tests and syntax checks; run full CI; then update this handoff with the exact commit and actual results. Keep this follow-up unmerged until reviewed and validated. Do not start training.
+**Next actions:** verify the exact PR #13 head, review all workflow results, fix any failures, and record the final commit and actual results. Keep this follow-up unmerged until reviewed and validated. Do not start training.
 
 ---
 
