@@ -14,6 +14,9 @@
   const RAM_LIMIT_KEY = "ultron_training_ram_limit_gb";
   const POLL_MS = 15000;
   const STALE_SECONDS = 720;
+  let sessionRefreshPromise = null;
+  const runSessionRefresh = ULTRON_RUNTIME.createSingleFlight();
+  let chartDrawPending = false;
 
   const $ = function (id) { return document.getElementById(id); };
   const state = {
@@ -115,7 +118,11 @@
 
   function setAccessMode(isOwner) {
     const nextPublicMode = !isOwner;
-    if (state.publicMode !== nextPublicMode) state.authGeneration += 1;
+    if (state.publicMode !== nextPublicMode) {
+      state.authGeneration += 1;
+      sessionRefreshPromise = null;
+      runSessionRefresh.reset();
+    }
     state.publicMode = nextPublicMode;
     if (!isOwner) {
       const previousUserId = state.user && state.user.id;
@@ -278,14 +285,33 @@
       expireOwnerSession();
       throw new Error("Your login expired. Please sign in again.");
     }
+    if (sessionRefreshPromise) return sessionRefreshPromise;
+
+    const refreshToken = state.session.refresh_token;
+    const generation = state.authGeneration;
+    const refreshPromise = runSessionRefresh(async function () {
+      try {
+        const data = await authRequest("token?grant_type=refresh_token", {refresh_token: refreshToken});
+        const next = sessionFromResponse(data);
+        if (generation !== state.authGeneration || !state.session ||
+            state.session.refresh_token !== refreshToken) {
+          throw new Error("The owner session changed while its token was refreshing.");
+        }
+        saveSession(next);
+        return next;
+      } catch (_) {
+        if (generation === state.authGeneration && state.session &&
+            state.session.refresh_token === refreshToken) {
+          expireOwnerSession();
+        }
+        throw new Error("Your owner session expired. Please sign in again.");
+      }
+    });
+    sessionRefreshPromise = refreshPromise;
     try {
-      const data = await authRequest("token?grant_type=refresh_token", {refresh_token: state.session.refresh_token});
-      const next = sessionFromResponse(data);
-      saveSession(next);
-      return next;
-    } catch (_) {
-      expireOwnerSession();
-      throw new Error("Your owner session expired. Please sign in again.");
+      return await refreshPromise;
+    } finally {
+      if (sessionRefreshPromise === refreshPromise) sessionRefreshPromise = null;
     }
   }
 
@@ -320,7 +346,7 @@
     return data;
   }
 
-  async function storageRequest(path, method, body, binary) {
+  async function storageRequest(path, method, body, binary, maxBytes) {
     const session = await ensureSession();
     assertOwnerAccess(session);
     const headers = {
@@ -339,6 +365,13 @@
       const data = await response.json().catch(function () { return {}; });
       if (response.status === 401) expireOwnerSession();
       throw new Error(data.message || data.error || "Storage request failed (" + response.status + ").");
+    }
+    if (maxBytes != null) {
+      const declaredLength = Number(response.headers.get("content-length") || 0);
+      if (declaredLength > maxBytes) throw new Error("Checkpoint object exceeds its allowed download size.");
+      const bytes = await response.arrayBuffer();
+      if (bytes.byteLength > maxBytes) throw new Error("Checkpoint object exceeds its allowed download size.");
+      return bytes;
     }
     return binary ? response.arrayBuffer() : response.json().catch(function () { return null; });
   }
@@ -675,16 +708,31 @@
     }).join("");
   }
 
+  function scheduleChartDraw() {
+    if (document.hidden || state.currentView !== "overview" || chartDrawPending) return;
+    chartDrawPending = true;
+    ULTRON_RUNTIME.scheduleFrame(function () {
+      chartDrawPending = false;
+      if (!document.hidden && state.currentView === "overview") drawChart();
+    }, window);
+  }
+
   function drawChart() {
+    if (document.hidden || state.currentView !== "overview") return;
     const canvas = $("lossChart");
-    const context = canvas.getContext("2d");
+    if (!canvas) return;
+    let context = null;
+    try { context = canvas.getContext("2d"); } catch (_) { return; }
+    if (!context || typeof context.setTransform !== "function") return;
     const rect = canvas.getBoundingClientRect();
     const width = Math.max(280, Math.floor(rect.width || 600));
     const height = 190;
     const ratio = window.devicePixelRatio || 1;
-    canvas.width = width * ratio;
-    canvas.height = height * ratio;
-    context.scale(ratio, ratio);
+    const pixelWidth = Math.round(width * ratio);
+    const pixelHeight = Math.round(height * ratio);
+    if (canvas.width !== pixelWidth) canvas.width = pixelWidth;
+    if (canvas.height !== pixelHeight) canvas.height = pixelHeight;
+    context.setTransform(ratio, 0, 0, ratio, 0, 0);
     context.clearRect(0, 0, width, height);
     const points = state.status && Array.isArray(state.status.loss_history) ? state.status.loss_history.filter(function (point) {
       return Number.isFinite(Number(point.loss));
@@ -851,7 +899,7 @@
     $("resumeButton").disabled = state.publicMode || !hasRun || Boolean(finished);
     $("safeResumeButton").disabled = state.publicMode || !hasRun || !state.status || state.status.last_checkpoint_step == null;
     renderMastery();
-    drawChart();
+    scheduleChartDraw();
     renderServers();
     renderSettings();
     renderCheckpointList();
@@ -875,6 +923,7 @@
     };
     $("viewName").textContent = labels[view][0];
     $("pageTitle").textContent = labels[view][1];
+    if (view === "overview") scheduleChartDraw();
     if (view === "checkpoints") loadCheckpointCandidates().then(renderCheckpointList).catch(function (error) {
       showCheckpointNotice(error.message, "warn");
     });
@@ -978,12 +1027,13 @@
     return parts.map(function (part) { return encodeURIComponent(String(part)); }).join("/");
   }
 
-  async function getStorageBytes(path) {
-    return storageRequest("object/authenticated/checkpoints/" + objectPath(path.split("/")), "GET", null, true);
+  async function getStorageBytes(path, maxBytes) {
+    return storageRequest("object/authenticated/checkpoints/" + objectPath(path.split("/")), "GET", null, true,
+      maxBytes == null ? ULTRON_RUNTIME.MAX_FILE_BYTES : maxBytes);
   }
 
   async function getStorageJson(path) {
-    const bytes = await getStorageBytes(path);
+    const bytes = await getStorageBytes(path, ULTRON_RUNTIME.MAX_METADATA_BYTES);
     return JSON.parse(new TextDecoder().decode(bytes));
   }
 
@@ -992,43 +1042,63 @@
     return Array.from(new Uint8Array(digest)).map(function (value) { return value.toString(16).padStart(2, "0"); }).join("");
   }
 
+
   async function loadCheckpointCandidates() {
     if (!hasVerifiedOwnerSession() || !state.status || !state.status.run_id) {
       state.checkpoints = [];
       return [];
     }
-    const prefix = state.user.id + "/" + state.status.run_id;
+    const generation = state.authGeneration;
+    const ownerId = state.user.id;
+    const runId = state.status.run_id;
+    const prefix = ownerId + "/" + runId;
+    const maximumCommittedStep = state.status.last_checkpoint_step == null ? -1 : Number(state.status.last_checkpoint_step);
     const listed = await storageRequest("object/list/checkpoints", "POST", {
       prefix: prefix,
       limit: 1000,
       offset: 0,
       sortBy: {column: "name", order: "asc"}
     }, false);
-    const maximumCommittedStep = state.status.last_checkpoint_step == null ? -1 : Number(state.status.last_checkpoint_step);
+    if (generation !== state.authGeneration || !hasVerifiedOwnerSession() ||
+        state.user.id !== ownerId || !state.status || state.status.run_id !== runId) {
+      return [];
+    }
     const ids = Array.from(new Set((listed || []).map(function (item) {
       return String(item.name || "").split("/")[0];
     }).filter(function (id) { return id.indexOf("ckpt-") === 0; })));
-    const candidates = [];
-    for (const id of ids) {
+    const results = await ULTRON_RUNTIME.mapWithConcurrency(ids, 3, async function (id) {
       try {
         const base = prefix + "/" + id;
-        const manifestBytes = await getStorageBytes(base + "/manifest.json");
-        const receipt = await getStorageJson(base + "/upload_receipt.json");
+        const metadata = await Promise.all([
+          getStorageBytes(base + "/manifest.json", ULTRON_RUNTIME.MAX_METADATA_BYTES),
+          getStorageJson(base + "/upload_receipt.json")
+        ]);
+        const manifestBytes = metadata[0];
+        const receipt = metadata[1];
         const manifestHash = await sha256Hex(manifestBytes);
         const manifest = JSON.parse(new TextDecoder().decode(manifestBytes));
-        if (manifest.checkpoint_id !== id || receipt.checkpoint_id !== id || receipt.manifest_sha256 !== manifestHash) continue;
-        if (JSON.stringify(receipt.files) !== JSON.stringify(manifest.files)) continue;
-        const total = Object.values(manifest.files || {}).reduce(function (sum, entry) { return sum + Number(entry.size_bytes || 0); }, manifestBytes.byteLength);
-        if (Number(manifest.step) > maximumCommittedStep) continue;
-        candidates.push(Object.assign({}, manifest, {
+        const manifestStats = ULTRON_RUNTIME.validateManifest(manifest, id);
+        if (manifestStats.totalBytes + manifestBytes.byteLength + ULTRON_RUNTIME.MAX_METADATA_BYTES > ULTRON_RUNTIME.MAX_TOTAL_BYTES) return null;
+        if (manifest.checkpoint_id !== id || receipt.checkpoint_id !== id || receipt.manifest_sha256 !== manifestHash) return null;
+        if (JSON.stringify(receipt.files) !== JSON.stringify(manifest.files)) return null;
+        const total = manifestStats.totalBytes + manifestBytes.byteLength;
+        if (Number(manifest.step) > maximumCommittedStep) return null;
+        return Object.assign({}, manifest, {
           checkpoint_id: id,
           manifest_sha256: manifestHash,
           total_size_bytes: total,
           full_verified: false,
           created_at: manifest.created_at || manifest.timestamp || null
-        }));
-      } catch (_) {}
+        });
+      } catch (_) {
+        return null;
+      }
+    });
+    if (generation !== state.authGeneration || !hasVerifiedOwnerSession() ||
+        state.user.id !== ownerId || !state.status || state.status.run_id !== runId) {
+      return [];
     }
+    const candidates = results.filter(Boolean);
     candidates.sort(function (a, b) { return Number(b.step || 0) - Number(a.step || 0); });
     state.checkpoints = candidates;
     return candidates;
@@ -1036,19 +1106,24 @@
 
   async function verifyCheckpoint(candidate) {
     const prefix = state.user.id + "/" + state.status.run_id + "/" + candidate.checkpoint_id;
-    const manifestBytes = await getStorageBytes(prefix + "/manifest.json");
-    const receiptBytes = await getStorageBytes(prefix + "/upload_receipt.json");
+    const manifestBytes = await getStorageBytes(prefix + "/manifest.json", ULTRON_RUNTIME.MAX_METADATA_BYTES);
+    const receiptBytes = await getStorageBytes(prefix + "/upload_receipt.json", ULTRON_RUNTIME.MAX_METADATA_BYTES);
     const manifestHash = await sha256Hex(manifestBytes);
     const manifest = JSON.parse(new TextDecoder().decode(manifestBytes));
     const receipt = JSON.parse(new TextDecoder().decode(receiptBytes));
+    const manifestStats = ULTRON_RUNTIME.validateManifest(manifest, candidate.checkpoint_id);
     if (manifest.checkpoint_id !== candidate.checkpoint_id || receipt.checkpoint_id !== candidate.checkpoint_id) throw new Error("Checkpoint identity does not match.");
     if (receipt.manifest_sha256 !== manifestHash) throw new Error("Manifest checksum does not match the upload receipt.");
     if (JSON.stringify(receipt.files) !== JSON.stringify(manifest.files)) throw new Error("Receipt file list does not match the manifest.");
     let stateFile = null;
+    let verifiedBytes = manifestBytes.byteLength + receiptBytes.byteLength;
+    if (verifiedBytes + manifestStats.totalBytes > ULTRON_RUNTIME.MAX_TOTAL_BYTES) throw new Error("Checkpoint exceeds the 256 MiB total size limit.");
     for (const entry of Object.entries(manifest.files || {})) {
       const name = entry[0];
       const metadata = entry[1];
-      const bytes = await getStorageBytes(prefix + "/" + name);
+      const bytes = await getStorageBytes(prefix + "/" + name, ULTRON_RUNTIME.MAX_FILE_BYTES);
+      verifiedBytes += bytes.byteLength;
+      if (verifiedBytes > ULTRON_RUNTIME.MAX_TOTAL_BYTES) throw new Error("Checkpoint exceeds the 256 MiB total size limit.");
       if (bytes.byteLength !== Number(metadata.size_bytes)) throw new Error("File size mismatch: " + name);
       if (await sha256Hex(bytes) !== metadata.sha256) throw new Error("SHA-256 mismatch: " + name);
       if (name === "state.json") stateFile = JSON.parse(new TextDecoder().decode(bytes));
@@ -1057,7 +1132,7 @@
     if (!stateFile.state || Number(stateFile.state.step) !== Number(manifest.step)) throw new Error("Checkpoint step metadata is inconsistent.");
     candidate.full_verified = true;
     candidate.manifest_sha256 = manifestHash;
-    candidate.total_size_bytes = Object.values(manifest.files || {}).reduce(function (sum, entry) { return sum + Number(entry.size_bytes || 0); }, manifestBytes.byteLength);
+    candidate.total_size_bytes = manifestStats.totalBytes + manifestBytes.byteLength + receiptBytes.byteLength;
     candidate.state = stateFile.state;
     return candidate;
   }
@@ -1121,9 +1196,11 @@
   async function downloadCheckpoint(id) {
     const prefix = state.user.id + "/" + state.status.run_id + "/" + id;
     const manifest = await getStorageJson(prefix + "/manifest.json");
+    const stats = ULTRON_RUNTIME.validateManifest(manifest, id);
+    if (stats.totalBytes + ULTRON_RUNTIME.MAX_METADATA_BYTES * 2 > ULTRON_RUNTIME.MAX_TOTAL_BYTES) throw new Error("Checkpoint exceeds the 256 MiB total size limit.");
     const names = Object.keys(manifest.files || {}).concat(["manifest.json", "upload_receipt.json"]);
     for (const name of names) {
-      const bytes = await getStorageBytes(prefix + "/" + name);
+      const bytes = await getStorageBytes(prefix + "/" + name, name === "manifest.json" || name === "upload_receipt.json" ? ULTRON_RUNTIME.MAX_METADATA_BYTES : ULTRON_RUNTIME.MAX_FILE_BYTES);
       triggerDownload(id + "-" + name, bytes);
     }
     showCheckpointNotice("Checkpoint files downloaded separately. Keep every component in the same checkpoint folder.", "success");
@@ -1166,7 +1243,7 @@
   function bindEvents() {
     $("themeToggle").addEventListener("click", function () {
       applyTheme(document.body.getAttribute("data-theme") === "dark" ? "light" : "dark");
-      drawChart();
+      scheduleChartDraw();
     });
     $("refreshButton").addEventListener("click", refreshData);
     $("ownerSignInButton").addEventListener("click", function () {
@@ -1201,7 +1278,14 @@
       const button = event.target.closest("[data-checkpoint-verify], [data-checkpoint-download], [data-checkpoint-resume]");
       if (button) handleCheckpointAction(button).catch(function (error) { showCheckpointNotice(error.message, "error"); });
     });
-    window.addEventListener("resize", drawChart);
+    window.addEventListener("resize", scheduleChartDraw);
+    if (typeof ResizeObserver === "function") {
+      const chart = $("lossChart");
+      if (chart && chart.parentElement) {
+        const observer = new ResizeObserver(scheduleChartDraw);
+        observer.observe(chart.parentElement);
+      }
+    }
     document.addEventListener("visibilitychange", function () {
       if (!document.hidden && state.user) refreshData();
     });

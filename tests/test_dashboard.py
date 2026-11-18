@@ -1,4 +1,5 @@
 import re
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -8,6 +9,13 @@ DASHBOARD = ROOT / "dashboard"
 
 
 class DashboardStaticTests(unittest.TestCase):
+    def test_dashboard_runtime_behaviour(self):
+        result = subprocess.run(
+            ["node", "--test", str(ROOT / "tests" / "dashboard_runtime.test.js")],
+            cwd=ROOT, capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_all_static_javascript_id_references_exist(self):
         html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
@@ -43,6 +51,17 @@ class DashboardStaticTests(unittest.TestCase):
         self.assertIn("setAccessMode(restoredOwner)", javascript)
         self.assertIn('$("ownerPassword").value = ""', javascript)
 
+    def test_session_refresh_is_single_flight_and_invalidated_on_auth_transition(self):
+        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
+        self.assertIn("let sessionRefreshPromise = null;", javascript)
+        self.assertIn("if (sessionRefreshPromise) return sessionRefreshPromise;", javascript)
+        self.assertIn("if (sessionRefreshPromise === refreshPromise) sessionRefreshPromise = null;", javascript)
+        access_mode = javascript.split("function setAccessMode(isOwner)", 1)[1].split("async function verifyOwnerSession", 1)[0]
+        self.assertIn("sessionRefreshPromise = null;", access_mode)
+        refresh = javascript.split("async function ensureSession()", 1)[1].split("async function apiRequest", 1)[0]
+        self.assertIn("generation !== state.authGeneration", refresh)
+        self.assertIn("state.session.refresh_token !== refreshToken", refresh)
+
     def test_private_api_and_storage_require_verified_owner_mode(self):
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
         self.assertIn("function hasVerifiedOwnerSession()", javascript)
@@ -72,6 +91,26 @@ class DashboardStaticTests(unittest.TestCase):
         self.assertIn('passwordInput.value = "";\n      submit.disabled = false;', javascript)
         signout = javascript.split("async function signOutOwner()", 1)[1].split("function sessionFromResponse", 1)[0]
         self.assertLess(signout.index("saveSession(null);"), signout.index('fetch(AUTH_ROOT + "logout"'))
+
+    def test_chart_redraw_is_scheduled_and_skips_hidden_views(self):
+        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
+        self.assertIn("function scheduleChartDraw()", javascript)
+        self.assertIn("ULTRON_RUNTIME.scheduleFrame", javascript)
+        self.assertIn('if (document.hidden || state.currentView !== "overview") return;', javascript)
+        self.assertIn("new ResizeObserver(scheduleChartDraw)", javascript)
+        self.assertIn("context.setTransform(ratio, 0, 0, ratio, 0, 0)", javascript)
+        self.assertIn("if (canvas.width !== pixelWidth) canvas.width = pixelWidth;", javascript)
+
+    def test_checkpoint_metadata_reads_are_bounded_and_auth_generation_checked(self):
+        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
+        self.assertIn("async function mapWithConcurrency(items, limit, mapper)", (DASHBOARD / "runtime.js").read_text(encoding="utf-8"))
+        self.assertIn("ULTRON_RUNTIME.mapWithConcurrency(ids, 3", javascript)
+        loader = javascript.split("async function loadCheckpointCandidates()", 1)[1].split("async function verifyCheckpoint", 1)[0]
+        self.assertIn('Promise.all([', loader)
+        self.assertIn("generation !== state.authGeneration", loader)
+        self.assertIn("state.status.run_id !== runId", loader)
+        self.assertIn("results.filter(Boolean)", loader)
+        self.assertLess(loader.index("const listed = await storageRequest"), loader.index("state.status.run_id !== runId"))
 
     def test_private_activity_view_is_guest_gated(self):
         html = (DASHBOARD / "index.html").read_text(encoding="utf-8")

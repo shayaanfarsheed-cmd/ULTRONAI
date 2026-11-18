@@ -1,45 +1,46 @@
 # ULTRONAI — Current implementation handoff (2026-11-18)
 
 **Repository:** `shayaanfarsheed-cmd/ULTRONAI`  
-**Base branch:** `main`  
-**Verified main merge:** `ad8a0d01bcd725f96f8d6a41d682febed3c2e4c7` (PR #10 is merged).  
-**Active feature branch:** `feature/owner-guest-dashboard`  
-**Draft PR:** [#11 — Build owner sign-in and Guest Mode dashboard foundation](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/11)  
-**Code and test head before this README handoff:** `39975a2e4253bae4fee14fd87579249d4ae1c273`
+**Active branch:** `main`  
+**Latest verified main commit:** `4ced9ca745aec0ab7dc736be100f5a25f7422848`  
+**Merged work:** PR #10 (repository architecture/configuration baseline) and PR #11 (owner sign-in and Guest Mode dashboard foundation).  
+**Latest PR:** [#11 — Build owner sign-in and Guest Mode dashboard foundation](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/11) — merged.
 
-## Work Package 2 — owner/guest dashboard foundation
+## Current status
 
-### Implemented in PR #11
-- Added responsive owner sign-in and sign-out UI; no public sign-up.
-- Owner identity is checked against the configured owner UUID after Supabase Auth returns a session.
-- Guest Mode is the default; owner configuration remains deliberately disabled because the publishable key is still a placeholder and `ownerUserId` is blank.
-- Made session persistence fail closed: a storage failure clears in-memory session state.
-- Owner REST and Storage requests now require a verified owner-mode session and matching configured owner identity.
-- Guest transitions clear owner-only status, logs, switch requests, checkpoints, quota state and the saved owner cache.
-- Sign-out clears local access and private state before attempting server-side token revocation.
-- Sign-in password input is cleared immediately and again when the attempt finishes.
-- Expired or revoked sessions return to Guest Mode; stale in-flight refresh results are discarded using an auth-generation counter.
-- Guest overview no longer recommends starting a training run; it explains that private training data and controls are unavailable in Guest Mode.
-- Added a private Activity view for owner training-session history and server handoff records. Guest Mode renders an explicit locked state and does not load private rows.
-- Unfinished automatic-start control remains disabled until a real, secured backend action exists.
-- Added regression tests for owner-only request guards, cache isolation, guest transitions, password cleanup, sign-out ordering, expired/revoked sessions, guest overview behaviour, and private Activity gating.
+- PR #11 is merged. Its squash merge commit is `4ced9ca745aec0ab7dc736be100f5a25f7422848`.
+- The merged dashboard includes Guest Mode by default, owner sign-in/sign-out UI, frontend owner UUID verification, owner-only request guards, private Activity view gating, and regression tests.
+- Owner sign-in remains deliberately inactive: `dashboard/config.js` contains a publishable-key placeholder and an empty `ownerUserId`.
+- The frontend UUID allowlist and browser-side request guards are not backend authorization. Production RLS and trusted server-side authorization still require separate design, review, and explicit approval.
+- Browser `sessionStorage` is not secure credential storage. Do not describe it as such or put privileged service-role secrets in the browser.
+- Device pairing, remote device control, checkpoint operations requiring production credentials, and live training remain unavailable until their secured backend and device architecture is implemented and separately approved.
+- The RAM slider is a local preference only; it does not enforce a process or operating-system memory limit.
+- No owner account was created, no device was paired, no agent was installed, and no provider job or live training was started.
 
-### Current safety boundary
-- The frontend UUID allowlist is only a UI/session gate. It is **not** a substitute for backend RLS and server-side authorization.
-- No production Supabase settings, schema, RLS, grants, Storage policies, secrets, or Edge Functions were changed.
-- No owner account was created; no device was paired; no device agent was installed; no training or provider job was started.
-- Device pairing and remote training controls remain unavailable until the secure backend/device-control work is implemented and separately approved.
-- The RAM slider remains a browser preference, not an enforced process memory cap.
+## Optimization work — current stage
 
-## Validation and next actions
-- All three workflows passed on the earlier PR head `9f54f93ad8b77d2d1fd02850a64d5d26a9ff0667`.
-- A preflight run on an intermediate commit exposed one outdated static assertion expecting the previous guest-mode assignment expression. The assertion was corrected to check the current equivalent state transition; no tests were removed or weakened.
-- Current code and regression tests are on `39975a2e4253bae4fee14fd87579249d4ae1c273`; this README handoff creates a new commit, so recheck all three workflows against the latest exact PR head before treating validation as passed.
-- Feature implementation is still in progress. Compatibility testing has **not** started; it follows feature implementation.
-- Next: finish remaining owner/guest dashboard sections and audit every UI action/data path, complete backend authorization design review without changing production, then run compatibility checks and repair any failures.
-- PR #11 remains draft and unmerged. Do not merge without the user's explicit approval.
+- Starting point: merged `main` commit `4ced9ca745aec0ab7dc736be100f5a25f7422848`.
+- Working branch: `optimize/dashboard-performance-security`.
+- Initial read-only review identified:
+  1. Possible concurrent refresh-token rotation when several requests renew an expiring session at once.
+  2. Sequential checkpoint metadata/file reads that can be slow on mobile networks.
+  3. Unnecessary chart redraws during full renders and window resize events.
+  4. Historical README handoff statements that incorrectly described PR #11 as unmerged.
+- Implemented on PR #12: single-flight refresh-token renewal; auth-generation checks against stale refreshes; checkpoint metadata concurrency capped at three; bounded metadata/file downloads (1 MiB metadata, 64 MiB per file, 256 MiB aggregate); strict manifest structure, path, SHA-256 and safe-integer validation; animation-frame fallback and defensive canvas handling.
+- Added executable Node behavioural tests for bounded concurrency, valid/invalid manifests, aggregate-size rejection, and chart scheduling fallback. Python's dashboard suite now runs these tests.
+- Current PR head is being validated; do not treat prior CI results as validation of these latest fixes. The README itself will trigger another validation run.
+- Remaining: verify actual CI on the final README-synced commit, review any failures, and then run iPad/iPhone/Android/desktop compatibility checks. Keep PR #12 unmerged pending review and explicit user approval.
+- Preserve the $0 budget, no Kaggle, no external AI APIs, no pretrained weights, and no externally generated training data.
+- No production Supabase changes, secrets changes, owner provisioning, device pairing, provider jobs, or real training are authorized by this optimization task.
+- Do not merge optimization work without explicit user approval.
 
-**Permanent constraints:** $0 budget; no paid services, Kaggle, external AI APIs, pretrained weights, or externally generated training data. No live training without separate approval.
+## Validation state
+
+- PR #11's three GitHub Actions checks passed on its validated head before merge.
+- All three GitHub Actions workflows passed on implementation commit `e1729ef735157bf45dc5c514d8bddc2335235dbb`: Test Suite run `44236200315`, Training Prototype Validation run `44236200378`, and Preflight run `44236200390`.
+- The subsequent README validation-sync commit `083e6d37de913efdef47d12fc9b4e12f106ceb54` was also fully validated: Test Suite run `44236363036`, Training Prototype Validation run `44236363001`, and Preflight run `44236362991` all completed successfully.
+- Recheck all workflows after any further source or documentation changes; compatibility testing remains a separate phase.
+- Compatibility testing across iPad/iPhone/Android/desktop remains a separate required phase after feature implementation and code repair.
 
 ---
 
@@ -64,7 +65,7 @@
 
 ## Current implementation truth
 
-- Public GitHub Pages dashboard currently operates in public mode. It does not provide the agreed owner login, logout, recovery, or private owner session yet.
+- Historical note: before PR #11, the dashboard had no owner sign-in UI. Current implementation (PR #11 merged) includes owner sign-in/sign-out UI and a frontend owner-session gate; production authentication remains deliberately inactive until configuration and trusted backend authorization are completed.
 - Guest Mode is intended for public dashboard and public mathematics information only. It must never access private training history, checkpoints, device pairing, or remote training controls.
 - The owner account is intended to be one identity across the system. Public self-registration must not create additional owner accounts. Secure owner provisioning and recovery require a separately reviewed implementation.
 - Backend authorization—not hidden buttons—must protect every private operation. Owner identity must be derived from a verified server-side session. Never trust a browser-supplied owner ID.
@@ -247,6 +248,19 @@ Before finishing a chat, verify the current GitHub branch/commit/PR and CI state
 6. Update this README again before any future chat handoff.
 
 ## Current development status and next-chat handoff
+
+**Latest handoff:** 2026-11-18 05:15 UTC  
+**Repository:** `shayaanfarsheed-cmd/ULTRONAI`  
+**Active branch:** `optimize/dashboard-performance-security`  
+**PR #12:** open, draft, unmerged — [Dashboard performance optimization](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/12).
+
+Latest repair files: `dashboard/runtime.js`, `dashboard/app.js`, `dashboard/index.html`, `tests/dashboard_runtime.test.js`, and `tests/test_dashboard.py`. Checkpoint metadata is capped at 1 MiB, individual checkpoint objects at 64 MiB, and total checkpoint data at 256 MiB; manifest file names, sizes, hashes, step values, and required state file are validated before use. Chart drawing now has a safe fallback when animation-frame or canvas support is unavailable. Behavioural tests exercise concurrency, malformed metadata, size limits, and chart scheduling.
+
+**Validation:** the new code has not yet been validated by GitHub Actions on its final commit. Previous PR #12 workflow successes apply only to the earlier head and must not be carried forward as evidence for these fixes. Compatibility testing is not yet complete.
+
+**Next action:** inspect the latest PR head and run all three required GitHub Actions workflows; fix failures, update this handoff, and revalidate the README-synced final commit. Keep PR #12 unmerged until review is complete and the user explicitly approves. Do not start training or change production Supabase settings.
+
+
 
 **Last updated:** 2026-11-17 13:35 UTC  
 **Repository:** `shayaanfarsheed-cmd/ULTRONAI`  
