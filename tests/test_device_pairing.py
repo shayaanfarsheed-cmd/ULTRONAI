@@ -76,6 +76,11 @@ class DevicePairingStaticTests(unittest.TestCase):
         self.assertNotIn("print(token)", agent)
         self.assertNotIn("device_token", agent.replace('data.get("device_token")', ""))
 
+    def test_device_pairing_feature_flag_is_explicitly_disabled(self):
+        config = (ROOT / "dashboard" / "config.js").read_text(encoding="utf-8")
+        self.assertIn("deviceControlEnabled: false", config)
+        self.assertNotIn("deviceControlEnabled: true", config)
+
     def test_dashboard_does_not_contain_service_role_or_device_token(self):
         dashboard = ROOT / "dashboard"
         for path in dashboard.iterdir():
