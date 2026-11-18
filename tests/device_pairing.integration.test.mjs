@@ -13,6 +13,7 @@ const FUNCTION_URL = SUPABASE_URL + "/functions/v1/device-control";
 const ORIGIN = "https://shayaanfarsheed-cmd.github.io";
 const PASSWORD = "LocalPairingTest!2026";
 const secrets = [];
+let ipCounter = 1;
 let owner;
 let guest;
 let ownerToken;
@@ -22,7 +23,7 @@ let functionOutput = "";
 let envDir;
 
 const sha256 = value => createHash("sha256").update(value).digest("hex");
-const testIp = () => "198.51.100." + (Math.floor(Math.random() * 200) + 1);
+const testIp = () => "198.51.100." + ipCounter++;
 
 async function adminRequest(path, options = {}) {
   const response = await fetch(SUPABASE_URL + path, {
