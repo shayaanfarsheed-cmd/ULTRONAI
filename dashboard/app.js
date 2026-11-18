@@ -183,6 +183,9 @@
     } catch (_) {
       showNotice("Could not confirm server-side sign-out. The local session has still been cleared.", "warn");
     }
+    if (state.user) {
+      try { localStorage.removeItem(CACHE_PREFIX + state.user.id); } catch (_) {}
+    }
     saveSession(null);
     state.status = null;
     state.logs = [];
