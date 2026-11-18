@@ -2,10 +2,12 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from ultron_local_runtime import (
     LocalDummyRuntime,
     RuntimeErrorState,
+    _pid_exists,
     verify_checkpoint,
 )
 
@@ -24,6 +26,16 @@ class LocalDummyRuntimeTests(unittest.TestCase):
                 return last
             time.sleep(0.02)
         self.fail(f"Timed out waiting for {expected}; last status={last!r}")
+
+    def test_linux_zombie_is_reported_as_exited(self):
+        zombie_stat = "4321 (python worker) Z 1 4321 4321 0 -1 0 0 0 0 0 0 0 0 20 0 1 0 12345"
+        with patch.object(Path, "read_text", return_value=zombie_stat):
+            self.assertFalse(_pid_exists(4321))
+
+    def test_linux_running_process_is_reported_as_running(self):
+        running_stat = "4321 (python worker with spaces) R 1 4321 4321 0 -1 0 0 0 0 0 0 0 0 20 0 1 0 12345"
+        with patch.object(Path, "read_text", return_value=running_stat):
+            self.assertTrue(_pid_exists(4321))
 
     def test_hard_ram_cap_is_refused_before_start(self):
         with tempfile.TemporaryDirectory() as temp:
