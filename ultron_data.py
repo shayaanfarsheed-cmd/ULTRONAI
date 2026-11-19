@@ -286,10 +286,10 @@ def generate_example(topic: str, rng: random.Random, difficulty: int = 1, sample
         return _make_example(topic, question, steps, answer, level, sample_index)
 
     if topic == "unit_conversion":
-        conversion, factor, unit_from, unit_to = rng.choice((
-            ("meters to centimeters", 100, "m", "cm"),
-            ("centimeters to millimeters", 10, "cm", "mm"),
-            ("kilograms to grams", 1000, "kg", "g"),
+        factor, unit_from, unit_to = rng.choice((
+            (100, "m", "cm"),
+            (10, "cm", "mm"),
+            (1000, "kg", "g"),
         ))
         amount = rng.randint(1, upper)
         result = amount * factor
@@ -350,7 +350,7 @@ def generate_dataset(
     if type(seed) is not int:
         raise ValueError("Dataset seed must be an integer")
     split_buckets = {"train": set(range(8)), "validation": {8}, "test": {9}}
-    if split not in split_buckets:
+    if not isinstance(split, str) or split not in split_buckets:
         raise ValueError("Split must be train, validation or test")
     if isinstance(topics, (str, bytes)):
         raise ValueError("Topics must be an iterable of unique supported topic names")
