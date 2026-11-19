@@ -52,6 +52,16 @@ class DataPipelineTests(unittest.TestCase):
         second = generate_dataset(80, seed=20261117, split="train")
         self.assertEqual(first, second)
 
+    def test_every_topic_cycles_through_all_three_difficulty_levels(self):
+        examples = generate_dataset(600, seed=20261119, split="train")
+        topic_levels = {topic: set() for topic in SUPPORTED_TOPICS}
+        for example in examples:
+            topic_levels[example["topic"]].add(example["difficulty"])
+        self.assertEqual(set(topic_levels), set(SUPPORTED_TOPICS))
+        for topic, levels in topic_levels.items():
+            with self.subTest(topic=topic):
+                self.assertEqual(levels, {1, 2, 3})
+
     def test_train_validation_and_test_questions_do_not_overlap(self):
         training = generate_dataset(300, seed=20261117, split="train")
         validation = generate_dataset(100, seed=20261117, split="validation")
