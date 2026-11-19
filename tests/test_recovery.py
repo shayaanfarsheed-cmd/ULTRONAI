@@ -69,7 +69,7 @@ class RecoveryTest(unittest.TestCase):
         self.assertEqual(storage.objects, {})
 
     def test_interrupted_download_does_not_leave_remote_test_objects(self):
-        storage = FakeStorage(fail_download_after=3)
+        storage = FakeStorage(fail_download_after=8)
         with self.assertRaisesRegex(RuntimeError, "simulated interrupted download"):
             run_checkpoint_recovery_test(storage, "owner-test")
         self.assertEqual(storage.objects, {})
