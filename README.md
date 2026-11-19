@@ -544,3 +544,14 @@ All earlier pairing implementation notes later in this README are historical onl
 - The same run showed empty workflow inputs for `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, and `SUPABASE_OWNER_ID`. Configure repository variable `SUPABASE_URL` and repository secrets `SUPABASE_SECRET_KEY` / `SUPABASE_OWNER_ID` in GitHub Actions settings before rerunning. Never paste secret values into chat or commit them.
 - The Node.js 20 message was a deprecation warning, not the cause of the failed job.
 - Next: pass CI for this fix, configure the missing Actions values, rerun the smoke workflow, and verify upload/download/restore/cleanup. Do not switch to Candidate 5 or start training until storage and resume validation pass.
+
+
+## Supabase smoke-test cleanup repair — 2026-11-19
+
+- The live storage smoke test successfully uploaded a temporary checkpoint, verified its remote hash, downloaded it, and restored model plus optimizer tensors.
+- The workflow then failed during cleanup verification. Supabase Storage listing is hierarchical: a directory entry is not an object, and deleting that directory name does not delete files nested below it.
+- The smoke-test cleanup now recursively enumerates virtual folders, sends only actual object paths to Storage removal, and verifies that no objects remain under the unique run prefix.
+- Added regression tests for nested model/optimizer shard folders, empty prefixes, and preserving objects belonging to another run.
+- The first live run did not complete cleanup verification successfully. Treat its temporary prefix as potentially containing leftover test objects; the repair will be verified by CI and a fresh live smoke-test run.
+- No production checkpoints were changed and no training was started.
+- Next: pass PR checks, merge only after explicit approval, rerun the live smoke test, then verify cleanup and Candidate 5 save/restore plus interrupted-resume before considering training.
