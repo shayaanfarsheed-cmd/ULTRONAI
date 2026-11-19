@@ -39,6 +39,8 @@ jobs:
         run: |
           node --check dashboard/app.js
           node --check dashboard/config.js
+          node --check dashboard/math-agent.js
+          node --check dashboard/math-agent-ui.js
 
       - name: Validate JSON configuration and notebook
         run: |
