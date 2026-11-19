@@ -17,6 +17,7 @@ from ultron_verify import verify_example_detailed
 
 AGENT_VERSION = "0.1.0"
 MAX_QUESTIONS_PER_RUN = 50_000
+MAX_QUESTION_LENGTH = 1_000
 
 # Compact, inspectable mathematical knowledge. These summaries guide method
 # selection and are returned with every solution; they are not training data.
@@ -111,10 +112,12 @@ def _decimal_text(value: Decimal) -> str:
 
 def solve_question(topic: str, question: str) -> dict[str, Any]:
     """Solve from topic + question only; expected answers/steps are never inputs."""
-    if topic not in MATH_KNOWLEDGE:
+    if not isinstance(topic, str) or topic not in MATH_KNOWLEDGE:
         raise AgentInputError(f"Unsupported topic: {topic}")
     if not isinstance(question, str) or not question.strip():
         raise AgentInputError("question must be a non-empty string")
+    if len(question) > MAX_QUESTION_LENGTH:
+        raise AgentInputError(f"question must be at most {MAX_QUESTION_LENGTH} characters")
 
     answer: str
     steps: list[str]
