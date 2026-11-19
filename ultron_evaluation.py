@@ -100,7 +100,10 @@ def evaluate_predictions(
         raise EvaluationInputError("A validated held-out foundation dataset is required")
     if dataset.get("schema_version") != 1 or dataset.get("frozen") is not True:
         raise EvaluationInputError("Evaluation dataset identity, schema, or frozen flag is invalid")
+    trusted_examples = load_heldout_dataset()["examples"]
     examples = dataset.get("examples")
+    if examples != trusted_examples:
+        raise EvaluationInputError("Evaluation data must exactly match the canonical frozen fixture")
     if not isinstance(examples, list) or not examples:
         raise EvaluationInputError("Evaluation dataset must contain examples")
     if not isinstance(predictions, Mapping):
