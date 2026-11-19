@@ -33,6 +33,7 @@ class TrainingEngineTests(unittest.TestCase):
         examples = generate_dataset(30, seed=20261117, split="train", topics=["whole_number_arithmetic", "fractions"])
         first = MathBatchStream(examples, self.tokenizer, 192, batch_size=4, seed=88)
         first.next_batch(self.tokenizer.stoi[" "])
+        first.set_topic_performance({"whole_number_arithmetic": {"accuracy": 0.25}})
         saved = first.state_dict()
         expected = first.next_batch(self.tokenizer.stoi[" "])
         resumed = MathBatchStream(examples, self.tokenizer, 192, batch_size=4, seed=88)
@@ -122,6 +123,45 @@ class TrainingEngineTests(unittest.TestCase):
         restored = CurriculumController([{"name": "elementary", "topics": ["addition"]}])
         restored.load_state_dict(state)
         self.assertEqual(restored.state_dict(), state)
+
+    def test_adaptive_sampling_prioritizes_weak_topics_without_duplicates(self):
+        examples = generate_dataset(
+            200,
+            seed=20261119,
+            split="train",
+            topics=["whole_number_arithmetic", "fractions"],
+        )
+        stream = MathBatchStream(examples, self.tokenizer, 192, batch_size=20, seed=19)
+        stream.set_topic_performance({
+            "whole_number_arithmetic": {"accuracy": 1.0},
+            "fractions": {"accuracy": 0.0},
+        })
+        first_epoch = stream.order[:40]
+        weak_count = sum(stream.dataset.topics[index] == "fractions" for index in first_epoch)
+        self.assertGreater(weak_count, 25)
+        self.assertEqual(len(first_epoch), len(set(first_epoch)))
+
+    def test_adaptive_sampler_rejects_invalid_accuracy(self):
+        examples = generate_dataset(8, seed=3, split="train", topics=["fractions"])
+        stream = MathBatchStream(examples, self.tokenizer, 192, batch_size=2, seed=3)
+        for invalid in (-0.1, 1.1, float("nan"), True):
+            with self.subTest(invalid=invalid):
+                with self.assertRaises(ValueError):
+                    stream.set_topic_performance({"fractions": invalid})
+
+    def test_adaptive_sampler_state_restores_topic_performance(self):
+        examples = generate_dataset(30, seed=44, split="train", topics=["whole_number_arithmetic", "fractions"])
+        first = MathBatchStream(examples, self.tokenizer, 192, batch_size=4, seed=7)
+        first.set_topic_performance({"fractions": 0.2})
+        first.next_batch(self.tokenizer.stoi[" "])
+        state = first.state_dict()
+        expected = first.next_batch(self.tokenizer.stoi[" "])
+        restored = MathBatchStream(examples, self.tokenizer, 192, batch_size=4, seed=7)
+        restored.load_state_dict(state)
+        actual = restored.next_batch(self.tokenizer.stoi[" "])
+        self.assertEqual(restored.topic_accuracy, first.topic_accuracy)
+        self.assertTrue(torch.equal(expected["input_ids"], actual["input_ids"]))
+        self.assertTrue(torch.equal(expected["labels"], actual["labels"]))
 
 
 if __name__ == "__main__":

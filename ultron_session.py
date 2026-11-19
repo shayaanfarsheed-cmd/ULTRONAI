@@ -783,6 +783,8 @@ def run_training_session(
             if evaluation_interval > 0 and step % evaluation_interval == 0:
                 metrics = _evaluate_current_stage(model, tokenizer, config, curriculum, seed, device)
                 accuracy_by_topic.update(metrics)
+                # Retrieval practice adapts the next data order to held-out weaknesses.
+                stream.set_topic_performance(metrics)
                 advanced = curriculum.record_evaluation(metrics, held_out=True)
                 if advanced:
                     if curriculum.is_finished:

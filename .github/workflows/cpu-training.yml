@@ -17,6 +17,10 @@ concurrency:
 jobs:
   train:
     runs-on: ubuntu-latest
+    env:
+      OMP_NUM_THREADS: "2"
+      MKL_NUM_THREADS: "2"
+      OPENBLAS_NUM_THREADS: "1"
     timeout-minutes: 350
     steps:
       - name: Check out ULTRON
@@ -26,6 +30,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: requirements.txt
 
       - name: Install CPU PyTorch
         run: python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
