@@ -41,11 +41,16 @@ class ConfigurationTests(unittest.TestCase):
             self.assertIn(platform_name, enforcement)
         self.assertEqual(config["local_training"]["enforcement"], "platform_specific_verified")
 
-    def test_kaggle_is_not_selectable(self):
+    def test_kaggle_is_enabled_for_manual_use_only(self):
         config = json.loads((ROOT / "config.json").read_text(encoding="utf-8"))
         servers = json.loads((ROOT / "servers.json").read_text(encoding="utf-8"))
         kaggle = next(item for item in servers["servers"] if item["id"] == "kaggle")
-        self.assertFalse(kaggle["enabled"])
+        self.assertTrue(kaggle["enabled"])
+        self.assertTrue(kaggle["manual_only"])
+        self.assertEqual(kaggle["automatic_start"], "no")
+        self.assertFalse(kaggle["automatic_start_enabled_by_default"])
+        self.assertIn("kaggle", config["runtime"]["supported_platforms"])
+        self.assertIn("kaggle", config["switching"]["manual_only_platforms"])
         self.assertNotIn("kaggle", config["switching"]["platform_allowlist"])
         self.assertEqual(validate_project_config(config, servers), [])
 
@@ -61,8 +66,9 @@ class ConfigurationTests(unittest.TestCase):
             ("missing guest denial", lambda c: c["access"]["guest_denied_permissions"].remove("device_pairing")),
             ("unknown enforcement", lambda c: c["local_training"]["platform_enforcement"].update(windows="anything")),
             ("missing enforcement", lambda c: c["local_training"]["platform_enforcement"].pop("linux")),
-            ("Kaggle runtime", lambda c: c["runtime"]["supported_platforms"].append("kaggle")),
+            ("Kaggle missing manual runtime", lambda c: c["runtime"]["supported_platforms"].remove("kaggle")),
             ("Kaggle auto selection", lambda c: c["switching"]["platform_allowlist"].append("kaggle")),
+            ("Kaggle missing manual-only flag", lambda c: c["switching"]["manual_only_platforms"].remove("kaggle")),
         ]
 
         for label, mutate in invalid_cases:
@@ -71,20 +77,21 @@ class ConfigurationTests(unittest.TestCase):
                 mutate(candidate)
                 self.assertTrue(validate_project_config(candidate, servers), label)
 
-    def test_kaggle_runtime_is_rejected(self):
+    def test_kaggle_runtime_resolves_to_cpu_when_cuda_is_unavailable(self):
         from train import resolve_runtime_settings
 
         config = json.loads((ROOT / "config.json").read_text(encoding="utf-8"))
-        with self.assertRaisesRegex(ValueError, "Kaggle is disabled"):
-            resolve_runtime_settings(config, "kaggle", torch_module=False)
+        result = resolve_runtime_settings(config, "kaggle", torch_module=False)
+        self.assertEqual(result["platform"], "kaggle")
+        self.assertEqual(result["device"], "cpu")
+        self.assertEqual(result["mixed_precision"], "none")
 
-    def test_reenabled_kaggle_registry_entry_is_rejected(self):
+    def test_kaggle_cannot_be_made_automatic(self):
         config = json.loads((ROOT / "config.json").read_text(encoding="utf-8"))
         servers = json.loads((ROOT / "servers.json").read_text(encoding="utf-8"))
         kaggle = next(item for item in servers["servers"] if item["id"] == "kaggle")
-        kaggle["enabled"] = True
-        self.assertIn("Kaggle must exist exactly once in the registry and remain disabled",
-                      validate_project_config(config, servers))
+        kaggle["automatic_start"] = "yes"
+        self.assertTrue(validate_project_config(config, servers))
 
     def test_colab_is_manual_until_free_account_eligibility_is_verified(self):
         config = json.loads((ROOT / "config.json").read_text(encoding="utf-8"))

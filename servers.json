@@ -49,8 +49,8 @@
       "order": 1,
       "name": "Kaggle Notebooks",
       "provider": "kaggle",
-      "role": "primary_gpu",
-      "enabled": false,
+      "role": "manual_gpu_runtime",
+      "enabled": true,
       "notebook_open_url": "https://www.kaggle.com/code",
       "notebook_source_url": "https://github.com/shayaanfarsheed-cmd/ULTRONAI/blob/main/train.ipynb",
       "documentation_url": "https://www.kaggle.com/docs/notebooks",
@@ -90,10 +90,12 @@
       },
       "automatic_start": "no",
       "start_steps": [
-        "Disabled by the user. Do not create credentials, configure secrets, or launch this provider."
+        "Open the private ULTRON-Training-Engine notebook in Kaggle.",
+        "Run the validation cells first; they do not start training.",
+        "Only after separate owner approval, add the required Supabase credentials to Kaggle Secrets and explicitly enable the training cell."
       ],
-      "current_status": "unknown",
-      "status_reason": "Disabled by the user; do not select, configure credentials for, or launch this provider.",
+      "current_status": "manual_only",
+      "status_reason": "Enabled for manually launched Kaggle notebook sessions only. Automatic provider selection and automatic starts remain disabled.",
       "sources": [
         "https://www.kaggle.com/docs/notebooks",
         "https://www.kaggle.com/docs/efficient-gpu-usage",
@@ -101,7 +103,8 @@
         "https://www.kaggle.com/terms"
       ],
       "last_reviewed": "2026-11-17",
-      "automatic_start_enabled_by_default": false
+      "automatic_start_enabled_by_default": false,
+      "manual_only": true
     },
     {
       "id": "google_colab",

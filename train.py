@@ -94,12 +94,11 @@ def resolve_runtime_settings(
     platform_id: str,
     torch_module: Any | None = None,
 ) -> dict[str, Any]:
-    if platform_id == "kaggle":
-        raise ValueError("Kaggle is disabled for ULTRON and cannot be used as a runtime")
     if platform_id not in PLATFORM_IDS:
         platform_id = "other"
 
     profiles = {
+        "kaggle": {"gpu_batch_size": 32, "cpu_batch_size": 8, "workers": 2, "cpu_threads": 4},
         "google_colab": {"gpu_batch_size": 32, "cpu_batch_size": 8, "workers": 2, "cpu_threads": 4},
         "lightning_ai": {"gpu_batch_size": 32, "cpu_batch_size": 8, "workers": 2, "cpu_threads": 4},
         "github_actions": {"gpu_batch_size": 8, "cpu_batch_size": 8, "workers": 0, "cpu_threads": 4},
@@ -225,8 +224,8 @@ def validate_project_config(config: Mapping[str, Any], servers: Mapping[str, Any
     supported_platforms = runtime.get("supported_platforms", [])
     if not isinstance(supported_platforms, list) or any(not isinstance(item, str) for item in supported_platforms):
         errors.append("runtime.supported_platforms must be a list of platform IDs")
-    elif "kaggle" in supported_platforms:
-        errors.append("Kaggle must be removed from supported runtime platforms")
+    elif "kaggle" not in supported_platforms:
+        errors.append("Kaggle must be listed as a supported manual runtime")
 
     switching = config.get("switching", {})
     if not isinstance(switching, Mapping):
@@ -237,6 +236,12 @@ def validate_project_config(config: Mapping[str, Any], servers: Mapping[str, Any
         errors.append("switching.platform_allowlist must be a list of platform IDs")
     elif "kaggle" in allowlist:
         errors.append("Kaggle must remain excluded from automatic provider selection")
+
+    manual_only = switching.get("manual_only_platforms", [])
+    if not isinstance(manual_only, list) or any(not isinstance(item, str) for item in manual_only):
+        errors.append("switching.manual_only_platforms must be a list of platform IDs")
+    elif "kaggle" not in manual_only:
+        errors.append("Kaggle must be explicitly marked as manual-only")
 
     server_items = servers.get("servers", [])
     if not isinstance(server_items, list):
@@ -257,8 +262,15 @@ def validate_project_config(config: Mapping[str, Any], servers: Mapping[str, Any
         item for item in server_items
         if isinstance(item, Mapping) and item.get("id") == "kaggle"
     ]
-    if len(kaggle_entries) != 1 or kaggle_entries[0].get("enabled") is not False:
-        errors.append("Kaggle must exist exactly once in the registry and remain disabled")
+    if len(kaggle_entries) != 1:
+        errors.append("Kaggle must exist exactly once in the server registry")
+    elif (
+        kaggle_entries[0].get("enabled") is not True
+        or kaggle_entries[0].get("manual_only") is not True
+        or str(kaggle_entries[0].get("automatic_start", "no")).lower() not in {"no", "false", "disabled"}
+        or kaggle_entries[0].get("automatic_start_enabled_by_default") is not False
+    ):
+        errors.append("Kaggle must be enabled for manual use only; automatic starts must remain disabled")
 
     fallback = config.get("server_rotation", {}).get("fallback_server_id")
     if fallback and fallback not in server_ids:
