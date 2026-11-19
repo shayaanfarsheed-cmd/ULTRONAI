@@ -1,3 +1,13 @@
+## Latest update — 2026-11-19 (training launch and device-bound optimizer hardening)
+
+- The isolated checkpoint recovery test now moves each source and fresh model onto the selected device **before** constructing its optimizer. It verifies that both optimizers reference exactly the parameters owned by their models and that those parameters are on the requested device.
+- CPU CI asserts the optimizer/model binding; CUDA precision recovery remains an optional test on GPU-capable runners. The owner has chosen to skip a manual Kaggle recovery run, so real Kaggle GPU recovery remains explicitly unverified.
+- **Manual training launch:** open `train.ipynb` from the repository's `main` branch in Kaggle, select an available GPU, and enable Internet so the notebook can retrieve the project source. Run the download and safe-validation cells first. Add `SUPABASE_SECRET_KEY` and `SUPABASE_OWNER_ID` only through Kaggle Secrets. Run the read-only connection-test cell with `ENABLE_BACKEND_CONNECTION_TEST = True`; confirm it succeeds. Hugging Face backup is optional; if used, configure both `HF_TOKEN` and `HF_REPO_ID` in Kaggle Secrets.
+- The final notebook cell starts real training only when `ENABLE_REAL_TRAINING = True` and `BACKEND_CONNECTION_VERIFIED` is true. Keep it false until the owner explicitly authorizes a run. Training is manual; GitHub Pages does not launch Kaggle.
+- This change does not run training, write production Supabase data, change database policies, or expose credentials. README is the handoff source of truth.
+
+---
+
 ## Latest update — 2026-11-19 (Kaggle backend connection verification)
 
 - Added a read-only `--connection-test` path to `train.py`. It verifies an owner-scoped read from the private `training_api.training_status` table and read access to the owner's private checkpoint Storage prefix.
