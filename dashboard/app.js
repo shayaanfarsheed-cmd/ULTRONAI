@@ -910,6 +910,7 @@
       checkpoints: ["CHECKPOINTS", "Verified checkpoints"],
       data: ["DATA LIBRARY", "Owner data library"],
       ask: ["ASK ULTRON", "Ask questions about your data"],
+      math: ["MATH AGENT", "Solve mathematics"],
       settings: ["SETTINGS", "System settings"],
       devices: ["LOCAL TRAINING", "Local training"]
     };
