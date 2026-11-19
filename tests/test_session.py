@@ -3,6 +3,7 @@ import unittest
 from datetime import timedelta
 
 import torch
+from unittest.mock import patch
 
 from ultron_checkpoint import LocalCheckpointStore
 from ultron_model import ULTRONTransformer
@@ -536,6 +537,61 @@ class TrainingSessionTests(unittest.TestCase):
         self.assertEqual(result["reason"], "handoff_requested")
         self.assertEqual(api.released[-1], "handoff_needed")
         self.assertEqual(api.status["last_checkpoint_step"], 0)
+
+
+    def test_keyboard_interrupt_after_update_commits_and_fresh_session_resumes(self):
+        from ultron_training import train_one_batch as real_train_one_batch
+
+        api = FakeAPI()
+        storage = FakeStorage()
+        remote = RemoteCheckpointStore(storage, keep_last=3)
+        calls = {"count": 0}
+
+        def interrupt_after_first_update(*args, **kwargs):
+            calls["count"] += 1
+            if calls["count"] == 2:
+                raise KeyboardInterrupt()
+            return real_train_one_batch(*args, **kwargs)
+
+        with tempfile.TemporaryDirectory() as first_folder:
+            with patch("ultron_session.train_one_batch", side_effect=interrupt_after_first_update):
+                interrupted = run_training_session(
+                    self._config(),
+                    self._servers(),
+                    checkpoint_root=first_folder,
+                    api=api,
+                    remote_store=remote,
+                    platform_id="lightning_ai",
+                    runtime_override={"device": "cpu", "batch_size": 2, "cpu_threads": 1, "mixed_precision": "none"},
+                    max_steps_override=2,
+                    model_factory=self._model_factory,
+                )
+
+        self.assertEqual(interrupted["state"], "paused")
+        self.assertEqual(interrupted["reason"], "keyboard_interrupt")
+        self.assertEqual(interrupted["step"], 1)
+        self.assertEqual(api.status["last_checkpoint_step"], 1)
+        self.assertIsNotNone(api.status["last_checkpoint_id"])
+        self.assertTrue(storage.objects, "the interrupted session must commit a remote checkpoint")
+
+        with tempfile.TemporaryDirectory() as resumed_folder:
+            resumed = run_training_session(
+                self._config(),
+                self._servers(),
+                checkpoint_root=resumed_folder,
+                api=api,
+                remote_store=remote,
+                platform_id="lightning_ai",
+                runtime_override={"device": "cpu", "batch_size": 2, "cpu_threads": 1, "mixed_precision": "none"},
+                max_steps_override=2,
+                model_factory=self._model_factory,
+            )
+
+        self.assertEqual(resumed["state"], "paused")
+        self.assertEqual(resumed["reason"], "test_step_limit")
+        self.assertEqual(resumed["step"], 2)
+        self.assertEqual(api.status["last_checkpoint_step"], 2)
+        self.assertEqual(api.released[-1], "paused")
 
 
 if __name__ == "__main__":
