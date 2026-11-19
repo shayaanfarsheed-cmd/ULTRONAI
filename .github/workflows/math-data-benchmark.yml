@@ -11,24 +11,6 @@ on:
       - "ultron_training.py"
       - "scripts/benchmark_math_data.py"
       - ".github/workflows/math-data-benchmark.yml"
-  workflow_dispatch:
-    inputs:
-      examples:
-        description: "Verified generated examples (32-1024)"
-        required: false
-        default: "256"
-        type: string
-      steps:
-        description: "Measured optimization steps (1-10)"
-        required: false
-        default: "3"
-        type: string
-      warmup:
-        description: "Warmup steps (0-3)"
-        required: false
-        default: "1"
-        type: string
-
 permissions:
   contents: read
 
@@ -54,12 +36,4 @@ jobs:
           python -m pip install -r requirements.txt
           python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
       - name: Run bounded generated-math benchmark
-        env:
-          BENCHMARK_EXAMPLES: ${{ inputs.examples || '256' }}
-          BENCHMARK_STEPS: ${{ inputs.steps || '3' }}
-          BENCHMARK_WARMUP: ${{ inputs.warmup || '1' }}
-        run: |
-          python scripts/benchmark_math_data.py \
-            --examples "$BENCHMARK_EXAMPLES" \
-            --steps "$BENCHMARK_STEPS" \
-            --warmup "$BENCHMARK_WARMUP"
+        run: python scripts/benchmark_math_data.py --examples 256 --steps 3 --warmup 1
