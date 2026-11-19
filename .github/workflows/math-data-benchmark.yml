@@ -37,4 +37,4 @@ jobs:
           python -m pip install -r requirements.txt
           python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
       - name: Run bounded generated-math benchmark
-        run: python scripts/benchmark_math_data.py --examples 256 --steps 3 --warmup 1
+        run: python scripts/benchmark_math_data.py --examples 1024 --steps 10 --warmup 2
