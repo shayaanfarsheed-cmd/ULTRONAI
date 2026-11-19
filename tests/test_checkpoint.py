@@ -128,11 +128,38 @@ class CheckpointTests(unittest.TestCase):
             manifest = store.save(model, optimizer, self._state(1), scheduler)
             folder = Path(directory) / manifest["checkpoint_id"]
             names = {item.name for item in folder.iterdir()}
-            self.assertIn("model.safetensors", names)
-            self.assertIn("optimizer.safetensors", names)
+            self.assertTrue(any(name.startswith("model-") and name.endswith(".safetensors") for name in names))
+            self.assertTrue(any(name.startswith("optimizer-") and name.endswith(".safetensors") for name in names))
             self.assertIn("rng.safetensors", names)
             self.assertIn("state.json", names)
             self.assertFalse(any(name.endswith((".pt", ".pth", ".pkl", ".pickle")) for name in names))
+
+
+    def test_sharded_model_and_optimizer_checkpoint_round_trip(self):
+        with tempfile.TemporaryDirectory() as directory:
+            model = nn.Sequential(*[nn.Linear(256, 256) for _ in range(4)])
+            optimizer = AdamW(model.parameters(), lr=0.001)
+            scheduler = StepLR(optimizer, step_size=2, gamma=0.5)
+            sample = torch.randn(2, 256)
+            model(sample).sum().backward()
+            optimizer.step()
+            scheduler.step()
+            expected = {key: value.detach().clone() for key, value in model.state_dict().items()}
+            store = LocalCheckpointStore(directory, maximum_file_bytes=1_500_000)
+            manifest = store.save(model, optimizer, self._state(1), scheduler)
+            model_shards = [name for name in manifest["files"] if name.startswith("model-")]
+            optimizer_shards = [name for name in manifest["files"] if name.startswith("optimizer-")]
+            self.assertGreater(len(model_shards), 1)
+            self.assertGreater(len(optimizer_shards), 1)
+            self.assertTrue(all(entry["size_bytes"] <= 1_500_000 for entry in manifest["files"].values()))
+            restored_model = nn.Sequential(*[nn.Linear(256, 256) for _ in range(4)])
+            restored_optimizer = AdamW(restored_model.parameters(), lr=0.001)
+            restored_scheduler = StepLR(restored_optimizer, step_size=2, gamma=0.5)
+            restored = store.load_latest(restored_model, restored_optimizer, restored_scheduler, restore_rng=False)
+            self.assertEqual(restored["step"], 1)
+            for key, value in restored_model.state_dict().items():
+                self.assertTrue(torch.equal(value, expected[key]))
+            self.assertEqual(restored_scheduler.state_dict(), scheduler.state_dict())
 
     def test_step_cannot_move_backwards(self):
         with tempfile.TemporaryDirectory() as directory:
