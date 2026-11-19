@@ -301,10 +301,17 @@ def generate_example(topic: str, rng: random.Random, difficulty: int = 1, sample
         return _make_example(topic, question, steps, str(result), level, sample_index)
 
     if topic == "pythagorean_theorem":
-        triples = ((3, 4, 5), (5, 12, 13), (8, 15, 17), (7, 24, 25), (20, 21, 29))
-        left, right, hypotenuse = rng.choice(triples)
-        scale = rng.randint(1, level * 3)
-        left, right, hypotenuse = left * scale, right * scale, hypotenuse * scale
+        maximum_m = (5, 15, 50)[level - 1]
+        while True:
+            m = rng.randint(2, maximum_m)
+            n = rng.randint(1, m - 1)
+            if math.gcd(m, n) == 1 and (m - n) % 2 == 1:
+                break
+        left = m * m - n * n
+        right = 2 * m * n
+        hypotenuse = m * m + n * n
+        if rng.choice((True, False)):
+            left, right = right, left
         question = f"Hypotenuse of right triangle: legs {left}, {right}"
         answer = str(hypotenuse)
         steps = [
