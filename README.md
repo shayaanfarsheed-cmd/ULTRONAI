@@ -362,4 +362,4 @@ All earlier pairing implementation notes later in this README are historical onl
 - The current review branch adds explicit durability checks to no-GPU, session-limit, stop, pause, requested-handoff, and max-step exits, and routes pending retries through the same primary/secondary commit helper.
 - Real training remains disabled pending CI, code review, and explicit owner approval.
 
-- CI initially exposed a test-timing mismatch: a zero-second interval exercised the periodic-save guard before the max-step guard. The regression test now leaves the normal interval intact so it specifically validates failure at the max-step exit. All three CI workflows must pass on the updated commit before merge.
+- CI initially exposed a test-timing mismatch: the shared test configuration uses a zero-second interval, so the periodic-save guard ran before the max-step guard. The regression test now explicitly sets a 300-second interval so it specifically validates failure at the max-step exit. All three CI workflows must pass on the updated commit before merge.
