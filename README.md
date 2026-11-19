@@ -2,12 +2,12 @@
 
 - PR #36 was merged at `d2fbcad6839371655e3ffb8d7e65e363d91b634e`; its three required CI workflows passed. It adds a bounded deterministic verified-data dry run only. It did not start training or change model weights.
 - Stage 2 work is on branch `feature/held-out-evaluation-foundation`; it is not merged. It adds `ultron_evaluation.py`, `evaluate.py`, `docs/HELD_OUT_EVALUATION.md`, and `tests/test_evaluation.py`.
-- The fixed evaluation set contains 28 hand-authored questions across all 14 supported topics, at difficulty levels 1 and 3. It is separate from the synthetic generator and has a stable SHA-256 fingerprint.
+- The fixed evaluation set contains 42 hand-authored questions across all 14 supported topics, at difficulty levels 1, 2 and 3. It is separate from the synthetic generator and has a stable SHA-256 fingerprint.
 - Evaluation reports exact-answer overall accuracy, macro topic accuracy, per-topic and per-difficulty accuracy, parse failures, and per-question predictions. It does not use fuzzy matching.
 - Training data construction now rejects records marked `evaluation_only` or assigned to `held_out`, `test`, or `evaluation` splits. This is a guard against accidental direct inclusion; future import paths must preserve the marker.
 - Tests assert the evaluation set is fixed/valid, evaluation does not change model weights or training mode, metrics are grouped correctly, and held-out examples cannot enter the training stream.
 - Research basis: [Hugging Face model evaluation guidance](https://huggingface.co/docs/evaluate/considerations), [scikit-learn data leakage guidance](https://scikit-learn.org/stable/common_pitfalls.html), and [scikit-learn validation guidance](https://scikit-learn.org/stable/modules/cross_validation.html).
-- The benchmark is an initial smoke benchmark (28 questions), not a statistically strong measure of broad mathematical ability. It must be expanded before making strong capability claims.
+- The benchmark is an initial smoke benchmark (42 questions), not a statistically strong measure of broad mathematical ability. It must be expanded before making strong capability claims.
 - Training remains disabled. The evaluation CLI initializes a fresh random model, does not load a checkpoint, invoke an optimizer, or train. Full 4M-parameter CPU evaluation may be slow.
 - Validate all required CI workflows on the latest PR head before considering merge. Do not merge without explicit owner approval.
 
