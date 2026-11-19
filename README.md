@@ -1,3 +1,14 @@
+## Latest update — 2026-11-19 (Candidate 5 checkpoint sharding implementation in review)
+
+- Branch `feat/checkpoint-sharding-candidate5` adds model and optimizer safetensors sharding, with a conservative per-shard byte budget below the configured 45,000,000-byte Storage cap. The manifest records every shard and its size/hash; restore recombines tensors and keeps compatibility with legacy single-file checkpoints.
+- Supabase and Hugging Face checkpoint transfer now enumerate manifest-listed components rather than assuming exactly one model and optimizer file. Import validates the manifest and component paths before accepting a checkpoint.
+- Added regression coverage that forces both model and optimizer into multiple small shards, restores model weights and scheduler state, and checks all components stay below the configured cap. Remote-storage corruption tests now target an actual model shard.
+- CI and review are pending; this branch is not merged and Candidate 5 is not yet the production model.
+- Live Supabase bucket inspection confirmed the existing `checkpoints` bucket is private with a 45,000,000-byte per-file limit. The connected Supabase integration in this session exposes SQL inspection but not Storage object upload/download/delete actions, so no live round-trip has been claimed or performed. The bucket quota and total-retention capacity remain unverified.
+- No real training has started. Next gates: pass CI; verify the full Candidate 5 checkpoint size and sharding on a representative run; validate live Storage upload/download/delete using an authorized runtime with the configured secret; confirm quota/retention; then test interrupted resume on Candidate 5 before considering a production config change.
+
+---
+
 ## Latest update — 2026-11-19 (Candidate 5 benchmark; PR #60 merged)
 
 - PR #60 merged to `main` at commit `8268bd3ca48495655545b56ee76493022b748924`. All four required workflows passed, including all seven isolated model-capacity matrix jobs.
