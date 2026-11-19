@@ -9,6 +9,8 @@
   <link rel="stylesheet" href="./styles.css">
   <script src="./config.js"></script>
   <script defer src="./runtime.js"></script>
+  <script defer src="./math-agent.js"></script>
+  <script defer src="./math-agent-ui.js"></script>
   <script defer src="./app.js"></script>
 </head>
 <body data-theme="dark">
@@ -40,6 +42,7 @@
           <button class="nav-button" type="button" data-view="learning"><span>∿</span> How ULTRON learns</button>
           <button class="nav-button" type="button" data-view="data"><span>▤</span> Data library</button>
           <button class="nav-button" type="button" data-view="ask"><span>⌕</span> Ask ULTRON</button>
+          <button class="nav-button" type="button" data-view="math"><span>∑</span> Math Agent</button>
           <button class="nav-button" type="button" data-view="activity"><span>≋</span> Activity</button>
           <button class="nav-button" type="button" data-view="devices"><span>▣</span> Local training</button>
           <button class="nav-button" type="button" data-view="servers"><span>⌘</span> Servers</button>
@@ -321,6 +324,59 @@
             <div id="askResults" class="ask-results" aria-live="polite"><p class="empty-state">Ask a question to search the contents of your Data Library.</p></div>
           </article>
           <p class="fine-print">First version: browser-based text search with source evidence. It does not call an external AI API, invent answers, execute uploaded files, or start training. Supported: TXT, MD, CSV, JSON, LEAN, TOML, YAML, PY, JS, TS, HTML, XML and LOG. PDF and other binary formats are not supported yet. Maximum 5 MiB per file and 15 MiB total per search.</p>
+        </section>
+
+
+        <section id="view-math" class="view-section" hidden>
+          <div class="section-intro">
+            <div>
+              <div class="eyebrow">BROWSER MATH AGENT / FOUNDATION</div>
+              <h2>Solve, explain, verify</h2>
+              <p class="muted-text">ULTRON independently solves supported foundation questions, shows the mathematical rule and working, then checks the answer through a separate verification path.</p>
+            </div>
+            <span class="status-pill">LOCAL BROWSER</span>
+          </div>
+          <article class="panel section-panel">
+            <div class="section-heading"><div><div class="eyebrow">QUESTION SOLVER</div><h2>Ask a maths question</h2></div><span class="small-pill">14 FOUNDATION TOPICS</span></div>
+            <form id="mathAgentForm" class="math-agent-form">
+              <label for="mathTopic">Mathematics topic</label>
+              <select id="mathTopic" required></select>
+              <label for="mathQuestion">Question</label>
+              <textarea id="mathQuestion" maxlength="1000" rows="3" required placeholder="Choose a topic, then enter a supported question."></textarea>
+              <p id="mathTopicHint" class="fine-print">Example format will appear when you choose a topic.</p>
+              <div class="control-row">
+                <button class="primary-button" type="submit">Solve and verify</button>
+                <button id="mathExampleButton" class="quiet-button" type="button">Load example</button>
+              </div>
+            </form>
+            <p id="mathAgentStatus" class="fine-print" role="status">Ready. Choose a topic to begin.</p>
+          </article>
+          <article class="panel section-panel">
+            <div class="section-heading"><div><div class="eyebrow">ANSWER / WORKED SOLUTION</div><h2>Agent reasoning summary</h2></div></div>
+            <div id="mathAgentResult" class="math-agent-result" aria-live="polite"><p class="empty-state">Your answer, mathematical rule, method and worked steps will appear here.</p></div>
+          </article>
+          <article class="panel section-panel">
+            <div class="section-heading"><div><div class="eyebrow">PERFORMANCE TEST</div><h2>Bounded browser benchmark</h2></div><span class="small-pill">MAX 5,000 QUESTIONS</span></div>
+            <p class="muted-text">The benchmark cycles through generated foundation questions, solves them and independently checks each answer. It yields between small batches so the page remains responsive. Stop it at any time.</p>
+            <div class="math-metric-grid">
+              <div><span>QUESTIONS / SECOND</span><strong id="mathQuestionsPerSecond">0</strong></div>
+              <div><span>VERIFIED / SECOND</span><strong id="mathVerifiedPerSecond">0</strong></div>
+              <div><span>ACCURACY</span><strong id="mathAccuracy">—</strong></div>
+              <div><span>COMPLETED</span><strong id="mathCompleted">0</strong></div>
+            </div>
+            <div id="mathTopicMetrics" class="math-topic-metrics" aria-live="polite"><p class="empty-state">Per-topic results will appear during a benchmark.</p></div>
+            <div class="control-row math-controls">
+              <button id="mathStartButton" class="primary-button" type="button">Start benchmark</button>
+              <button id="mathStopButton" class="quiet-button" type="button" disabled>Stop</button>
+              <button id="mathResetButton" class="quiet-button" type="button">Reset</button>
+            </div>
+            <p class="fine-print">Benchmark work is capped at 5,000 questions and runs only while this page is active. Closing or backgrounding the browser may suspend it. Results measure this rule-based solver, not neural-model training.</p>
+          </article>
+          <article class="panel section-panel">
+            <div class="eyebrow">IMPORTANT MODEL STATUS</div>
+            <h2>Not a trained neural model</h2>
+            <p class="muted-text">This is a deterministic, inspectable rule-based math agent implemented in JavaScript for static hosting and iPad compatibility. It does not use an external AI API, pretrained weights or uploaded files. It does not update model weights or learn from benchmark runs. The separate neural model remains untrained and training stays disabled.</p>
+          </article>
         </section>
 
         <section id="view-activity" class="view-section" hidden>

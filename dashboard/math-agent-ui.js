@@ -1,0 +1,29 @@
+(function () {
+  "use strict";
+  function init() {
+    const agent=window.ULTRON_MATH_AGENT;
+    const $=id=>document.getElementById(id);
+    if(!agent||!$("mathAgentForm"))return;
+    const topic=$("mathTopic"),question=$("mathQuestion"),result=$("mathAgentResult");
+    Object.keys(agent.TOPICS).forEach(key=>{const option=document.createElement("option");option.value=key;option.textContent=agent.TOPICS[key].label;topic.appendChild(option);});
+    let running=false,stopRequested=false,completed=0,verified=0,failed=0,started=0,timer=null;
+    const topicStats=Object.fromEntries(agent.TOPIC_KEYS.map(key=>[key,{generated:0,verified:0}]));
+    function resetTopicStats(){agent.TOPIC_KEYS.forEach(key=>{topicStats[key].generated=0;topicStats[key].verified=0;});}
+    function renderTopicMetrics(){const box=$("mathTopicMetrics");if(!box)return;box.replaceChildren();agent.TOPIC_KEYS.forEach(key=>{const stat=topicStats[key],row=document.createElement("div"),name=document.createElement("strong"),detail=document.createElement("small");name.textContent=agent.TOPICS[key].label;detail.textContent=stat.generated?stat.verified+"/"+stat.generated+" verified · "+(stat.verified/stat.generated*100).toFixed(1)+"%":"No samples yet";row.append(name,detail);box.appendChild(row);});}
+    function metrics(){ renderTopicMetrics(); $("mathQuestionsPerSecond").textContent=started?((completed/Math.max((performance.now()-started)/1000,.001)).toFixed(1)):"0";$("mathVerifiedPerSecond").textContent=started?((verified/Math.max((performance.now()-started)/1000,.001)).toFixed(1)):"0";$("mathAccuracy").textContent=completed?((verified/completed*100).toFixed(1)+"%"):"—";$("mathCompleted").textContent=String(completed); }
+    function showSolution(data,verifiedFlag){result.replaceChildren();const heading=document.createElement("h3");heading.textContent=verifiedFlag?"Verified solution":"Unverified solution";const answer=document.createElement("p");answer.className="math-answer";answer.textContent=data.answer;const summary=document.createElement("div");summary.className="math-knowledge";const concept=document.createElement("strong");concept.textContent=data.knowledge.concept;const rule=document.createElement("p");rule.textContent="Rule: "+data.knowledge.rule;const method=document.createElement("p");method.textContent="Method: "+data.knowledge.method;summary.append(concept,rule,method);const list=document.createElement("ol");data.steps.forEach(step=>{const li=document.createElement("li");li.textContent=step;list.appendChild(li);});result.append(heading,answer,summary,list);const badge=document.createElement("p");badge.className=verifiedFlag?"notice notice-success":"notice notice-warn";badge.textContent=verifiedFlag?"Independent answer check passed.":"The independent answer check did not pass.";result.appendChild(badge);}
+    function updateHint(){const key=topic.value;$("mathTopicHint").textContent="Example: "+agent.generate(key,1)+" · Use the example button to load it into the question box.";}
+    topic.addEventListener("change",updateHint);updateHint();
+    $("mathAgentForm").addEventListener("submit",event=>{event.preventDefault();try{const solved=agent.solve(topic.value,question.value);const ok=agent.verify(topic.value,question.value,solved.answer);showSolution(solved,ok);$("mathAgentStatus").textContent=ok?"Solved and independently verified.":"Verification failed."; }catch(error){result.textContent=error.message;$("mathAgentStatus").textContent="Question not solved."; }});
+    $("mathExampleButton").addEventListener("click",()=>{question.value=agent.generate(topic.value,completed+1);question.focus();});
+    function stop(){stopRequested=true;running=false;if(timer!==null){clearTimeout(timer);timer=null;}$("mathStartButton").disabled=false;$("mathStopButton").disabled=true;$("mathAgentStatus").textContent="Benchmark stopped. Completed "+completed+" questions.";metrics();}
+    function reset(){if(running)stop();completed=0;verified=0;failed=0;started=0;resetTopicStats();metrics();$("mathAgentStatus").textContent="Ready. No benchmark is running.";result.innerHTML='<p class="empty-state">Choose a topic and solve a question, or start a bounded benchmark.</p>';}
+    async function batch(){if(stopRequested)return stop();const sliceStart=performance.now();let sliceCount=0;while(completed<5000&&sliceCount<25&&performance.now()-sliceStart<30){const key=agent.TOPIC_KEYS[completed%agent.TOPIC_KEYS.length],q=agent.generate(key,completed+1);topicStats[key].generated++;try{const solved=agent.solve(key,q);completed++;if(agent.verify(key,q,solved.answer)){verified++;topicStats[key].verified++;}else failed++;if(completed===1)showSolution(solved,agent.verify(key,q,solved.answer));}catch(_){completed++;failed++;}sliceCount++;if(stopRequested)return stop();}metrics();if(completed>=5000){running=false;$("mathStartButton").disabled=false;$("mathStopButton").disabled=true;$("mathAgentStatus").textContent="Benchmark complete: 5,000-question safety limit reached.";return;}timer=setTimeout(batch,0);}
+    $("mathStartButton").addEventListener("click",()=>{if(running)return;running=true;stopRequested=false;completed=0;verified=0;failed=0;resetTopicStats();started=performance.now();metrics();$("mathStartButton").disabled=true;$("mathStopButton").disabled=false;$("mathAgentStatus").textContent="Running a bounded browser benchmark…";batch();});
+    $("mathStopButton").addEventListener("click",stop);$("mathResetButton").addEventListener("click",reset);
+    document.addEventListener("visibilitychange",()=>{if(document.hidden&&running)stop();});
+    document.querySelectorAll("[data-view]").forEach(button=>button.addEventListener("click",()=>{if(button.getAttribute("data-view")!=="math"&&running)stop();}));
+    $("mathStopButton").disabled=true;metrics();
+  }
+  document.addEventListener("DOMContentLoaded",init);
+})();

@@ -552,3 +552,30 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible) { outline: none; }
 .data-file-main{min-width:0;flex:1}
 .data-file-actions{display:flex;flex-wrap:wrap;gap:.5rem}
 @media(max-width:640px){.data-file-card{align-items:flex-start;flex-wrap:wrap}.data-file-actions{width:100%;padding-left:2rem}}
+
+
+/* Browser Math Agent */
+.math-agent-form { display:grid; gap:10px; margin-top:16px; }
+.math-agent-form label { color:var(--soft); font-size:12px; font-weight:800; }
+.math-agent-form select,.math-agent-form textarea { width:100%; min-height:46px; padding:12px; border:1px solid var(--line); border-radius:10px; color:var(--text); background:var(--surface-2); font:inherit; }
+.math-agent-form textarea { resize:vertical; min-height:88px; }
+.math-agent-result { display:grid; gap:12px; }
+.math-agent-result h3 { margin:0; font-size:15px; }
+.math-answer { margin:0; color:var(--red); font-size:clamp(25px,4vw,36px); font-weight:900; overflow-wrap:anywhere; }
+.math-knowledge { display:grid; gap:8px; padding:15px; border:1px solid var(--line); border-radius:12px; background:var(--surface-2); }
+.math-knowledge strong { font-size:13px; }
+.math-knowledge p { margin:0; color:var(--soft); font-size:12px; line-height:1.6; }
+.math-agent-result ol { margin:0; padding-left:22px; color:var(--soft); font-size:12px; line-height:1.8; }
+.math-metric-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-top:18px; }
+.math-metric-grid > div { min-width:0; display:grid; gap:8px; padding:14px; border:1px solid var(--line); border-radius:11px; background:var(--surface-2); }
+.math-metric-grid span { color:var(--muted); font-size:9px; font-weight:900; letter-spacing:.1em; }
+.math-metric-grid strong { color:var(--soft); font-size:21px; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+.math-controls { margin-top:16px; }
+@media(max-width:820px){.math-metric-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:520px){.math-agent-form .control-row button,.math-controls button{flex:1 1 100%;}.math-metric-grid strong{font-size:19px;}}
+
+.math-topic-metrics { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:16px; }
+.math-topic-metrics > div { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--line); border-radius:9px; background:var(--surface-2); min-width:0; }
+.math-topic-metrics strong { color:var(--soft); font-size:11px; }
+.math-topic-metrics small { color:var(--muted); font-size:10px; text-align:right; }
+@media(max-width:520px){.math-topic-metrics{grid-template-columns:1fr}.math-topic-metrics > div{align-items:flex-start;flex-direction:column}.math-topic-metrics small{text-align:left}}
