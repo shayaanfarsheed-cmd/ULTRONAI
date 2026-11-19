@@ -221,7 +221,8 @@ class CheckpointTests(unittest.TestCase):
             manifest = source.save(model, optimizer, self._state(1), scheduler)
             source_folder = Path(source_dir) / manifest["checkpoint_id"]
             files = {item.name: item.read_bytes() for item in source_folder.iterdir() if item.is_file()}
-            files["model.safetensors"] = b"bad"
+            model_shard = next(name for name in manifest["files"] if name.startswith("model-"))
+            files[model_shard] = b"bad"
             target = LocalCheckpointStore(target_dir)
             with self.assertRaises(CheckpointError):
                 target.import_checkpoint(manifest["checkpoint_id"], files)
