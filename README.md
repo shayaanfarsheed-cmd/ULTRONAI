@@ -1,7 +1,7 @@
 ## Latest update — 2026-11-19 (Stage 2 held-out evaluation foundation — PR in progress)
 
 - PR #36 was merged at `d2fbcad6839371655e3ffb8d7e65e363d91b634e`; its three required CI workflows passed. It adds a bounded deterministic verified-data dry run only. It did not start training or change model weights.
-- Stage 2 work is on branch `feature/held-out-evaluation-foundation`; it is not merged. It adds `ultron_evaluation.py`, `evaluate.py`, `docs/HELD_OUT_EVALUATION.md`, and `tests/test_evaluation.py`.
+- Stage 2 work is on branch `feature/held-out-evaluation-foundation`; it is not merged. It adds `ultron_evaluation.py`, `evaluate.py`, `docs/HELD_OUT_EVALUATION.md`, and `tests/test_evaluation.py`; `tests/test_training.py` covers the training guard.
 - The fixed evaluation set contains 42 hand-authored questions across all 14 supported topics, at difficulty levels 1, 2 and 3. It is separate from the synthetic generator and has a stable SHA-256 fingerprint.
 - Evaluation reports exact-answer overall accuracy, macro topic accuracy, per-topic and per-difficulty accuracy, parse failures, and per-question predictions. It does not use fuzzy matching.
 - Training data construction now rejects records marked `evaluation_only` or assigned to `held_out`, `test`, or `evaluation` splits. This is a guard against accidental direct inclusion; future import paths must preserve the marker.
