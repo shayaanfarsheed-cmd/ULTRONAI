@@ -77,8 +77,9 @@ class CheckpointTests(unittest.TestCase):
                 for parameter in model.parameters():
                     parameter.add_(1)
             second = store.save(model, optimizer, self._state(2), scheduler)
-            newest_model = Path(directory) / second["checkpoint_id"] / "model.safetensors"
-            newest_model.write_bytes(b"corrupted checkpoint")
+            newest_model = next(name for name in second["files"] if name.startswith("model-"))
+            newest_path = Path(directory) / second["checkpoint_id"] / newest_model
+            newest_path.write_bytes(b"corrupted checkpoint")
             with torch.no_grad():
                 for parameter in model.parameters():
                     parameter.zero_()
