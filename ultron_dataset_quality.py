@@ -34,10 +34,11 @@ def structural_fingerprint(question: str) -> str:
 
 
 def _near_duplicate_pairs(examples: list[Mapping[str, Any]], threshold: float) -> list[dict[str, Any]]:
-    """Find highly similar questions using a bounded candidate index.
+    """Find highly similar questions with a bounded lexical-neighbor index.
 
-    The exact and structural indexes catch the common generator-template cases.
-    This fuzzy pass catches near-identical text with small wording/punctuation edits.
+    The exact and structural indexes catch common generator-template cases.
+    Comparing only a few lexical neighbors per template keeps the fuzzy pass
+    tractable for six-figure datasets while still finding small text edits.
     """
     buckets: dict[tuple[str, int], list[int]] = defaultdict(list)
     token_rows: list[tuple[str, ...]] = []
@@ -66,8 +67,12 @@ def _near_duplicate_pairs(examples: list[Mapping[str, Any]], threshold: float) -
         candidates: set[tuple[int, int]] = set()
         for group in indexed.values():
             if len(group) > 1:
-                for offset, left in enumerate(group):
-                    for right in group[offset + 1:]:
+                ordered = sorted(
+                    group,
+                    key=lambda index: normalize_question(str(examples[index].get("question", ""))),
+                )
+                for offset, left in enumerate(ordered):
+                    for right in ordered[offset + 1:offset + 4]:
                         candidates.add((min(left, right), max(left, right)))
         for left, right in candidates:
             if (left, right) in seen:
