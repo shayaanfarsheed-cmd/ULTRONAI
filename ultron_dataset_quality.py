@@ -43,7 +43,11 @@ def _near_duplicate_pairs(examples: list[Mapping[str, Any]], threshold: float) -
     token_rows: list[tuple[str, ...]] = []
     for index, example in enumerate(examples):
         topic = str(example.get("topic", ""))
-        question = normalize_question(str(example.get("question", "")))
+        raw_question = example.get("question")
+        if not isinstance(raw_question, str) or not raw_question.strip():
+            token_rows.append(())
+            continue
+        question = normalize_question(raw_question)
         tokens = tuple(re.findall(r"[a-z]+|\d+(?:\.\d+)?|[^\w\s]", question))
         token_rows.append(tokens)
         buckets[(topic, len(tokens))].append(index)
