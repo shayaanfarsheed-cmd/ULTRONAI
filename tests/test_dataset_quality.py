@@ -3,6 +3,8 @@ import random
 import unittest
 
 from ultron_data import SUPPORTED_TOPICS, generate_example, generate_dataset, question_split
+from scripts.build_math_dataset import merge_frozen_holdout
+from ultron_evaluation import load_heldout_dataset
 from ultron_dataset_quality import (
     DatasetQualityError,
     _near_duplicate_pairs,
@@ -64,6 +66,18 @@ class DatasetQualityTests(unittest.TestCase):
         report = audit_dataset([corrupted], required_splits=(corrupted["split"],))
         self.assertEqual(report["status"], "failed")
         self.assertEqual(report["invalid_example_count"], 1)
+
+    def test_frozen_evaluation_examples_are_reserved_in_test_split(self):
+        frozen = load_heldout_dataset()["examples"]
+        generated = [dict(frozen[0])] + generate_dataset(40, seed=20261119, split="test")
+        merged = merge_frozen_holdout(generated, frozen, len(frozen) + 10)
+        self.assertEqual(len(merged), len(frozen) + 10)
+        self.assertEqual(
+            [item["sample_id"] for item in merged[:len(frozen)]],
+            [item["sample_id"] for item in frozen],
+        )
+        normalized = [item["question"].casefold().strip() for item in merged]
+        self.assertEqual(len(normalized), len(set(normalized)))
 
     def test_malformed_question_is_reported_without_crashing_the_audit(self):
         report = audit_dataset(
