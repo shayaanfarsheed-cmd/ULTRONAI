@@ -218,10 +218,18 @@ def generate_example(topic: str, rng: random.Random, difficulty: int = 1, sample
 
     if topic == "exponents_and_roots":
         if rng.choice((True, False)):
+            maximum_exponent = (3, 5, 8)[level - 1]
+            exponent = rng.randint(2, maximum_exponent)
             base = rng.randint(2, min(200, upper))
-            result = base * base
-            question = f"Calculate: {base} ** 2"
-            steps = [f"Step 1: Multiply {base} by itself.", f"Step 2: {base} ** 2 = {result}."]
+            result = base ** exponent
+            question = f"Calculate: {base} ** {exponent}"
+            if exponent == 2:
+                steps = [f"Step 1: Multiply {base} by itself.", f"Step 2: {base} ** 2 = {result}."]
+            else:
+                steps = [
+                    f"Step 1: Multiply {base} by itself {exponent} times.",
+                    f"Step 2: {base} ** {exponent} = {result}.",
+                ]
         else:
             root = rng.randint(2, min(200, upper))
             result = root
