@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 
 from train import validate_project_config
+from ultron_data import SUPPORTED_TOPICS
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -78,6 +79,9 @@ class ConfigurationTests(unittest.TestCase):
         self.assertEqual(curriculum["unlock_mastery_accuracy"], 0.9)
         self.assertEqual(curriculum["consecutive_evaluations_required"], 3)
         self.assertTrue(curriculum["do_not_train_advanced_topics"])
+        curriculum_topics = set(curriculum["elementary_topics"]) | set(curriculum["middle_school_topics"])
+        self.assertEqual(curriculum_topics, set(SUPPORTED_TOPICS))
+        self.assertEqual(len(curriculum["middle_school_topics"]), 12)
 
 
 if __name__ == "__main__":
