@@ -21,6 +21,21 @@ CANDIDATE5_ARCHITECTURE = {
 }
 EXPECTED_PARAMETERS = 25_398_350
 MAXIMUM_FILE_BYTES = 45_000_000
+REQUIRED_RECOVERY_CHECKS = {
+    "remote_upload_and_manifest_verified",
+    "corrupted_checkpoint_rejected",
+    "missing_checkpoint_component_rejected",
+    "valid_checkpoint_accepted_after_fault_repair",
+    "fresh_runtime_download_and_integrity_verified",
+    "model_weights_match_uninterrupted_run",
+    "optimizer_state_matches_uninterrupted_run",
+    "scheduler_state_matches_uninterrupted_run",
+    "data_stream_position_and_rng_match",
+    "curriculum_state_matches",
+    "gradient_scaler_state_matches",
+    "source_optimizer_bound_to_model_on_target_device",
+    "resumed_optimizer_bound_to_model_on_target_device",
+}
 
 
 def main() -> dict:
@@ -46,7 +61,11 @@ def main() -> dict:
     )
 
     checks = result.get("checks", {})
-    required_checks_passed = bool(checks) and all(value is True for value in checks.values())
+    required_checks_passed = (
+        REQUIRED_RECOVERY_CHECKS.issubset(checks)
+        and all(checks.get(name) is True for name in REQUIRED_RECOVERY_CHECKS)
+        and all(value is True for value in checks.values())
+    )
     cleanup_passed = result.get("temporary_storage_cleanup_verified") is True
     safe_scope = (
         result.get("training_status_database_written") is False
