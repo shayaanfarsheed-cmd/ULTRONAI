@@ -1,3 +1,12 @@
+## PR #68 review correction — held-out fixture and evaluator regression (2026-11-19)
+
+- Code review found that the four newly added frozen evaluation examples increased the fixture from 14 to 18, while evaluator tests still hard-coded the old total (14) and incorrect-score total (13). Updated these assertions to derive expected counts from the fixture length.
+- The new median-and-range held-out example used a comma-separated answer while the independent verifier and generator use the canonical `median=...; range=...` format. Corrected the fixture answer and final solution step to the canonical format.
+- Added a regression test that independently verifies every frozen held-out answer and solution-step sequence, not just the generated training examples.
+- These are pre-merge code-review corrections. Required CI is rerunning on the latest PR head; no merge, live Supabase test, dataset build, or training run has been performed by this correction.
+
+---
+
 # ULTRON recovery and mathematical data-quality milestone — implementation in review (2026-11-19)
 
 - Active branch: `feat/ultron-recovery-and-math-data-quality`. PR #68 contains one combined pull request covering recovery fault testing and a reproducible mathematics dataset pipeline.
