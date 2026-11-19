@@ -527,7 +527,7 @@ def _expected_solution_steps(example: Mapping[str, Any]) -> list[str]:
         if root * root != square:
             raise ValueError("Triangle legs do not produce an integer hypotenuse")
         return [
-            f"Step 1: Use c^2 = a^2 + b^2 = {left}^2 + {right}^2.",
+            f"Step 1: Use c * c = a * a + b * b = {left}^2 + {right}^2.",
             f"Step 2: c = sqrt({square}) = {root}.",
         ]
 
