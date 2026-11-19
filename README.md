@@ -1,3 +1,15 @@
+## Latest update — 2026-11-19 (CPU benchmark settings alignment; PR in progress)
+
+- The isolated GitHub Actions CPU benchmark compared 1 versus 2 PyTorch threads and AdamW foreach on/off.
+- The 20-step synthetic benchmark's best observed setting was 2 threads with AdamW foreach disabled (22.70 steps/second; 43.58 ms median step). The other tested settings were slower on that runner.
+- The synthetic benchmark is diagnostic only: it uses random token batches of shape 2 × 64, not ULTRON's generated math dataset or production sequence length. These results do not establish end-to-end training throughput.
+- The GitHub Actions runtime profile already selects 2 CPU threads. This PR changes the CPU AdamW default to foreach OFF, matching the measured winner. Other devices keep their previous OFF-by-default behavior; `training.adamw_foreach` can explicitly override the default.
+- No model architecture, training objective, data generation, optimizer hyperparameters, checkpoint format, or provider workflow trigger is changed.
+- No production training, Supabase operation, or checkpoint write is started.
+- Next: add a bounded benchmark using ULTRON's verified generated training examples and configured sequence length, then separately test checkpoint round-trip/recovery before any training authorization.
+
+---
+
 ## Latest update — 2026-11-19 (Data Library 500-file upload message fix in progress)
 
 - The dashboard HTML incorrectly described the 500-file internal batch size as a 500-file total upload limit, and could remain stale in browsers using a cached `app.js` asset.
