@@ -1,3 +1,12 @@
+## Latest validation — 2026-11-19 (PR #61 checkpoint sharding)
+
+- Latest validated code head before this README-only update: `e32d6fa93960112de3f4c09604378e87ae251c19`.
+- All three required GitHub Actions workflows passed on that head: ULTRON Test Suite (run `44533586012`, 184 tests), ULTRON preflight tests (run `44533585888`), and ULTRON Training Prototype Validation (run `44533586061`). The test suite and both validation workflows reported successful bounded training/checkpoint smoke tests.
+- PR #61 is open and mergeable; it has not been merged. The README-only status update will trigger fresh PR checks.
+- The live Supabase Storage smoke workflow is manual-only and has not been run. After PR #61 is merged, run **ULTRON Checkpoint Storage Smoke Test** from Actions and verify its round-trip and cleanup success before any real training.
+
+---
+
 ## Latest update — 2026-11-19 (live checkpoint storage smoke workflow added)
 
 - PR #61 now includes a manual-only GitHub Actions workflow, `.github/workflows/checkpoint-storage-smoke.yml`, and `scripts/verify_supabase_checkpoint_storage.py`. It uses the existing `SUPABASE_URL` repository variable and `SUPABASE_SECRET_KEY` / `SUPABASE_OWNER_ID` secrets, writes one tiny synthetic checkpoint beneath a unique run-specific prefix in the existing private `checkpoints` bucket, verifies remote hashes, downloads it, restores model and AdamW moments, and deletes only objects beneath that exact temporary prefix in a `finally` cleanup.
