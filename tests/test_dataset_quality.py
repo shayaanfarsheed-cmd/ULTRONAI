@@ -61,7 +61,7 @@ class DatasetQualityTests(unittest.TestCase):
         corrupted = dict(example, split=question_split(example["question"]))
         corrupted["answer"] = "999999"
         corrupted["steps"] = list(example["steps"][:-1]) + ["Step 2: I = 999999."]
-        report = audit_dataset([corrupted], required_splits=("train",))
+        report = audit_dataset([corrupted], required_splits=(corrupted["split"],))
         self.assertEqual(report["status"], "failed")
         self.assertEqual(report["invalid_example_count"], 1)
 
