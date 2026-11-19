@@ -90,7 +90,13 @@ def main() -> None:
             for name, tensor in model.state_dict().items():
                 if not torch.equal(tensor, restored_model.state_dict()[name]):
                     raise RuntimeError(f"Restored model tensor mismatch: {name}")
-            print(f"PASS: upload, remote hash verification, download, and model restore ({uploaded['total_size_bytes']} bytes).")
+            for original_parameter, restored_parameter in zip(model.parameters(), restored_model.parameters()):
+                original_state = optimizer.state[original_parameter]
+                restored_state = restored_optimizer.state[restored_parameter]
+                for state_name in ("exp_avg", "exp_avg_sq"):
+                    if not torch.equal(original_state[state_name], restored_state[state_name]):
+                        raise RuntimeError(f"Restored optimizer tensor mismatch: {state_name}")
+            print(f"PASS: upload, remote hash verification, download, model and optimizer restore ({uploaded['total_size_bytes']} bytes).")
     finally:
         _cleanup_prefix(storage, bucket, prefix)
         print(f"PASS: temporary objects deleted from {bucket}/{prefix}.")
