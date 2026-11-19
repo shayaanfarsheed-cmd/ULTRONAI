@@ -1,0 +1,188 @@
+{
+  "schema_version": 1,
+  "dataset_id": "ultron-heldout-foundation-v1",
+  "frozen": true,
+  "description": "Small hand-authored pilot challenge set. These examples are reserved for evaluation and must never be used for training or curriculum selection.",
+  "examples": [
+    {
+      "sample_id": "b47677f355af8f98",
+      "sample_index": 0,
+      "topic": "whole_number_arithmetic",
+      "difficulty": 1,
+      "question": "Calculate: 1 + 8",
+      "steps": [
+        "Step 1: 1 + 8 = 9."
+      ],
+      "answer": "9",
+      "split": "test"
+    },
+    {
+      "sample_id": "6ae7160015d03d85",
+      "sample_index": 1,
+      "topic": "fractions",
+      "difficulty": 1,
+      "question": "Calculate: (1/2) + (3/5)",
+      "steps": [
+        "Step 1: Use denominator 10.",
+        "Step 2: 5/10 + 6/10 = 11/10.",
+        "Step 3: Reduce to 11/10."
+      ],
+      "answer": "11/10",
+      "split": "test"
+    },
+    {
+      "sample_id": "fe26403c9dd62952",
+      "sample_index": 2,
+      "topic": "decimals",
+      "difficulty": 1,
+      "question": "Calculate: 0.01 + 0.08",
+      "steps": [
+        "Step 1: Line up the decimal places.",
+        "Step 2: 0.01 + 0.08 = 0.09."
+      ],
+      "answer": "0.09",
+      "split": "test"
+    },
+    {
+      "sample_id": "ffef6ecc1d06e702",
+      "sample_index": 3,
+      "topic": "percentages",
+      "difficulty": 1,
+      "question": "Percentage: 5% of 13",
+      "steps": [
+        "Step 1: 5/100 * 13 = 13/20."
+      ],
+      "answer": "13/20",
+      "split": "test"
+    },
+    {
+      "sample_id": "22e16bdc20803fff",
+      "sample_index": 4,
+      "topic": "ratios_and_proportions",
+      "difficulty": 1,
+      "question": "Simplify ratio: 2:7",
+      "steps": [
+        "Step 1: Divide both parts by 1.",
+        "Step 2: The simplest ratio is 2:7."
+      ],
+      "answer": "2:7",
+      "split": "test"
+    },
+    {
+      "sample_id": "fcc79ddb7d403991",
+      "sample_index": 5,
+      "topic": "integers",
+      "difficulty": 1,
+      "question": "Calculate: -20 + -14",
+      "steps": [
+        "Step 1: Apply the integer operation.",
+        "Step 2: -20 + -14 = -34."
+      ],
+      "answer": "-34",
+      "split": "test"
+    },
+    {
+      "sample_id": "d105042c7850f071",
+      "sample_index": 6,
+      "topic": "order_of_operations",
+      "difficulty": 1,
+      "question": "Calculate: 1 + 2 * 3",
+      "steps": [
+        "Step 1: Multiply first: 2 * 3 = 6.",
+        "Step 2: Add: 1 + 6 = 7."
+      ],
+      "answer": "7",
+      "split": "test"
+    },
+    {
+      "sample_id": "1b4e00823a6624f4",
+      "sample_index": 7,
+      "topic": "pre_algebra",
+      "difficulty": 1,
+      "question": "Solve: x + 1 = -5",
+      "steps": [
+        "Step 1: Isolate x to get x = -6."
+      ],
+      "answer": "x = -6",
+      "split": "test"
+    },
+    {
+      "sample_id": "2987992c145248d6",
+      "sample_index": 8,
+      "topic": "linear_equations",
+      "difficulty": 1,
+      "question": "Solve: 2*x + -10 = -20",
+      "steps": [
+        "Step 1: Subtract -10 to get 2*x = -10.",
+        "Step 2: Divide by 2 to get x = -5."
+      ],
+      "answer": "x = -5",
+      "split": "test"
+    },
+    {
+      "sample_id": "b8310a55b066fa76",
+      "sample_index": 9,
+      "topic": "inequalities",
+      "difficulty": 1,
+      "question": "Solve: 1*x + -10 < -16",
+      "steps": [
+        "Step 1: Isolate x at the boundary.",
+        "Step 2: The solution is x < -6."
+      ],
+      "answer": "x < -6",
+      "split": "test"
+    },
+    {
+      "sample_id": "ba80f99d660de688",
+      "sample_index": 10,
+      "topic": "exponents_and_roots",
+      "difficulty": 1,
+      "question": "Calculate: 8 ** 2",
+      "steps": [
+        "Step 1: Multiply 8 by itself.",
+        "Step 2: 8 ** 2 = 64."
+      ],
+      "answer": "64",
+      "split": "test"
+    },
+    {
+      "sample_id": "f724636806b8200e",
+      "sample_index": 11,
+      "topic": "basic_geometry",
+      "difficulty": 1,
+      "question": "Area of rectangle: length 1, width 6",
+      "steps": [
+        "Step 1: Area = length * width.",
+        "Step 2: 1 * 6 = 6."
+      ],
+      "answer": "6",
+      "split": "test"
+    },
+    {
+      "sample_id": "15ed7837f7810b03",
+      "sample_index": 12,
+      "topic": "basic_statistics",
+      "difficulty": 1,
+      "question": "Mean of: 1, 1, 2",
+      "steps": [
+        "Step 1: Add the values to get 4.",
+        "Step 2: Divide by 3 to get 4/3."
+      ],
+      "answer": "4/3",
+      "split": "test"
+    },
+    {
+      "sample_id": "9684e8e15df32d83",
+      "sample_index": 13,
+      "topic": "basic_probability",
+      "difficulty": 1,
+      "question": "Probability: 1 favorable, 5 total",
+      "steps": [
+        "Step 1: Divide favorable outcomes by total outcomes.",
+        "Step 2: The probability is 1/5."
+      ],
+      "answer": "1/5",
+      "split": "test"
+    }
+  ]
+}
