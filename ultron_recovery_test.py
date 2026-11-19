@@ -282,23 +282,49 @@ def run_checkpoint_recovery_test(
     finally:
         if checkpoint_id is not None:
             checkpoint_prefix = f"{owner_id}/{test_run_id}/{checkpoint_id}"
-            children = storage.list_objects(bucket, checkpoint_prefix, limit=1000)
-            paths = []
-            for item in children:
-                name = str(item.get("name", "")).strip("/")
-                if not name:
-                    continue
-                object_path = name if name.startswith(checkpoint_prefix + "/") else f"{checkpoint_prefix}/{name}"
-                if object_path.startswith(checkpoint_prefix + "/"):
-                    paths.append(object_path)
-            if paths:
-                storage.remove(bucket, paths)
-            remaining = storage.list_objects(
-                bucket,
-                checkpoint_prefix,
-                limit=1000,
-            )
-            if remaining:
+
+            def collect_objects(folder: str) -> list[str]:
+                objects: set[str] = set()
+                visited: set[str] = set()
+
+                def visit(current: str) -> None:
+                    current = current.strip("/")
+                    if current in visited:
+                        return
+                    visited.add(current)
+                    offset = 0
+                    while True:
+                        page = storage.list_objects(bucket, current, limit=500, offset=offset)
+                        if not page:
+                            break
+                        for item in page:
+                            name = str(item.get("name", "")).strip("/")
+                            if not name or name in {".", ".."}:
+                                continue
+                            if name.startswith(current + "/"):
+                                object_path = name
+                            else:
+                                object_path = f"{current}/{name}"
+                            if not object_path.startswith(checkpoint_prefix + "/"):
+                                continue
+                            # Supabase returns virtual folders with an explicit null id.
+                            # Test doubles may return flattened object paths without ids.
+                            is_folder = "id" in item and item.get("id") is None and "/" not in name
+                            if is_folder:
+                                visit(object_path)
+                            else:
+                                objects.add(object_path)
+                        offset += len(page)
+                        if len(page) < 500:
+                            break
+
+                visit(folder)
+                return sorted(objects)
+
+            paths = collect_objects(checkpoint_prefix)
+            for start in range(0, len(paths), 100):
+                storage.remove(bucket, paths[start:start + 100])
+            if collect_objects(checkpoint_prefix):
                 raise RuntimeError("Temporary recovery-test checkpoint cleanup could not be verified")
             if result is not None:
                 result["temporary_storage_cleanup_verified"] = True
