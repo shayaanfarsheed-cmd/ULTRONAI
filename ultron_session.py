@@ -142,7 +142,7 @@ def _evaluate_current_stage(
 def run_training_session(
     config: Mapping[str, Any],
     servers: Mapping[str, Any],
-    checkpoint_root: str | Path = "/tmp/ultron-checkpoints",
+    checkpoint_root: str | Path | None = None,
     api: TrainingControlAPI | None = None,
     remote_store: RemoteCheckpointStore | None = None,
     backup_store: HuggingFaceCheckpointStore | None = None,
@@ -156,6 +156,12 @@ def run_training_session(
     from train import detect_platform, resolve_runtime_settings
 
     platform = platform_id or detect_platform()
+    if checkpoint_root is None:
+        checkpoint_root = (
+            Path("/kaggle/working/ultron-checkpoints")
+            if platform == "kaggle"
+            else Path.home() / ".ultron" / "checkpoints"
+        )
     server = next((item for item in servers.get("servers", []) if item.get("id") == platform), None)
     if server is None:
         server = next((item for item in servers.get("servers", []) if item.get("provider") == platform), None)
@@ -664,7 +670,9 @@ def run_training_session(
 
             if force_handoff_reason is not None:
                 try:
-                    save_checkpoint()
+                    if not save_checkpoint():
+                        lease_lost = True
+                        return finish("dead", "checkpoint_not_durable_before_no_gpu_handoff")
                 except LeaseLostError:
                     lease_lost = True
                     return finish("dead", "lease_lost_during_no_gpu_handoff")
@@ -672,7 +680,9 @@ def run_training_session(
 
             if remaining <= safety_margin:
                 try:
-                    save_checkpoint()
+                    if not save_checkpoint():
+                        lease_lost = True
+                        return finish("dead", "checkpoint_not_durable_before_session_handoff")
                 except LeaseLostError:
                     lease_lost = True
                     return finish("dead", "lease_lost_before_handoff")
@@ -682,7 +692,9 @@ def run_training_session(
 
             if stop_requested or (stop_checker is not None and stop_checker()):
                 try:
-                    save_checkpoint()
+                    if not save_checkpoint():
+                        lease_lost = True
+                        return finish("dead", "checkpoint_not_durable_during_stop")
                 except LeaseLostError:
                     lease_lost = True
                     return finish("dead", "lease_lost_during_stop")
@@ -696,33 +708,26 @@ def run_training_session(
                     controls = api.controls(run_id)
                     if controls.get("pause_requested"):
                         try:
-                            save_checkpoint()
+                            if not save_checkpoint():
+                                lease_lost = True
+                                return finish("dead", "checkpoint_not_durable_during_pause")
                         except LeaseLostError:
                             lease_lost = True
                             return finish("dead", "lease_lost_during_pause")
                         return finish("paused", "pause_requested")
                     if controls.get("handoff_requested"):
                         try:
-                            save_checkpoint()
+                            if not save_checkpoint():
+                                lease_lost = True
+                                return finish("dead", "checkpoint_not_durable_during_requested_handoff")
                         except LeaseLostError:
                             lease_lost = True
                             return finish("dead", "lease_lost_during_handoff")
                         return finish("handoff_needed", "handoff_requested")
                     if pending_checkpoint_id is not None and pending_state is not None:
                         try:
-                            remote_store.upload_and_commit(
-                                local_store,
-                                pending_checkpoint_id,
-                                api.owner_id,
-                                run_id,
-                                api,
-                                lease_holder,
-                                fencing_token,
-                                pending_state,
-                            )
-                            pending_checkpoint_id = None
-                            pending_state = None
-                            last_error = None
+                            if not try_commit_pending():
+                                last_error = last_error or "checkpoint_commit_pending"
                         except LeaseLostError:
                             lease_lost = True
                             return finish("dead", "lease_lost_during_checkpoint_retry")
@@ -786,7 +791,9 @@ def run_training_session(
                 if advanced:
                     if curriculum.is_finished:
                         try:
-                            save_checkpoint()
+                            if not save_checkpoint():
+                                lease_lost = True
+                                return finish("dead", "checkpoint_not_durable_at_curriculum_completion")
                         except LeaseLostError:
                             lease_lost = True
                             return finish("dead", "lease_lost_at_curriculum_completion")
@@ -795,13 +802,17 @@ def run_training_session(
 
             if checkpoint_interval <= 0 or monotonic() - last_checkpoint >= checkpoint_interval:
                 try:
-                    save_checkpoint()
+                    if not save_checkpoint():
+                        lease_lost = True
+                        return finish("dead", "checkpoint_not_durable_during_periodic_save")
                 except LeaseLostError:
                     lease_lost = True
                     return finish("dead", "lease_lost_during_checkpoint")
 
         try:
-            save_checkpoint()
+            if not save_checkpoint():
+                lease_lost = True
+                return finish("dead", "checkpoint_not_durable_at_maximum_steps")
         except LeaseLostError:
             lease_lost = True
             return finish("dead", "lease_lost_at_maximum_steps")
@@ -810,16 +821,20 @@ def run_training_session(
         return finish("finished", "maximum_training_steps")
     except KeyboardInterrupt:
         try:
-            save_checkpoint()
+            if not save_checkpoint():
+                lease_lost = True
+                return finish("dead", "checkpoint_not_durable_after_keyboard_interrupt")
         except Exception:
-            pass
+            lease_lost = True
+            return finish("dead", "checkpoint_save_failed_after_keyboard_interrupt")
         return finish("paused", "keyboard_interrupt")
     except Exception as error:
         if not lease_lost:
             try:
-                save_checkpoint()
+                if not save_checkpoint():
+                    lease_lost = True
             except Exception:
-                pass
+                lease_lost = True
         result = finish("dead", f"training_error:{type(error).__name__}")
         raise TrainingSessionError(json.dumps(result)) from error
     finally:
