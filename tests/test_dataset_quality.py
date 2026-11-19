@@ -64,6 +64,14 @@ class DatasetQualityTests(unittest.TestCase):
         self.assertEqual(report["status"], "failed")
         self.assertEqual(report["invalid_example_count"], 1)
 
+    def test_malformed_question_is_reported_without_crashing_the_audit(self):
+        report = audit_dataset(
+            [{"sample_id": "bad", "question": "", "topic": "fractions", "difficulty": 1, "split": "train"}],
+            required_splits=("train",),
+        )
+        self.assertEqual(report["status"], "failed")
+        self.assertEqual(report["invalid_example_count"], 1)
+
     def test_wrong_deterministic_split_assignment_is_rejected(self):
         example = generate_example("whole_number_arithmetic", random.Random(46), sample_index=46)
         wrong_split = "test" if question_split(example["question"]) == "train" else "train"
