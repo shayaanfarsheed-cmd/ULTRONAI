@@ -1,24 +1,15 @@
-## Latest update — 2026-11-19 (self-learning dry-run review fixes)
+## Latest update — 2026-11-19 (Stage 2 held-out evaluation foundation — PR in progress)
 
-- PR #36 remains open and unmerged. Follow-up review found that the dry-run duplicated split logic and used generation-index fallback for candidates without questions; this could misclassify failed candidates in split-specific reports.
-- Both `ultron_data.py` and `ultron_self_learning.py` now use one shared `question_split()` function. A missing/invalid question is reported as unassigned and is never assigned by sample index.
-- Generator failures are reported separately from split-specific candidate rejections. Only the dedicated `InvalidGeneratedExampleError` is counted as an expected invalid candidate; unexpected generator and verifier programming errors propagate instead of being silently swallowed.
-- Candidate topic, difficulty and sample-index metadata are checked against the generation request. Input types and callable dependencies are validated.
-- The verifier now checks the generated solution-step sequence against steps independently reconstructed from the question; correct final answers with corrupted intermediate steps are rejected.
-- Regression tests now compare dry-run output directly with the existing dataset generator for train, validation and test splits; also cover missing questions, metadata mismatch, and unexpected exceptions.
-- The verifier remains the same verifier module used by the generator; the dry-run's second call is a boundary check for custom/injected generators, not a second independent verifier implementation.
-- No datasets are persisted, no model weights are changed, and no training is started. Re-run every required CI workflow against the latest PR head before considering merge.
-
----
-
-
-
-- PR #35 merged at `d8dcdd72b95c94538985132cb055cf227b69eb26`; its three required CI workflows passed and the GitHub Pages build/deployment workflow completed successfully.
-- Data Library limits on `main`: 50,000 files per upload, 20 MiB per file, 5,000 MiB (5 GiB) total per batch, and 12 path levels. Uploads remain owner-only and storage-only.
-- PR #36 adds `ultron_self_learning.py`, a bounded deterministic generation-and-independent-verification dry run, with regression tests for deterministic output, split isolation, corrupted examples, generator failures and safety boundaries. CI was started; results must pass before merge.
-- The learning architecture is documented in `docs/SELF_LEARNING_ARCHITECTURE.md`: verifier feedback, curated synthetic data, targeted model updates, persistent memory/retrieval, test-time self-verification, anti-forgetting replay, held-out evaluation and anti-collapse/reward-hacking checks.
-- Training remains disabled in this stage. The dry run does not write datasets, modify weights or invoke the trainer. No LoRA/adapters are assumed; consider them only after a trained baseline exists and the model architecture supports them.
-- Next gates: validate the dry-run pipeline; build held-out baseline evaluation; add inspectable memory/retrieval; add answer-time verification; only then propose bounded training for explicit owner approval.
+- PR #36 was merged at `d2fbcad6839371655e3ffb8d7e65e363d91b634e`; its three required CI workflows passed. It adds a bounded deterministic verified-data dry run only. It did not start training or change model weights.
+- Stage 2 work is on branch `feature/held-out-evaluation-foundation`; it is not merged. It adds `ultron_evaluation.py`, `evaluate.py`, `docs/HELD_OUT_EVALUATION.md`, and `tests/test_evaluation.py`.
+- The fixed evaluation set contains 28 hand-authored questions across all 14 supported topics, at difficulty levels 1 and 3. It is separate from the synthetic generator and has a stable SHA-256 fingerprint.
+- Evaluation reports exact-answer overall accuracy, macro topic accuracy, per-topic and per-difficulty accuracy, parse failures, and per-question predictions. It does not use fuzzy matching.
+- Training data construction now rejects records marked `evaluation_only` or assigned to `held_out`, `test`, or `evaluation` splits. This is a guard against accidental direct inclusion; future import paths must preserve the marker.
+- Tests assert the evaluation set is fixed/valid, evaluation does not change model weights or training mode, metrics are grouped correctly, and held-out examples cannot enter the training stream.
+- Research basis: [Hugging Face model evaluation guidance](https://huggingface.co/docs/evaluate/considerations), [scikit-learn data leakage guidance](https://scikit-learn.org/stable/common_pitfalls.html), and [scikit-learn validation guidance](https://scikit-learn.org/stable/modules/cross_validation.html).
+- The benchmark is an initial smoke benchmark (28 questions), not a statistically strong measure of broad mathematical ability. It must be expanded before making strong capability claims.
+- Training remains disabled. The evaluation CLI initializes a fresh random model, does not load a checkpoint, invoke an optimizer, or train. Full 4M-parameter CPU evaluation may be slow.
+- Validate all required CI workflows on the latest PR head before considering merge. Do not merge without explicit owner approval.
 
 ---
 
