@@ -36,6 +36,10 @@ class MathAgentTests(unittest.TestCase):
             solve_question("unknown", "Calculate: 1 + 1")
         with self.assertRaises(AgentInputError):
             solve_question("whole_number_arithmetic", "Calculate: __import__('os').system('id')")
+        with self.assertRaises(AgentInputError):
+            solve_question([], "Calculate: 1 + 1")
+        with self.assertRaises(AgentInputError):
+            solve_question("whole_number_arithmetic", "1" * 1001)
 
     def test_benchmark_is_deterministic_and_independently_verified(self):
         first = run_agent_benchmark(70, seed=987)
