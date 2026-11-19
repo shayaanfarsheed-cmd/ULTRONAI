@@ -87,23 +87,34 @@
   function verify(topic, question, answer) {
     try {
       const q=String(question).trim(); let m, expected;
+      // Deliberately separate arithmetic helpers: verification does not call solver helpers.
+      const checkGcd=(a,b)=>{a=a<0n?-a:a;b=b<0n?-b:b;while(b){const t=a%b;a=b;b=t;}return a||1n;};
+      const checkFraction=(n,d)=>{if(d===0n)throw new Error("zero denominator");if(d<0n){n=-n;d=-d;}const g=checkGcd(n,d);return {n:n/g,d:d/g};};
+      const checkText=f=>f.d===1n?String(f.n):String(f.n)+"/"+String(f.d);
+      const checkParse=s=>{const p=/^(-?\\d+)(?:\\/(\\d+))?$/.exec(s);if(!p)throw new Error("invalid fraction");return checkFraction(BigInt(p[1]),BigInt(p[2]||"1"));};
+      const checkAdd=(a,b)=>checkFraction(a.n*b.d+b.n*a.d,a.d*b.d);
+      const checkSub=(a,b)=>checkFraction(a.n*b.d-b.n*a.d,a.d*b.d);
+      const checkMul=(a,b)=>checkFraction(a.n*b.n,a.d*b.d);
+      const checkDiv=(a,b)=>checkFraction(a.n*b.d,a.d*b.n);
+      const checkDecimal=s=>{if(!/^-?\\d+(?:\\.\\d+)?$/.test(s))throw new Error("invalid decimal");const neg=s[0]==="-",raw=neg?s.slice(1):s,p=raw.split("."),den=10n**BigInt((p[1]||"").length),num=BigInt(p[0]+(p[1]||""));return checkFraction(neg?-num:num,den);};
+      const checkDecimalText=f=>{let d=f.d,t=0,f=0;while(d%2n===0n){d/=2n;t++;}while(d%5n===0n){d/=5n;f++;}if(d!==1n)return checkText(f);const scale=Math.max(t,f);if(!scale)return String(f.n);const n=f.n*(2n**BigInt(scale-t))*(5n**BigInt(scale-f)),neg=n<0n?"-":"",digits=String(n<0n?-n:n).padStart(scale+1,"0");return (neg+digits.slice(0,-scale)+"."+digits.slice(-scale)).replace(/\\.?0+$/,"");};
       if(topic==="whole_number_arithmetic"||topic==="integers") {
         m=/^Calculate: (-?\d+) ([+*/-]) (-?\d+)$/.exec(q);if(!m)return false;
         const a=BigInt(m[1]),b=BigInt(m[3]); if(m[2]==="+")expected=String(a+b);else if(m[2]==="-")expected=String(a-b);else if(m[2]==="*")expected=String(a*b);else {if(b===0n||a%b!==0n)return false;expected=String(a/b);}
       } else if(topic==="fractions") {
-        m=/^Calculate: \((\d+\/\d+)\) ([+*/-]) \((\d+\/\d+)\)$/.exec(q);if(!m)return false;const a=parseFraction(m[1]),b=parseFraction(m[3]);expected=ftext(m[2]==="+"?add(a,b):m[2]==="-"?sub(a,b):m[2]==="*"?mul(a,b):div(a,b));
+        m=/^Calculate: \((\d+\/\d+)\) ([+*/-]) \((\d+\/\d+)\)$/.exec(q);if(!m)return false;const a=checkParse(m[1]),b=checkParse(m[3]);expected=checkText(m[2]==="+"?checkAdd(a,b):m[2]==="-"?checkSub(a,b):m[2]==="*"?checkMul(a,b):checkDiv(a,b));
       } else if(topic==="decimals") {
-        m=/^Calculate: (-?\d+(?:\.\d+)?) ([+-]) (-?\d+(?:\.\d+)?)$/.exec(q);if(!m)return false;expected=decimalText(m[2]==="+"?add(decimalValue(m[1]),decimalValue(m[3])):sub(decimalValue(m[1]),decimalValue(m[3])));
-      } else if(topic==="percentages") {m=/^Percentage: (\d+)% of (\d+)$/.exec(q);if(!m)return false;expected=ftext(fraction(BigInt(m[1])*BigInt(m[2]),100n));
-      } else if(topic==="ratios_and_proportions") {m=/^Simplify ratio: (\d+):(\d+)$/.exec(q);if(!m)return false;const a=BigInt(m[1]),b=BigInt(m[2]);if(a===0n&&b===0n)return false;const g=gcd(a,b);expected=String(a/g)+":"+String(b/g);
+        m=/^Calculate: (-?\d+(?:\.\d+)?) ([+-]) (-?\d+(?:\.\d+)?)$/.exec(q);if(!m)return false;expected=checkDecimalText(m[2]==="+"?checkAdd(checkDecimal(m[1]),checkDecimal(m[3])):checkSub(checkDecimal(m[1]),checkDecimal(m[3])));
+      } else if(topic==="percentages") {m=/^Percentage: (\d+)% of (\d+)$/.exec(q);if(!m)return false;expected=checkText(checkFraction(BigInt(m[1])*BigInt(m[2]),100n));
+      } else if(topic==="ratios_and_proportions") {m=/^Simplify ratio: (\d+):(\d+)$/.exec(q);if(!m)return false;const a=BigInt(m[1]),b=BigInt(m[2]);if(a===0n&&b===0n)return false;const g=checkGcd(a,b);expected=String(a/g)+":"+String(b/g);
       } else if(topic==="order_of_operations") {m=/^Calculate: (\d+) \+ (\d+) \* (\d+)$/.exec(q);if(!m)return false;expected=String(BigInt(m[1])+BigInt(m[2])*BigInt(m[3]));
       } else if(topic==="pre_algebra") {m=/^Solve: x ([+-]) (\d+) = (-?\d+)$/.exec(q);if(!m)return false;expected="x = "+(BigInt(m[3])-(m[1]==="+"?BigInt(m[2]):-BigInt(m[2])));
       } else if(topic==="linear_equations") {m=/^Solve: (\d+)\*x \+ (-?\d+) = (-?\d+)$/.exec(q);if(!m)return false;const a=BigInt(m[1]),d=BigInt(m[3])-BigInt(m[2]);if(a===0n||d%a!==0n)return false;expected="x = "+(d/a);
       } else if(topic==="inequalities") {m=/^Solve: (\d+)\*x \+ (-?\d+) ([<>]) (-?\d+)$/.exec(q);if(!m)return false;const a=BigInt(m[1]),d=BigInt(m[4])-BigInt(m[2]);if(a===0n||d%a!==0n)return false;expected="x "+m[3]+" "+(d/a);
       } else if(topic==="exponents_and_roots") {m=/^Calculate: (\d+) \*\* 2$/.exec(q);if(m)expected=String(BigInt(m[1])**2n);else {m=/^Calculate: sqrt\((\d+)\)$/.exec(q);if(!m)return false;const n=BigInt(m[1]);let r=0n;while((r+1n)*(r+1n)<=n)r++;if(r*r!==n)return false;expected=String(r);}
       } else if(topic==="basic_geometry") {m=/^(Area|Perimeter) of rectangle: length (\d+), width (\d+)$/.exec(q);if(!m)return false;const l=BigInt(m[2]),w=BigInt(m[3]);expected=String(m[1]==="Area"?l*w:2n*(l+w));
-      } else if(topic==="basic_statistics") {m=/^Mean of: ([0-9, ]+)$/.exec(q);if(!m)return false;const a=m[1].split(",").map(s=>s.trim());if(a.some(s=>! /^\d+$/.test(s)))return false;expected=ftext(fraction(a.reduce((t,v)=>t+BigInt(v),0n),BigInt(a.length)));
-      } else if(topic==="basic_probability") {m=/^Probability: (\d+) favorable, (\d+) total$/.exec(q);if(!m)return false;const a=BigInt(m[1]),b=BigInt(m[2]);if(b<=0n||a>b)return false;expected=ftext(fraction(a,b));
+      } else if(topic==="basic_statistics") {m=/^Mean of: ([0-9, ]+)$/.exec(q);if(!m)return false;const a=m[1].split(",").map(s=>s.trim());if(a.some(s=>! /^\d+$/.test(s)))return false;expected=checkText(checkFraction(a.reduce((t,v)=>t+BigInt(v),0n),BigInt(a.length)));
+      } else if(topic==="basic_probability") {m=/^Probability: (\d+) favorable, (\d+) total$/.exec(q);if(!m)return false;const a=BigInt(m[1]),b=BigInt(m[2]);if(b<=0n||a>b)return false;expected=checkText(checkFraction(a,b));
       } else return false;
       return String(answer).trim()===expected;
     } catch (_) { return false; }
