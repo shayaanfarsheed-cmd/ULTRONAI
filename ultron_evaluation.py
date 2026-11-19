@@ -17,6 +17,20 @@ from ultron_training import generate_completion
 # a training or curriculum dataset.
 _HELD_OUT_ROWS = (
     ("whole_number_arithmetic", 1, "Find the value of 18 + 24.", "42"),
+    ("whole_number_arithmetic", 2, "Find the difference between 96 and 38.", "58"),
+    ("fractions", 2, "Calculate (3/4) - (1/6).", "7/12"),
+    ("decimals", 2, "Find the sum of 4.08 and 3.7.", "7.78"),
+    ("percentages", 2, "What is 12% of 150?", "18"),
+    ("ratios_and_proportions", 2, "Simplify the ratio 42:56.", "3:4"),
+    ("integers", 2, "Evaluate negative fifteen plus nine.", "-6"),
+    ("order_of_operations", 2, "Use order of operations: 9 + 4 * 6.", "33"),
+    ("pre_algebra", 2, "Find x when x + 14 = 31.", "x = 17"),
+    ("linear_equations", 2, "Solve for x: 5*x + 8 = 33.", "x = 5"),
+    ("inequalities", 2, "Find all x such that 3*x + 2 < 17.", "x < 5"),
+    ("exponents_and_roots", 2, "What is 9 squared?", "81"),
+    ("basic_geometry", 2, "A rectangle has length 9 and width 6. Find its area.", "54"),
+    ("basic_statistics", 2, "Find the mean of 5, 10, and 15.", "10"),
+    ("basic_probability", 2, "There are 5 favorable outcomes out of 20. Find the probability.", "1/4"),
     ("whole_number_arithmetic", 3, "Find the product of 127 and 8.", "1016"),
     ("fractions", 1, "Calculate (1/2) + (1/3).", "5/6"),
     ("fractions", 3, "Calculate (7/8) / (14/15).", "15/16"),
@@ -97,7 +111,7 @@ def validate_evaluation_set(examples: Sequence[Mapping[str, Any]] = HELD_OUT_EVA
 
 
 def _extract_answer(completion: str) -> str | None:
-    match = re.search(r"(?:^|\\n)Answer:\\s*([^\\r\\n]+)", completion)
+    match = re.search(r"(?:^|\n)Answer:\s*([^\r\n]+)", completion)
     return match.group(1).strip() if match else None
 
 
