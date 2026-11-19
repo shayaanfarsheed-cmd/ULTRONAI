@@ -47,7 +47,59 @@ Every user turn should pass through explicit, testable stages:
 
 The assistant must not reveal private internal reasoning traces. It can provide concise explanations, verifiable intermediate calculations, assumptions and a summary of the method.
 
-## 4. Reasoning and learning subsystems
+## 4. Axioms, definitions and proof foundations
+
+ULTRON must learn to reason *from stated foundations*, not merely memorize formulas or imitate worked examples. Axioms are a first-class part of its mathematics knowledge system.
+
+### A. What ULTRON must represent
+
+Store mathematical knowledge as distinct, typed objects:
+- **Axiom/postulate:** an accepted starting statement within a named formal system.
+- **Definition:** the agreed meaning of a term or constructed object.
+- **Inference rule:** a permitted way to derive a conclusion from premises.
+- **Theorem/lemma:** a statement that must be derived from axioms, definitions and earlier proven results.
+- **Conjecture:** a proposed statement not yet proven.
+- **Counterexample:** a verified instance showing a universal claim is false.
+- **Proof:** a sequence or tree of justified inference steps, each linked to its premises and rule.
+
+Every axiom record must include its formal system, exact statement, symbols and domains, dependencies, source/provenance, version, and examples/non-examples. Never present an axiom as a universally true fact independent of its assumptions.
+
+### B. Foundational systems to teach progressively
+
+1. **Logic and equality:** propositions, predicates, quantifiers, implication, equivalence, contradiction, substitution and equality properties.
+2. **Natural numbers:** a clearly declared Peano-style foundation (zero, successor, and induction, with the chosen formalization recorded); derive basic arithmetic rather than treating every identity as an unexplained rule.
+3. **Integers, rationals and reals:** define constructions/extensions carefully and record which properties are inherited or added. For school-level algebra, explicitly state the field properties used (associativity, commutativity, identities, inverses, distributivity) and the restrictions on division.
+4. **Order:** order axioms and compatibility with addition/multiplication, including the sign conditions needed when multiplying inequalities.
+5. **Geometry:** distinguish Euclidean geometry from alternative geometries. Record the parallel postulate as an explicit choice of system, not a universal axiom shared by every geometry.
+6. **Specialized systems:** introduce axioms for sets, probability, groups, rings, fields and other topics only when that topic is added, with consistency assumptions and scope clearly labelled.
+
+### C. How ULTRON should learn and use axioms
+
+- Learn each axiom's plain-language meaning, formal form, scope and allowed substitutions.
+- Practice identifying which axiom or definition justifies a step.
+- Derive elementary properties and theorems from the selected foundation; do not store a derived theorem as an axiom.
+- Build proof trees that show premises, inference rule and conclusion.
+- Detect invalid proofs: missing premises, variable/domain mismatch, circular reasoning, illicit division by zero, invalid inequality direction changes, and use of an axiom from a different formal system.
+- Generate counterexamples when a claim does not follow from the stated axioms.
+- When multiple axiom systems are possible, ask which system is intended or state the assumption before solving.
+- Keep proof checking separate from fluent explanation. A natural-language explanation is not itself proof validation.
+
+### D. Axiom and proof evaluation gates
+
+Create tests for:
+- correct recognition and citation of the axiom used by a proof step;
+- valid derivations from a minimal, explicitly selected axiom set;
+- invalid derivations with a missing premise or mismatched domain;
+- non-circular theorem dependency graphs;
+- correct handling of induction base and inductive step;
+- inequality transformations with positive, negative and unknown-sign multipliers;
+- Euclidean versus non-Euclidean assumption boundaries;
+- counterexamples to false universal statements;
+- reproducible proof replay and verifier agreement.
+
+Do not claim a theorem is formally proven unless the proof checker validates it within the named formal system. If a proof checker cannot decide or support a step, report that limitation.
+
+## 5. Reasoning and learning subsystems
 
 ### A. Structured problem representation
 
@@ -82,7 +134,7 @@ Before changing the model:
 
 No pretrained model, pretrained weights, external AI API or externally generated training data may be introduced. The 3–5M parameter target remains a specialist constraint, not a promise of GPT/Claude-level breadth.
 
-## 5. Conversation behavior contract
+## 6. Conversation behavior contract
 
 - Accept ordinary natural-language questions where supported; do not require the user to select a topic manually when it can be inferred safely.
 - Ask one focused clarification when essential information is missing or ambiguous.
@@ -92,7 +144,7 @@ No pretrained model, pretrained weights, external AI API or externally generated
 - For unsupported questions, say what is unsupported and what information or narrower question would be answerable.
 - Preserve user control over memory and never use private conversation content as training data without explicit authorization.
 
-## 6. Delivery gates
+## 7. Delivery gates
 
 ### Stage 0 — Architecture baseline (this document)
 - Record the target behavior, current limitations, interfaces and evidence gates.
@@ -121,7 +173,7 @@ No pretrained model, pretrained weights, external AI API or externally generated
 ### Stage 5 — Broader assistant capabilities
 - Consider broader non-mathematical conversation only after the math specialist demonstrates reliable results and the data/model budget is explicitly reassessed.
 
-## 7. Safety, scope and release gates
+## 8. Safety, scope and release gates
 
 - No real training is authorized by this design document.
 - No paid services, external AI APIs, pretrained weights or external training data.
