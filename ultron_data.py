@@ -323,7 +323,7 @@ def generate_example(topic: str, rng: random.Random, difficulty: int = 1, sample
         question = f"Hypotenuse of right triangle: legs {left}, {right}"
         answer = str(hypotenuse)
         steps = [
-            f"Step 1: Use c^2 = a^2 + b^2 = {left}^2 + {right}^2.",
+            f"Step 1: Use c * c = a * a + b * b = {left}^2 + {right}^2.",
             f"Step 2: c = sqrt({left * left + right * right}) = {hypotenuse}.",
         ]
         return _make_example(topic, question, steps, answer, level, sample_index)
