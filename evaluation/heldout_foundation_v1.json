@@ -183,6 +183,59 @@
       ],
       "answer": "1/5",
       "split": "test"
+    },
+    {
+      "sample_id": "1162a2bbe346db8e",
+      "sample_index": 14,
+      "topic": "median_and_range",
+      "difficulty": 1,
+      "question": "Median and range of: 8, 10, 12, 14, 16",
+      "steps": [
+        "Step 1: Sort the five values: 8, 10, 12, 14, 16.",
+        "Step 2: The middle value is 12; the range is 16 - 8 = 8.",
+        "Step 3: median=12, range=8."
+      ],
+      "answer": "median=12, range=8",
+      "split": "test"
+    },
+    {
+      "sample_id": "81b0006c7628d16c",
+      "sample_index": 15,
+      "topic": "simple_interest",
+      "difficulty": 1,
+      "question": "Simple interest: principal 140, rate 5%, time 2 years",
+      "steps": [
+        "Step 1: Use I = P * r * t / 100.",
+        "Step 2: I = 140 * 5 * 2 / 100 = 14."
+      ],
+      "answer": "14",
+      "split": "test"
+    },
+    {
+      "sample_id": "8faaee22f6d9c1f7",
+      "sample_index": 16,
+      "topic": "unit_conversion",
+      "difficulty": 1,
+      "question": "Convert: 22 m to cm",
+      "steps": [
+        "Step 1: 1 m = 100 cm.",
+        "Step 2: 22 * 100 = 2200 cm."
+      ],
+      "answer": "2200",
+      "split": "test"
+    },
+    {
+      "sample_id": "4cda63665817211d",
+      "sample_index": 17,
+      "topic": "pythagorean_theorem",
+      "difficulty": 1,
+      "question": "Hypotenuse of right triangle: legs 3, 4",
+      "steps": [
+        "Step 1: Use c^2 = a^2 + b^2 = 3^2 + 4^2.",
+        "Step 2: c = sqrt(25) = 5."
+      ],
+      "answer": "5",
+      "split": "test"
     }
   ]
 }
