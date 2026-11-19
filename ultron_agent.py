@@ -362,7 +362,7 @@ def solve_question(topic: str, question: str) -> dict[str, Any]:
         answer = f"median={median}, range={spread}"
         steps = [
             f"Step 1: Sort the five values: {rendered}.",
-            f"Step 2: The middle value is {median}; the range is {values[-1]} - {values[0]} = {spread}.",
+            f"Step 2: The middle value is {median}, and the range is {values[-1]} - {values[0]} = {spread}.",
             f"Step 3: {answer}.",
         ]
 
