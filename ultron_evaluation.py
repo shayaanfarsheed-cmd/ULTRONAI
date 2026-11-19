@@ -106,7 +106,29 @@ def evaluate_predictions(
     if not isinstance(predictions, Mapping):
         raise EvaluationInputError("Predictions must be a mapping of sample_id to answer")
 
-    known_ids = {item.get("sample_id") for item in examples if isinstance(item, Mapping)}
+    seen_ids: set[str] = set()
+    seen_questions: set[str] = set()
+    for index, example in enumerate(examples):
+        if not isinstance(example, Mapping):
+            raise EvaluationInputError(f"Example {index} must be an object")
+        sample_id = example.get("sample_id")
+        question = example.get("question")
+        if not isinstance(sample_id, str) or not sample_id or sample_id in seen_ids:
+            raise EvaluationInputError(f"Example {index} has an invalid or duplicate sample_id")
+        if not isinstance(question, str) or not question.strip() or question in seen_questions:
+            raise EvaluationInputError(f"Example {sample_id} has an invalid or duplicate question")
+        if example.get("split") != "test" or question_split(question) != "test":
+            raise EvaluationInputError(f"Example {sample_id} is not in the reserved test split")
+        if not isinstance(example.get("answer"), str) or not example["answer"].strip():
+            raise EvaluationInputError(f"Example {sample_id} has an invalid expected answer")
+        if not isinstance(example.get("topic"), str) or not example["topic"]:
+            raise EvaluationInputError(f"Example {sample_id} has an invalid topic")
+        if type(example.get("difficulty")) is not int or example["difficulty"] not in (1, 2, 3):
+            raise EvaluationInputError(f"Example {sample_id} has an invalid difficulty")
+        seen_ids.add(sample_id)
+        seen_questions.add(question)
+
+    known_ids = seen_ids
     unknown_ids = set(predictions).difference(known_ids)
     if unknown_ids:
         raise EvaluationInputError(f"Predictions contain unknown sample IDs: {sorted(map(str, unknown_ids))}")
