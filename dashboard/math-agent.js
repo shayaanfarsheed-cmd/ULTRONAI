@@ -91,13 +91,13 @@
       const checkGcd=(a,b)=>{a=a<0n?-a:a;b=b<0n?-b:b;while(b){const t=a%b;a=b;b=t;}return a||1n;};
       const checkFraction=(n,d)=>{if(d===0n)throw new Error("zero denominator");if(d<0n){n=-n;d=-d;}const g=checkGcd(n,d);return {n:n/g,d:d/g};};
       const checkText=f=>f.d===1n?String(f.n):String(f.n)+"/"+String(f.d);
-      const checkParse=s=>{const p=/^(-?\\d+)(?:\\/(\\d+))?$/.exec(s);if(!p)throw new Error("invalid fraction");return checkFraction(BigInt(p[1]),BigInt(p[2]||"1"));};
+      const checkParse=s=>{const p=/^(-?\d+)(?:\/(\d+))?$/.exec(s);if(!p)throw new Error("invalid fraction");return checkFraction(BigInt(p[1]),BigInt(p[2]||"1"));};
       const checkAdd=(a,b)=>checkFraction(a.n*b.d+b.n*a.d,a.d*b.d);
       const checkSub=(a,b)=>checkFraction(a.n*b.d-b.n*a.d,a.d*b.d);
       const checkMul=(a,b)=>checkFraction(a.n*b.n,a.d*b.d);
       const checkDiv=(a,b)=>checkFraction(a.n*b.d,a.d*b.n);
-      const checkDecimal=s=>{if(!/^-?\\d+(?:\\.\\d+)?$/.test(s))throw new Error("invalid decimal");const neg=s[0]==="-",raw=neg?s.slice(1):s,p=raw.split("."),den=10n**BigInt((p[1]||"").length),num=BigInt(p[0]+(p[1]||""));return checkFraction(neg?-num:num,den);};
-      const checkDecimalText=f=>{let d=f.d,t=0,f=0;while(d%2n===0n){d/=2n;t++;}while(d%5n===0n){d/=5n;f++;}if(d!==1n)return checkText(f);const scale=Math.max(t,f);if(!scale)return String(f.n);const n=f.n*(2n**BigInt(scale-t))*(5n**BigInt(scale-f)),neg=n<0n?"-":"",digits=String(n<0n?-n:n).padStart(scale+1,"0");return (neg+digits.slice(0,-scale)+"."+digits.slice(-scale)).replace(/\\.?0+$/,"");};
+      const checkDecimal=s=>{if(!/^-?\d+(?:\.\d+)?$/.test(s))throw new Error("invalid decimal");const neg=s[0]==="-",raw=neg?s.slice(1):s,p=raw.split("."),den=10n**BigInt((p[1]||"").length),num=BigInt(p[0]+(p[1]||""));return checkFraction(neg?-num:num,den);};
+      const checkDecimalText=value=>{let d=value.d,twos=0,fives=0;while(d%2n===0n){d/=2n;twos++;}while(d%5n===0n){d/=5n;fives++;}if(d!==1n)return checkText(value);const scale=Math.max(twos,fives);if(!scale)return String(value.n);const n=value.n*(2n**BigInt(scale-twos))*(5n**BigInt(scale-fives)),negative=n<0n?"-":"",digits=String(n<0n?-n:n).padStart(scale+1,"0");return (negative+digits.slice(0,-scale)+"."+digits.slice(-scale)).replace(/\.?0+$/,"");};
       if(topic==="whole_number_arithmetic"||topic==="integers") {
         m=/^Calculate: (-?\d+) ([+*/-]) (-?\d+)$/.exec(q);if(!m)return false;
         const a=BigInt(m[1]),b=BigInt(m[3]); if(m[2]==="+")expected=String(a+b);else if(m[2]==="-")expected=String(a-b);else if(m[2]==="*")expected=String(a*b);else {if(b===0n||a%b!==0n)return false;expected=String(a/b);}
