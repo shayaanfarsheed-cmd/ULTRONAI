@@ -1,11 +1,12 @@
-## Latest update — 2026-11-19 (Frozen Math Agent evaluation in progress)
+## Latest update — 2026-11-19 (Frozen Math Agent evaluation merged)
 
-- Current branch: `feature/frozen-math-evaluation`, based on main `c6a4f1f51027f6f3d9d7098a3ec1fce88ccc031a`.
-- Adds a separate browser action to score the Math Agent against the frozen `ultron-heldout-foundation-v1` test split. The solver computes its answer before the expected label is compared; an independent verifier must also agree.
-- The held-out score is distinct from the generated throughput benchmark, rejects malformed/non-test/duplicate-ID datasets, and is never sent to training or curriculum selection.
-- Automated regression coverage checks all 14 held-out cases and tampered dataset conditions. This is a small wiring/pilot set, not a statistically meaningful claim of broad mathematical ability.
-- No neural training, model-weight updates, external APIs, Supabase changes, or production configuration changes are included.
-- After this PR passes all required checks, merge it and verify the GitHub Pages deployment. Then continue the remaining frontend/device validation; keep training disabled.
+- PR #42 merged at `172685831fedea21de2edc1982099fbcd83fdd0a`; main now points to this commit.
+- All three merge-triggered checks passed on the exact main commit: ULTRON Test Suite (run `44443811629`), ULTRON preflight tests (run `44443811610`), and GitHub Pages build/deployment (run `44443810802`). The PR checks also passed before merge.
+- The Math Agent now has a separate browser action that scores the frozen `ultron-heldout-foundation-v1` test split. It computes each answer before comparing the expected label and requires the independent verifier to agree.
+- Automated regression coverage confirms all 14 pilot cases pass and rejects altered labels, duplicate IDs, non-test samples, and unfrozen data. Fourteen examples are a wiring/pilot check, not statistically meaningful evidence of broad mathematical ability.
+- The held-out score is separate from the generated throughput benchmark and is never sent to training or curriculum selection.
+- No neural training, model-weight updates, external APIs, Supabase changes, or production configuration changes were made. Training remains disabled.
+- Next step: manually test the deployed Math Agent on iPad Safari (solve, held-out evaluation, start/stop/reset, backgrounding, and narrow-screen layout). Do not claim real-device compatibility until that test is completed.
 
 ---
 
