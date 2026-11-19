@@ -22,6 +22,7 @@ jobs:
     timeout-minutes: 90
     env:
       PYTHONUNBUFFERED: "1"
+      DATASET_SEED: ${{ inputs.seed }}
     steps:
       - name: Check out ULTRON
         uses: actions/checkout@v4
@@ -42,7 +43,7 @@ jobs:
         run: |
           python scripts/build_math_dataset.py \
             --output-dir build/math-dataset \
-            --seed "${{ inputs.seed }}" \
+            --seed "$DATASET_SEED" \
             --train-count 100000 \
             --validation-count 5000 \
             --test-count 5000
