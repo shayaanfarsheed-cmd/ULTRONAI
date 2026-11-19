@@ -225,3 +225,13 @@ All earlier pairing implementation notes later in this README are historical onl
 ### Next step
 
 - Validate the 50,000-file Data Library cap and paginated recursive listing in CI before merging the change. The 500 MiB per-batch and 20 MiB per-file limits remain unchanged.
+
+
+## Data Library deletion controls — in progress
+
+- Individual file deletion remains available with an explicit confirmation.
+- Bulk deletion allows the owner to select multiple files and permanently remove them from the private Storage bucket.
+- Folder deletion removes every currently listed object beneath that relative folder path; requests are split into batches of at most 1,000 object paths.
+- All delete operations require the verified owner session, confirm before deletion, and refresh the shared cloud listing after success. Other signed-in browsers see the change on their next refresh (normally within 20 seconds).
+- Guests cannot select or delete private files. Deletion is permanent; there is no recycle bin or restore function.
+- Validate the deletion regression tests and deployed behavior before treating these controls as live.
