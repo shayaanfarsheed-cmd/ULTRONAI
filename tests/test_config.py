@@ -80,7 +80,8 @@ class ConfigurationTests(unittest.TestCase):
     def test_kaggle_runtime_resolves_to_cpu_when_cuda_is_unavailable(self):
         from train import resolve_runtime_settings
 
-        result = resolve_runtime_settings(CONFIG, "kaggle", torch_module=False)
+        config = json.loads((ROOT / "config.json").read_text(encoding="utf-8"))
+        result = resolve_runtime_settings(config, "kaggle", torch_module=False)
         self.assertEqual(result["platform"], "kaggle")
         self.assertEqual(result["device"], "cpu")
         self.assertEqual(result["mixed_precision"], "none")
