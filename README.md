@@ -1,4 +1,14 @@
-## Latest update — 2026-11-19 (model capacity sweep; not yet selected)
+## Latest update — 2026-11-19 (Candidate 5 benchmark; PR #60 merged)
+
+- PR #60 merged to `main` at commit `8268bd3ca48495655545b56ee76493022b748924`. All four required workflows passed, including all seven isolated model-capacity matrix jobs.
+- The selected target candidate remains Candidate 5: width 512, 8 layers, 16 heads, context 192, approximately 25,398,350 parameters. Its isolated short CPU benchmark measured 0.674 steps/second and approximately 1,480 MB peak process RSS, with finite loss. This is a bounded diagnostic result, not a long-run training guarantee.
+- Estimated checkpoint payload is approximately 304.8 MB before metadata. Model weights and Adam state exceed the current 45,000,000-byte single-component checkpoint limit. Candidate 5 is therefore a target architecture for the next engineering stage, **not yet the production model configuration**.
+- Next required work: implement bounded checkpoint sharding, validate storage/quota and retention against the $0 infrastructure constraint, then test full Candidate 5 save/restore and interrupted-training resume. Only after those gates pass should production model configuration be changed.
+- No production training was started. PR #60 only added diagnostic benchmark tooling and README documentation; it did not alter the production architecture or write to Supabase/Hugging Face.
+
+---
+
+## Model capacity benchmark merged — 2026-11-19 (PR #60)
 
 - The current 4,038,478-parameter architecture is a baseline, not an immutable limit. A bounded candidate sweep now measures widths/depths from approximately 4.83M through 56.97M parameters using ULTRON-generated, independently verified maths examples, the same 192-token context, batch size and 2-thread GitHub Actions CPU profile.
 - Each candidate runs in its own isolated GitHub-hosted job so peak RSS is measured independently. The sweep reports measured step throughput, loss finiteness, peak process RSS, and estimated FP32 model/Adam checkpoint payload.
