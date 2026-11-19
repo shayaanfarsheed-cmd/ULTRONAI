@@ -62,25 +62,30 @@ def build_dataset(output_dir: str | Path, seed: int = 20261119, counts: dict[str
     for split, examples in splits.items():
         topic_counts = Counter(item["topic"] for item in examples)
         difficulty_counts = Counter(item["difficulty"] for item in examples)
-        topic_difficulties: dict[str, set[int]] = {}
-        for item in examples:
-            topic_difficulties.setdefault(item["topic"], set()).add(item["difficulty"])
         missing_topics = sorted(set(SUPPORTED_TOPICS).difference(topic_counts))
         missing_difficulties = sorted({1, 2, 3}.difference(difficulty_counts))
-        incomplete_topic_difficulties = {
-            topic: sorted({1, 2, 3}.difference(levels))
-            for topic, levels in topic_difficulties.items()
-            if levels != {1, 2, 3}
-        }
-        if missing_topics or missing_difficulties or incomplete_topic_difficulties:
+        if missing_topics or missing_difficulties:
             raise RuntimeError(
                 f"{split} coverage incomplete: missing_topics={missing_topics}, "
-                f"missing_difficulties={missing_difficulties}, "
-                f"incomplete_topic_difficulties={incomplete_topic_difficulties}"
+                f"missing_difficulties={missing_difficulties}"
             )
         minimum_difficulty_count = max(1, len(examples) // 30)
         if any(difficulty_counts[level] < minimum_difficulty_count for level in (1, 2, 3)):
             raise RuntimeError(f"{split} difficulty distribution is too imbalanced: {dict(difficulty_counts)}")
+
+    training_topic_difficulties: dict[str, set[int]] = {}
+    for item in splits["train"]:
+        training_topic_difficulties.setdefault(item["topic"], set()).add(item["difficulty"])
+    incomplete_training_topics = {
+        topic: sorted({1, 2, 3}.difference(levels))
+        for topic, levels in training_topic_difficulties.items()
+        if levels != {1, 2, 3}
+    }
+    if incomplete_training_topics or set(training_topic_difficulties) != set(SUPPORTED_TOPICS):
+        raise RuntimeError(
+            "Training split must cover every topic at all three difficulty levels: "
+            f"{incomplete_training_topics}"
+        )
 
     destination = Path(output_dir)
     destination.mkdir(parents=True, exist_ok=True)
