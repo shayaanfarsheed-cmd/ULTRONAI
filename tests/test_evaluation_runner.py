@@ -44,7 +44,7 @@ class ReadOnlyEvaluationRunnerTests(unittest.TestCase):
         self.assertEqual(report["overall"]["accuracy"], 1.0)
         predictions[first["sample_id"]] = first["answer"] + " + 1"
         report = evaluate_predictions(self.dataset, predictions)
-        self.assertEqual(report["overall"]["correct"], 13)
+        self.assertEqual(report["overall"]["correct"], len(self.dataset["examples"]) - 1)
         self.assertEqual(report["failures"][0]["category"], "incorrect_answer")
 
     def test_unknown_prediction_ids_are_rejected(self):
