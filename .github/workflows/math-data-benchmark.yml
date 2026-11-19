@@ -1,0 +1,65 @@
+name: ULTRON Generated Math Data CPU Benchmark
+
+on:
+  pull_request:
+    paths:
+      - "config.json"
+      - "train.py"
+      - "ultron_data.py"
+      - "ultron_verify.py"
+      - "ultron_model.py"
+      - "ultron_training.py"
+      - "scripts/benchmark_math_data.py"
+      - ".github/workflows/math-data-benchmark.yml"
+  workflow_dispatch:
+    inputs:
+      examples:
+        description: "Verified generated examples (32-1024)"
+        required: false
+        default: "256"
+        type: string
+      steps:
+        description: "Measured optimization steps (1-10)"
+        required: false
+        default: "3"
+        type: string
+      warmup:
+        description: "Warmup steps (0-3)"
+        required: false
+        default: "1"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      OMP_NUM_THREADS: "2"
+      MKL_NUM_THREADS: "2"
+      OPENBLAS_NUM_THREADS: "1"
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - name: Install project dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Run bounded generated-math benchmark
+        env:
+          BENCHMARK_EXAMPLES: ${{ inputs.examples || '256' }}
+          BENCHMARK_STEPS: ${{ inputs.steps || '3' }}
+          BENCHMARK_WARMUP: ${{ inputs.warmup || '1' }}
+        run: |
+          python scripts/benchmark_math_data.py \
+            --examples "$BENCHMARK_EXAMPLES" \
+            --steps "$BENCHMARK_STEPS" \
+            --warmup "$BENCHMARK_WARMUP"
