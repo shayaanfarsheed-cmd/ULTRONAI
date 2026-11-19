@@ -142,7 +142,7 @@ def _evaluate_current_stage(
 def run_training_session(
     config: Mapping[str, Any],
     servers: Mapping[str, Any],
-    checkpoint_root: str | Path = "/kaggle/working/ultron-checkpoints",
+    checkpoint_root: str | Path | None = None,
     api: TrainingControlAPI | None = None,
     remote_store: RemoteCheckpointStore | None = None,
     backup_store: HuggingFaceCheckpointStore | None = None,
@@ -156,6 +156,12 @@ def run_training_session(
     from train import detect_platform, resolve_runtime_settings
 
     platform = platform_id or detect_platform()
+    if checkpoint_root is None:
+        checkpoint_root = (
+            Path("/kaggle/working/ultron-checkpoints")
+            if platform == "kaggle"
+            else Path.home() / ".ultron" / "checkpoints"
+        )
     server = next((item for item in servers.get("servers", []) if item.get("id") == platform), None)
     if server is None:
         server = next((item for item in servers.get("servers", []) if item.get("provider") == platform), None)
