@@ -51,24 +51,17 @@ def _near_duplicate_pairs(examples: list[Mapping[str, Any]], threshold: float) -
     seen: set[tuple[int, int]] = set()
     for indices in buckets.values():
         # Very large same-length groups are narrowed by the first and last token.
-        indexed: dict[tuple[str, str], list[int]] = defaultdict(list)
+        indexed: dict[tuple[str, ...], list[int]] = defaultdict(list)
         for index in indices:
             tokens = token_rows[index]
-            indexed[(tokens[0] if tokens else "", tokens[-1] if tokens else "")].append(index)
+            signature = tokens[:2] + tokens[-2:] if len(tokens) >= 4 else tokens
+            indexed[signature].append(index)
         candidates: set[tuple[int, int]] = set()
         for group in indexed.values():
             if len(group) > 1:
                 for offset, left in enumerate(group):
                     for right in group[offset + 1:]:
-                        candidates.add((left, right))
-        # Also compare neighboring endpoint buckets to catch a single-token edit.
-        keys = list(indexed)
-        for key_index, key in enumerate(keys):
-            for other_key in keys[key_index + 1:]:
-                if key[0] == other_key[0] or key[1] == other_key[1]:
-                    for left in indexed[key]:
-                        for right in indexed[other_key]:
-                            candidates.add((min(left, right), max(left, right)))
+                        candidates.add((min(left, right), max(left, right)))
         for left, right in candidates:
             if (left, right) in seen:
                 continue
@@ -108,7 +101,7 @@ def audit_dataset(
 
     seen_ids: dict[str, int] = {}
     seen_questions: dict[str, int] = {}
-    split_questions: dict[str, set[str]] = defaultdict(set)
+    question_splits: dict[str, set[str]] = defaultdict(set)
     structural_splits: dict[str, set[str]] = defaultdict(set)
     topic_counts: Counter[str] = Counter()
     difficulty_counts: Counter[str] = Counter()
@@ -157,7 +150,7 @@ def audit_dataset(
         else:
             seen_questions[normalized] = index
 
-        split_questions[str(split)].add(normalized)
+        question_splits[normalized].add(str(split))
         structural_splits[structural_fingerprint(question)].add(str(split))
         topic_counts[str(topic)] += 1
         difficulty_counts[str(difficulty)] += 1
@@ -167,12 +160,11 @@ def audit_dataset(
         if not valid:
             invalid.append({"sample_id": sample_id, "reason": reason or "answer_verification_failed"})
 
-    cross_split_exact: list[dict[str, Any]] = []
-    for question, index in seen_questions.items():
-        matching = [row for row in rows if normalize_question(str(row.get("question", ""))) == question]
-        splits = sorted({str(row.get("split")) for row in matching})
-        if len(splits) > 1:
-            cross_split_exact.append({"question": question, "splits": splits})
+    cross_split_exact = [
+        {"question": question, "splits": sorted(splits)}
+        for question, splits in question_splits.items()
+        if len(splits) > 1
+    ]
 
     structural_leakage = [
         {"fingerprint": fingerprint, "splits": sorted(splits)}
