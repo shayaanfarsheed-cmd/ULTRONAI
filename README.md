@@ -1,13 +1,15 @@
-## Latest update — 2026-11-19 (self-learning dry-run review fixes)
+## Latest update — 2026-11-19 (PR #36 merged; evaluation is next)
 
-- PR #36 remains open and unmerged. Follow-up review found that the dry-run duplicated split logic and used generation-index fallback for candidates without questions; this could misclassify failed candidates in split-specific reports.
+- PR #36 merged successfully at `d2fbcad6839371655e3ffb8d7e65e363d91b634e`.
+- All three required PR workflows passed on head `439752f876c7c09f56cf5cd6fcafd97183e00875`: ULTRON Test Suite, ULTRON Training Prototype Validation, and ULTRON preflight tests.
+- The merge adds a bounded, deterministic generation-and-verification dry run. It does not persist datasets, change model weights, invoke a trainer, or start training. Follow-up review found that the dry-run duplicated split logic and used generation-index fallback for candidates without questions; this could misclassify failed candidates in split-specific reports.
 - Both `ultron_data.py` and `ultron_self_learning.py` now use one shared `question_split()` function. A missing/invalid question is reported as unassigned and is never assigned by sample index.
 - Generator failures are reported separately from split-specific candidate rejections. Only the dedicated `InvalidGeneratedExampleError` is counted as an expected invalid candidate; unexpected generator and verifier programming errors propagate instead of being silently swallowed.
 - Candidate topic, difficulty and sample-index metadata are checked against the generation request. Input types and callable dependencies are validated.
 - The verifier now checks the generated solution-step sequence against steps independently reconstructed from the question; correct final answers with corrupted intermediate steps are rejected.
 - Regression tests now compare dry-run output directly with the existing dataset generator for train, validation and test splits; also cover missing questions, metadata mismatch, and unexpected exceptions.
 - The verifier remains the same verifier module used by the generator; the dry-run's second call is a boundary check for custom/injected generators, not a second independent verifier implementation.
-- No datasets are persisted, no model weights are changed, and no training is started. Re-run every required CI workflow against the latest PR head before considering merge.
+- No datasets are persisted, no model weights are changed, and no training is started. The dry-run merge is validated; it does not establish that the neural model has learned or that its mathematical accuracy has improved.
 
 ---
 
@@ -15,10 +17,10 @@
 
 - PR #35 merged at `d8dcdd72b95c94538985132cb055cf227b69eb26`; its three required CI workflows passed and the GitHub Pages build/deployment workflow completed successfully.
 - Data Library limits on `main`: 50,000 files per upload, 20 MiB per file, 5,000 MiB (5 GiB) total per batch, and 12 path levels. Uploads remain owner-only and storage-only.
-- PR #36 adds `ultron_self_learning.py`, a bounded deterministic generation-and-independent-verification dry run, with regression tests for deterministic output, split isolation, corrupted examples, generator failures and safety boundaries. CI was started; results must pass before merge.
+- PR #36 is merged at `d2fbcad6839371655e3ffb8d7e65e363d91b634e`; all three required CI workflows passed on its exact head. It adds `ultron_self_learning.py`, a bounded deterministic generation-and-verification dry run, with regression tests for deterministic output, split isolation, corrupted examples, generator failures and safety boundaries.
 - The learning architecture is documented in `docs/SELF_LEARNING_ARCHITECTURE.md`: verifier feedback, curated synthetic data, targeted model updates, persistent memory/retrieval, test-time self-verification, anti-forgetting replay, held-out evaluation and anti-collapse/reward-hacking checks.
 - Training remains disabled in this stage. The dry run does not write datasets, modify weights or invoke the trainer. No LoRA/adapters are assumed; consider them only after a trained baseline exists and the model architecture supports them.
-- Next gates: validate the dry-run pipeline; build held-out baseline evaluation; add inspectable memory/retrieval; add answer-time verification; only then propose bounded training for explicit owner approval.
+- Next gate: build a fixed held-out evaluation suite with topic/difficulty breakdowns, baseline metrics, deterministic scoring and regression thresholds. Keep evaluation examples out of any training data. Then add inspectable memory/retrieval and answer-time verification; only later propose bounded training for explicit owner approval.
 
 ---
 
