@@ -54,7 +54,9 @@ def _near_duplicate_pairs(examples: list[Mapping[str, Any]], threshold: float) -
         indexed: dict[tuple[str, ...], list[int]] = defaultdict(list)
         for index in indices:
             tokens = token_rows[index]
-            signature = tokens[:2] + tokens[-2:] if len(tokens) >= 4 else tokens
+            # The first three tokens keep candidate groups narrow while
+            # allowing edits to later numbers/terms to be compared.
+            signature = tokens[:3] if len(tokens) >= 3 else tokens
             indexed[signature].append(index)
         candidates: set[tuple[int, int]] = set()
         for group in indexed.values():
