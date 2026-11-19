@@ -10,6 +10,10 @@ from typing import Any, Iterable
 from ultron_verify import verify_example
 
 
+class InvalidGeneratedExampleError(ValueError):
+    """Raised when a generated example fails its independent verification."""
+
+
 SUPPORTED_TOPICS = (
     "whole_number_arithmetic",
     "fractions",
@@ -53,7 +57,7 @@ def _make_example(topic: str, question: str, steps: list[str], answer: str, diff
         "answer": answer,
     }
     if not verify_example(example):
-        raise ValueError(f"Generated example failed independent verification: {topic}")
+        raise InvalidGeneratedExampleError(f"Generated example failed verification: {topic}")
     return example
 
 
@@ -248,6 +252,23 @@ def _split_bucket(question: str) -> int:
     return int.from_bytes(digest[:4], "big") % 10
 
 
+def question_split(question: str) -> str:
+    """Return the stable split for a non-empty question.
+
+    This is the single source of truth used by both dataset generation and
+    the self-learning dry run. The question text, not its generation index,
+    determines the split.
+    """
+    if not isinstance(question, str) or not question.strip():
+        raise ValueError("Question must be a non-empty string")
+    bucket = _split_bucket(question)
+    if bucket < 8:
+        return "train"
+    if bucket == 8:
+        return "validation"
+    return "test"
+
+
 def generate_dataset(
     count: int,
     seed: int,
@@ -277,7 +298,7 @@ def generate_dataset(
         if question_key in seen:
             continue
         seen.add(question_key)
-        if _split_bucket(example["question"]) not in split_buckets[split]:
+        if question_split(example["question"]) != split:
             continue
         example["split"] = split
         if not verify_example(example):

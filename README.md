@@ -1,9 +1,24 @@
-## Latest update — 2026-11-19 (5 GiB Data Library batch cap)
+## Latest update — 2026-11-19 (self-learning dry-run review fixes)
 
-- PR #33's intended 5,000 MiB (5 GiB) total upload-batch cap is being rebased onto the latest `main` after PR #34's bulk/folder deletion merge.
-- The regression test now checks the actual 500-item listing page size (`const pageSize = 500`) instead of the obsolete `selected.length > 500` assertion.
-- Limits remain 50,000 files per upload and 20 MiB per file. Uploads remain owner-only and storage-only; no file is executed and no training starts.
-- Validate all required CI workflows on the updated pull request before merging. README must be kept current at each milestone.
+- PR #36 remains open and unmerged. Follow-up review found that the dry-run duplicated split logic and used generation-index fallback for candidates without questions; this could misclassify failed candidates in split-specific reports.
+- Both `ultron_data.py` and `ultron_self_learning.py` now use one shared `question_split()` function. A missing/invalid question is reported as unassigned and is never assigned by sample index.
+- Generator failures are reported separately from split-specific candidate rejections. Only the dedicated `InvalidGeneratedExampleError` is counted as an expected invalid candidate; unexpected generator and verifier programming errors propagate instead of being silently swallowed.
+- Candidate topic, difficulty and sample-index metadata are checked against the generation request. Input types and callable dependencies are validated.
+- The verifier now checks the generated solution-step sequence against steps independently reconstructed from the question; correct final answers with corrupted intermediate steps are rejected.
+- Regression tests now compare dry-run output directly with the existing dataset generator for train, validation and test splits; also cover missing questions, metadata mismatch, and unexpected exceptions.
+- The verifier remains the same verifier module used by the generator; the dry-run's second call is a boundary check for custom/injected generators, not a second independent verifier implementation.
+- No datasets are persisted, no model weights are changed, and no training is started. Re-run every required CI workflow against the latest PR head before considering merge.
+
+---
+
+
+
+- PR #35 merged at `d8dcdd72b95c94538985132cb055cf227b69eb26`; its three required CI workflows passed and the GitHub Pages build/deployment workflow completed successfully.
+- Data Library limits on `main`: 50,000 files per upload, 20 MiB per file, 5,000 MiB (5 GiB) total per batch, and 12 path levels. Uploads remain owner-only and storage-only.
+- PR #36 adds `ultron_self_learning.py`, a bounded deterministic generation-and-independent-verification dry run, with regression tests for deterministic output, split isolation, corrupted examples, generator failures and safety boundaries. CI was started; results must pass before merge.
+- The learning architecture is documented in `docs/SELF_LEARNING_ARCHITECTURE.md`: verifier feedback, curated synthetic data, targeted model updates, persistent memory/retrieval, test-time self-verification, anti-forgetting replay, held-out evaluation and anti-collapse/reward-hacking checks.
+- Training remains disabled in this stage. The dry run does not write datasets, modify weights or invoke the trainer. No LoRA/adapters are assumed; consider them only after a trained baseline exists and the model architecture supports them.
+- Next gates: validate the dry-run pipeline; build held-out baseline evaluation; add inspectable memory/retrieval; add answer-time verification; only then propose bounded training for explicit owner approval.
 
 ---
 

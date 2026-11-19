@@ -121,7 +121,7 @@ def _sample_id(topic: str, question: str) -> str:
     return hashlib.sha256(f"{topic}|{question}".encode("utf-8")).hexdigest()[:16]
 
 
-def verify_example_detailed(example: Mapping[str, Any]) -> tuple[bool, str]:
+def _verify_example_answer_detailed(example: Mapping[str, Any]) -> tuple[bool, str]:
     try:
         topic = str(example["topic"])
         question = str(example["question"])
@@ -229,6 +229,218 @@ def verify_example_detailed(example: Mapping[str, Any]) -> tuple[bool, str]:
         return False, f"Unsupported topic: {topic}"
     except (ArithmeticError, InvalidOperation, KeyError, TypeError, ValueError, SyntaxError):
         return False, "Verification error"
+
+
+
+def _format_pair(value: tuple[int, int]) -> str:
+    numerator, denominator = value
+    return str(numerator) if denominator == 1 else f"{numerator}/{denominator}"
+
+
+def _format_decimal_value(value: Decimal) -> str:
+    rendered = format(value.normalize(), "f")
+    if "." in rendered:
+        rendered = rendered.rstrip("0").rstrip(".")
+    return rendered or "0"
+
+
+def _expected_solution_steps(example: Mapping[str, Any]) -> list[str]:
+    """Rebuild every expected step from the question, not from supplied steps."""
+    topic = example["topic"]
+    question = example["question"]
+
+    if topic in {"whole_number_arithmetic", "integers"}:
+        expression = question.split(":", 1)[1].strip()
+        result = _evaluate_expression(expression)
+        if topic == "whole_number_arithmetic":
+            return [f"Step 1: {expression} = {_format_pair(result)}."]
+        return [
+            "Step 1: Apply the integer operation.",
+            f"Step 2: {expression} = {_format_pair(result)}.",
+        ]
+
+    if topic == "fractions":
+        match = re.fullmatch(r"Calculate: \((\d+/\d+)\) ([+*/-]) \((\d+/\d+)\)", question)
+        if not match:
+            raise ValueError("Invalid fraction question")
+        left_text, operation, right_text = match.groups()
+        left, right = _parse_number(left_text), _parse_number(right_text)
+        if operation in {"+", "-"}:
+            common = math.lcm(left[1], right[1])
+            first = left[0] * (common // left[1])
+            second = right[0] * (common // right[1])
+            raw = first + second if operation == "+" else first - second
+            result = _add(left, right) if operation == "+" else _subtract(left, right)
+            return [
+                f"Step 1: Use denominator {common}.",
+                f"Step 2: {first}/{common} {operation} {second}/{common} = {raw}/{common}.",
+                f"Step 3: Reduce to {_format_pair(result)}.",
+            ]
+        if operation == "*":
+            result = _multiply(left, right)
+            return [
+                f"Step 1: Multiply numerators {left[0]} * {right[0]}.",
+                f"Step 2: Multiply denominators {left[1]} * {right[1]}.",
+                f"Step 3: Reduce to {_format_pair(result)}.",
+            ]
+        result = _divide(left, right)
+        return [
+            f"Step 1: Flip the second fraction to {right[1]}/{right[0]}.",
+            f"Step 2: Multiply to get {_format_pair(result)}.",
+        ]
+
+    if topic == "decimals":
+        match = re.fullmatch(r"Calculate: (-?\d+(?:\.\d+)?) ([+-]) (-?\d+(?:\.\d+)?)", question)
+        if not match:
+            raise ValueError("Invalid decimal question")
+        left_text, operation, right_text = match.groups()
+        left, right = Decimal(left_text), Decimal(right_text)
+        result = left + right if operation == "+" else left - right
+        answer = _format_decimal_value(result)
+        return [
+            "Step 1: Line up the decimal places.",
+            f"Step 2: {_format_decimal_value(left)} {operation} {_format_decimal_value(right)} = {answer}.",
+        ]
+
+    if topic == "percentages":
+        match = re.fullmatch(r"Percentage: (\d+)% of (\d+)", question)
+        if not match:
+            raise ValueError("Invalid percentage question")
+        percent, amount = map(int, match.groups())
+        answer = _format_pair(_normalize(percent * amount, 100))
+        return [f"Step 1: {percent}/100 * {amount} = {answer}."]
+
+    if topic == "ratios_and_proportions":
+        match = re.fullmatch(r"Simplify ratio: (\d+):(\d+)", question)
+        if not match:
+            raise ValueError("Invalid ratio question")
+        left, right = map(int, match.groups())
+        divisor = _independent_gcd(left, right)
+        answer = f"{left // divisor}:{right // divisor}"
+        return [
+            f"Step 1: Divide both parts by {divisor}.",
+            f"Step 2: The simplest ratio is {answer}.",
+        ]
+
+    if topic == "order_of_operations":
+        match = re.fullmatch(r"Calculate: (\d+) \+ (\d+) \* (\d+)", question)
+        if not match:
+            raise ValueError("Invalid order-of-operations question")
+        first, second, third = map(int, match.groups())
+        partial = second * third
+        result = first + partial
+        return [
+            f"Step 1: Multiply first: {second} * {third} = {partial}.",
+            f"Step 2: Add: {first} + {partial} = {result}.",
+        ]
+
+    if topic == "pre_algebra":
+        match = re.fullmatch(r"Solve: x ([+-]) (\d+) = (-?\d+)", question)
+        if not match:
+            raise ValueError("Invalid pre-algebra question")
+        operation, offset_text, right_text = match.groups()
+        offset, right = int(offset_text), int(right_text)
+        value = right - offset if operation == "+" else right + offset
+        return [f"Step 1: Isolate x to get x = {value}."]
+
+    if topic == "linear_equations":
+        match = re.fullmatch(r"Solve: (\d+)\*x \+ (-?\d+) = (-?\d+)", question)
+        if not match:
+            raise ValueError("Invalid linear-equation question")
+        coefficient, offset, right = map(int, match.groups())
+        intermediate = right - offset
+        value = intermediate // coefficient
+        return [
+            f"Step 1: Subtract {offset} to get {coefficient}*x = {intermediate}.",
+            f"Step 2: Divide by {coefficient} to get x = {value}.",
+        ]
+
+    if topic == "inequalities":
+        match = re.fullmatch(r"Solve: (\d+)\*x \+ (-?\d+) ([<>]) (-?\d+)", question)
+        if not match:
+            raise ValueError("Invalid inequality question")
+        coefficient, offset, relation, boundary = match.groups()
+        value = (int(boundary) - int(offset)) // int(coefficient)
+        answer = f"x {relation} {value}"
+        return [
+            "Step 1: Isolate x at the boundary.",
+            f"Step 2: The solution is {answer}.",
+        ]
+
+    if topic == "exponents_and_roots":
+        square = re.fullmatch(r"Calculate: (\d+) \*\* 2", question)
+        root = re.fullmatch(r"Calculate: sqrt\((\d+)\)", question)
+        if square:
+            base = int(square.group(1))
+            result = base * base
+            return [
+                f"Step 1: Multiply {base} by itself.",
+                f"Step 2: {base} ** 2 = {result}.",
+            ]
+        if root:
+            radicand = int(root.group(1))
+            result = math.isqrt(radicand)
+            return [
+                "Step 1: Find the exact square root.",
+                f"Step 2: sqrt({radicand}) = {result}.",
+            ]
+        raise ValueError("Invalid exponent/root question")
+
+    if topic == "basic_geometry":
+        area = re.fullmatch(r"Area of rectangle: length (\d+), width (\d+)", question)
+        perimeter = re.fullmatch(r"Perimeter of rectangle: length (\d+), width (\d+)", question)
+        if area:
+            length, width = map(int, area.groups())
+            result = length * width
+            return [
+                "Step 1: Area = length * width.",
+                f"Step 2: {length} * {width} = {result}.",
+            ]
+        if perimeter:
+            length, width = map(int, perimeter.groups())
+            result = 2 * (length + width)
+            return [
+                "Step 1: Perimeter = 2 * (length + width).",
+                f"Step 2: 2 * ({length} + {width}) = {result}.",
+            ]
+        raise ValueError("Invalid geometry question")
+
+    if topic == "basic_statistics":
+        match = re.fullmatch(r"Mean of: ([0-9, ]+)", question)
+        if not match:
+            raise ValueError("Invalid statistics question")
+        values = [int(item.strip()) for item in match.group(1).split(",")]
+        answer = _format_pair(_normalize(sum(values), len(values)))
+        return [
+            f"Step 1: Add the values to get {sum(values)}.",
+            f"Step 2: Divide by {len(values)} to get {answer}.",
+        ]
+
+    if topic == "basic_probability":
+        match = re.fullmatch(r"Probability: (\d+) favorable, (\d+) total", question)
+        if not match:
+            raise ValueError("Invalid probability question")
+        favorable, total = map(int, match.groups())
+        answer = _format_pair(_normalize(favorable, total))
+        return [
+            "Step 1: Divide favorable outcomes by total outcomes.",
+            f"Step 2: The probability is {answer}.",
+        ]
+
+    raise ValueError(f"Unsupported topic: {topic}")
+
+
+def verify_example_detailed(example: Mapping[str, Any]) -> tuple[bool, str]:
+    valid, reason = _verify_example_answer_detailed(example)
+    if not valid:
+        return False, reason
+    try:
+        expected_steps = _expected_solution_steps(example)
+    except (ArithmeticError, InvalidOperation, KeyError, TypeError, ValueError, SyntaxError):
+        return False, "Solution-step verification error"
+    if example["steps"] != expected_steps:
+        return False, "Solution steps do not match the question"
+    return True, reason
 
 
 def verify_example(example: Mapping[str, Any]) -> bool:

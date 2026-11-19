@@ -32,6 +32,21 @@ class DataPipelineTests(unittest.TestCase):
         corrupted["question"] = corrupted["question"] + "  "
         self.assertFalse(verify_example(corrupted))
 
+
+    def test_corrupted_solution_steps_are_rejected_for_every_topic(self):
+        for topic_index, topic in enumerate(SUPPORTED_TOPICS):
+            with self.subTest(topic=topic):
+                example = generate_example(
+                    topic,
+                    random.Random(7100 + topic_index),
+                    difficulty=2,
+                    sample_index=topic_index,
+                )
+                corrupted = dict(example)
+                corrupted["steps"] = list(example["steps"])
+                corrupted["steps"][0] = corrupted["steps"][0] + " (incorrect)"
+                self.assertFalse(verify_example(corrupted))
+
     def test_datasets_are_deterministic(self):
         first = generate_dataset(80, seed=20261117, split="train")
         second = generate_dataset(80, seed=20261117, split="train")
