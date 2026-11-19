@@ -128,14 +128,6 @@ class SupabaseStorageClient:
 
 
 class RemoteCheckpointStore:
-    COMPONENTS = (
-        "model.safetensors",
-        "optimizer.safetensors",
-        "rng.safetensors",
-        "state.json",
-        "manifest.json",
-    )
-
     def __init__(
         self,
         storage: SupabaseStorageClient,
