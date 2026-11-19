@@ -7,6 +7,7 @@ from collections import Counter, defaultdict
 from difflib import SequenceMatcher
 from typing import Any, Iterable, Mapping
 
+from ultron_data import question_split
 from ultron_verify import verify_example_detailed
 
 QUALITY_AUDITOR_VERSION = "1.0.0"
@@ -132,6 +133,8 @@ def audit_dataset(
         if split not in required_splits:
             invalid.append({"sample_id": sample_id, "reason": "invalid_split"})
             continue
+        if question_split(question) != split:
+            invalid.append({"sample_id": sample_id, "reason": "question_split_mismatch"})
         if sample_id in seen_ids:
             exact_duplicates.append({
                 "kind": "duplicate_sample_id",
