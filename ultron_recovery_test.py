@@ -152,6 +152,7 @@ def run_checkpoint_recovery_test(
             expected_scheduler = copy.deepcopy(scheduler.state_dict())
             expected_stream = copy.deepcopy(stream.state_dict())
             expected_curriculum = copy.deepcopy(curriculum.state_dict())
+            expected_scaler = copy.deepcopy(scaler.state_dict()) if scaler is not None else None
 
             # A fresh local directory and fresh objects represent a new Kaggle runtime.
             fresh_store = LocalCheckpointStore(fresh_dir, keep_last=1, maximum_file_bytes=maximum_file_bytes)
@@ -167,6 +168,7 @@ def run_checkpoint_recovery_test(
                 seed=seed + 1,
                 shuffle=True,
             )
+            fresh_model.to(device)
             restored = fresh_store.load_latest(
                 fresh_model,
                 fresh_optimizer,
@@ -201,11 +203,14 @@ def run_checkpoint_recovery_test(
             scheduler_exact = _equal_nested(fresh_scheduler.state_dict(), expected_scheduler)
             stream_exact = _equal_nested(fresh_stream.state_dict(), expected_stream)
             curriculum_exact = _equal_nested(fresh_curriculum.state_dict(), expected_curriculum)
-            if not all((model_exact, optimizer_exact, scheduler_exact, stream_exact, curriculum_exact)):
+            scaler_exact = (fresh_scaler is None and expected_scaler is None) or (
+                fresh_scaler is not None and _equal_nested(fresh_scaler.state_dict(), expected_scaler)
+            )
+            if not all((model_exact, optimizer_exact, scheduler_exact, stream_exact, curriculum_exact, scaler_exact)):
                 raise RuntimeError(
                     "Resume diverged from uninterrupted execution: "
                     f"model={model_exact}, optimizer={optimizer_exact}, scheduler={scheduler_exact}, "
-                    f"data_stream={stream_exact}, curriculum={curriculum_exact}"
+                    f"data_stream={stream_exact}, curriculum={curriculum_exact}, scaler={scaler_exact}"
                 )
 
             result = {
@@ -224,6 +229,7 @@ def run_checkpoint_recovery_test(
                     "scheduler_state_matches_uninterrupted_run": scheduler_exact,
                     "data_stream_position_and_rng_match": stream_exact,
                     "curriculum_state_matches": curriculum_exact,
+                    "gradient_scaler_state_matches": scaler_exact,
                 },
                 "training_status_database_written": False,
                 "production_run_id_touched": False,
