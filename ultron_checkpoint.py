@@ -362,6 +362,15 @@ class LocalCheckpointStore:
                 if _sha256(file_path) != entry.get("sha256"):
                     return False, None
             metadata = json.loads((folder / "state.json").read_text(encoding="utf-8"))
+            if manifest.get("schema_version", 1) >= 2:
+                listed_model = metadata.get("model_shards")
+                listed_optimizer = metadata.get("optimizer_shards")
+                actual_model = sorted(name for name in names if name.startswith("model-") and name.endswith(".safetensors"))
+                actual_optimizer = sorted(name for name in names if name.startswith("optimizer-") and name.endswith(".safetensors"))
+                if not isinstance(listed_model, list) or sorted(listed_model) != actual_model:
+                    return False, None
+                if not isinstance(listed_optimizer, list) or sorted(listed_optimizer) != actual_optimizer:
+                    return False, None
             saved_state = metadata.get("state", {})
             if metadata.get("checkpoint_id") != expected_id:
                 return False, None
