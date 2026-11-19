@@ -1,6 +1,7 @@
 import copy
 import unittest
 
+from ultron_verify import verify_example_detailed
 from ultron_evaluation import (
     DATASET_ID,
     EvaluationInputError,
@@ -17,10 +18,11 @@ class ReadOnlyEvaluationRunnerTests(unittest.TestCase):
     def test_perfect_explicit_predictions_score_one(self):
         predictions = {item["sample_id"]: item["answer"] for item in self.dataset["examples"]}
         report = evaluate_predictions(self.dataset, predictions, model_label="test-checkpoint")
-        self.assertEqual(report["overall"], {"correct": 14, "total": 14, "accuracy": 1.0})
+        count = len(self.dataset["examples"])
+        self.assertEqual(report["overall"], {"correct": count, "total": count, "accuracy": 1.0})
         self.assertEqual(report["model_label"], "test-checkpoint")
-        self.assertEqual(sum(item["total"] for item in report["by_topic"].values()), 14)
-        self.assertEqual(sum(item["total"] for item in report["by_difficulty"].values()), 14)
+        self.assertEqual(sum(item["total"] for item in report["by_topic"].values()), count)
+        self.assertEqual(sum(item["total"] for item in report["by_difficulty"].values()), count)
         self.assertEqual(report["failures"], [])
 
     def test_missing_and_incorrect_predictions_are_distinguished(self):
@@ -76,6 +78,12 @@ class ReadOnlyEvaluationRunnerTests(unittest.TestCase):
         subset["examples"] = subset["examples"][:1]
         with self.assertRaises(EvaluationInputError):
             evaluate_predictions(subset, {})
+
+    def test_every_frozen_heldout_answer_and_solution_is_independently_verified(self):
+        for example in self.dataset["examples"]:
+            with self.subTest(sample_id=example["sample_id"]):
+                valid, reason = verify_example_detailed(example)
+                self.assertTrue(valid, reason)
 
     def test_dataset_loader_enforces_frozen_test_split(self):
         self.assertEqual(self.dataset["dataset_id"], DATASET_ID)
