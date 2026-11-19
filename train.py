@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 
-PLATFORM_IDS = ("kaggle", "google_colab", "lightning_ai", "github_actions", "other")
+PLATFORM_IDS = ("google_colab", "github_actions", "other")
 SECRET_ENV_NAMES = ("SUPABASE_URL", "SUPABASE_SECRET_KEY", "SUPABASE_OWNER_ID", "HF_TOKEN", "HF_REPO_ID")
 
 
@@ -30,24 +30,16 @@ def detect_platform(
 ) -> str:
     env = dict(os.environ if environ is None else environ)
     modules = set(sys.modules if module_names is None else module_names)
-    paths = list(existing_paths) if existing_paths is not None else ["/kaggle", "/content", "/teamspace"]
+    paths = list(existing_paths) if existing_paths is not None else ["/content", "/teamspace"]
     path_exists = {str(Path(item)): Path(item).exists() for item in paths}
 
     if env.get("GITHUB_ACTIONS", "").lower() == "true":
         return "github_actions"
 
-    if any(env.get(key) for key in ("KAGGLE_KERNEL_RUN_TYPE", "KAGGLE_URL_BASE", "KAGGLE_KERNEL_INTEGRATION")):
-        return "kaggle"
-    if path_exists.get("/kaggle", False):
-        return "kaggle"
 
     if any(env.get(key) for key in ("COLAB_RELEASE_TAG", "COLAB_GPU")) or "google.colab" in modules:
         return "google_colab"
 
-    if any(env.get(key) for key in ("LIGHTNING_CLOUD_SPACE_ID", "LIGHTNING_TEAMSPACE", "LIGHTNING_USERNAME")):
-        return "lightning_ai"
-    if path_exists.get("/teamspace", False):
-        return "lightning_ai"
 
     return "other"
 
@@ -98,9 +90,7 @@ def resolve_runtime_settings(
         platform_id = "other"
 
     profiles = {
-        "kaggle": {"gpu_batch_size": 32, "cpu_batch_size": 8, "workers": 2, "cpu_threads": 4},
         "google_colab": {"gpu_batch_size": 32, "cpu_batch_size": 8, "workers": 2, "cpu_threads": 4},
-        "lightning_ai": {"gpu_batch_size": 32, "cpu_batch_size": 8, "workers": 2, "cpu_threads": 4},
         "github_actions": {"gpu_batch_size": 8, "cpu_batch_size": 8, "workers": 0, "cpu_threads": 4},
         "other": {"gpu_batch_size": 8, "cpu_batch_size": 4, "workers": 0, "cpu_threads": 2},
     }
@@ -224,8 +214,6 @@ def validate_project_config(config: Mapping[str, Any], servers: Mapping[str, Any
     supported_platforms = runtime.get("supported_platforms", [])
     if not isinstance(supported_platforms, list) or any(not isinstance(item, str) for item in supported_platforms):
         errors.append("runtime.supported_platforms must be a list of platform IDs")
-    elif "kaggle" not in supported_platforms:
-        errors.append("Kaggle must be listed as a supported manual runtime")
 
     switching = config.get("switching", {})
     if not isinstance(switching, Mapping):
@@ -234,14 +222,13 @@ def validate_project_config(config: Mapping[str, Any], servers: Mapping[str, Any
     allowlist = switching.get("platform_allowlist", [])
     if not isinstance(allowlist, list) or any(not isinstance(item, str) for item in allowlist):
         errors.append("switching.platform_allowlist must be a list of platform IDs")
-    elif "kaggle" in allowlist:
-        errors.append("Kaggle must remain excluded from automatic provider selection")
 
     manual_only = switching.get("manual_only_platforms", [])
     if not isinstance(manual_only, list) or any(not isinstance(item, str) for item in manual_only):
         errors.append("switching.manual_only_platforms must be a list of platform IDs")
-    elif "kaggle" not in manual_only:
-        errors.append("Kaggle must be explicitly marked as manual-only")
+    owner_selected = switching.get("owner_selected_remote_platforms", [])
+    if not isinstance(owner_selected, list) or any(not isinstance(item, str) for item in owner_selected):
+        errors.append("switching.owner_selected_remote_platforms must be a list of platform IDs")
 
     server_items = servers.get("servers", [])
     if not isinstance(server_items, list):
@@ -258,19 +245,6 @@ def validate_project_config(config: Mapping[str, Any], servers: Mapping[str, Any
     ):
         errors.append("Server order must be sequential")
 
-    kaggle_entries = [
-        item for item in server_items
-        if isinstance(item, Mapping) and item.get("id") == "kaggle"
-    ]
-    if len(kaggle_entries) != 1:
-        errors.append("Kaggle must exist exactly once in the server registry")
-    elif (
-        kaggle_entries[0].get("enabled") is not True
-        or kaggle_entries[0].get("manual_only") is not True
-        or str(kaggle_entries[0].get("automatic_start", "no")).lower() not in {"no", "false", "disabled"}
-        or kaggle_entries[0].get("automatic_start_enabled_by_default") is not False
-    ):
-        errors.append("Kaggle must be enabled for manual use only; automatic starts must remain disabled")
 
     fallback = config.get("server_rotation", {}).get("fallback_server_id")
     if fallback and fallback not in server_ids:

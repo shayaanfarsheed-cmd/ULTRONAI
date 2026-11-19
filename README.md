@@ -1,34 +1,22 @@
-## Latest update — 2026-11-19 (training launch and device-bound optimizer hardening)
+## Current provider decision — 2026-11-19
 
-- The isolated checkpoint recovery test now moves each source and fresh model onto the selected device **before** constructing its optimizer. It verifies that both optimizers reference exactly the parameters owned by their models and that those parameters are on the requested device.
-- CPU CI asserts the optimizer/model binding; CUDA precision recovery remains an optional test on GPU-capable runners. The owner has chosen to skip a manual Kaggle recovery run, so real Kaggle GPU recovery remains explicitly unverified.
-- **Manual training launch:** open `train.ipynb` from the repository's `main` branch in Kaggle, select an available GPU, and enable Internet so the notebook can retrieve the project source. Run the download and safe-validation cells first. Add `SUPABASE_SECRET_KEY` and `SUPABASE_OWNER_ID` only through Kaggle Secrets. Run the read-only connection-test cell with `ENABLE_BACKEND_CONNECTION_TEST = True`; confirm it succeeds. Hugging Face backup is optional; if used, configure both `HF_TOKEN` and `HF_REPO_ID` in Kaggle Secrets.
-- The final notebook cell starts real training only when `ENABLE_REAL_TRAINING = True` and `BACKEND_CONNECTION_VERIFIED` is true. Keep it false until the owner explicitly authorizes a run. Training is manual; GitHub Pages does not launch Kaggle.
-- This change does not run training, write production Supabase data, change database policies, or expose credentials. README is the handoff source of truth.
-
----
-
-## Latest update — 2026-11-19 (Kaggle backend connection verification)
-
-- Added a read-only `--connection-test` path to `train.py`. It verifies an owner-scoped read from the private `training_api.training_status` table and read access to the owner's private checkpoint Storage prefix.
-- The connection test performs no database writes, creates no run, acquires no training lease, uploads no checkpoint, and does not update model weights.
-- The Kaggle notebook now has a separate `ENABLE_BACKEND_CONNECTION_TEST` switch. Add only `SUPABASE_SECRET_KEY` and `SUPABASE_OWNER_ID` to Kaggle Secrets; the project URL is already in `config.json`. Never paste secrets into notebook code, GitHub, or chat.
-- A successful connection test is the first integration gate. The notebook still keeps `ENABLE_REAL_TRAINING = False`; real training must remain off until the full training/checkpoint/evaluation path and frontend readiness are validated and the owner explicitly approves starting it.
-- Hugging Face backup credentials remain optional as a pair (`HF_TOKEN` and `HF_REPO_ID`); Supabase remains the primary checkpoint store.
-- No production Supabase schema, RLS, Storage policy, Edge Function, or secret was changed.
-- Next step: update the Kaggle notebook from `main`, add the two required Kaggle Secrets, run the read-only backend connection test, and share its sanitized output. Then validate the training loop and checkpoint resume without starting a long training run.
+- **GitHub Actions CPU is the sole remote training provider** and the dashboard's only remote Start/Stop target.
+- Google Colab remains manual-only; it is not remotely launched or automatically controlled.
+- GitHub Actions CPU is the only remote training provider. Google Colab is manual-only; Hugging Face Hub is optional checkpoint storage.
+- Hugging Face Hub remains optional private checkpoint/artifact storage only; Hugging Face Spaces compute is not used.
+- GitHub Actions CPU training remains owner-authenticated and owner-confirmed. The workflow requires the configured private Supabase credentials, performs preflight and a read-only backend connection test before training, and relies on the existing lease/checkpoint protections.
+- No training has started. Do not start a real training run until the owner explicitly approves it. No production Supabase function or secrets were changed by this branch update.
+- **Current PR #52 remains open and unmerged**, stacked on PR #51, which is stacked on PR #50. Merge only in dependency order after review and explicit owner approval.
+- README is the handoff source of truth. Update this section and the next-step checklist at each milestone.
 
 ---
 
-## Latest update — 2026-11-19 (Kaggle manual runtime compatibility)
+## Latest provider update — 2026-11-19
 
-- Kaggle is now supported as an explicitly manual notebook runtime. It is not included in the automatic provider allowlist, and automatic starts remain disabled.
-- Kaggle runtime detection and GPU/CPU profiles are supported by `train.py`; configuration validation requires the Kaggle server entry to remain manual-only.
-- The Kaggle notebook now defaults to safe validation only. It checks preflight, model summary, and generated-data verification; it does not run optimizer steps, write checkpoints, load private credentials, or start a training session.
-- Real training remains disabled by default pending frontend/device readiness and separate explicit owner approval. The notebook's `ENABLE_REAL_TRAINING` flag is `False`.
-- The Kaggle API token (`kaggle.json`) is not required inside the notebook for this workflow. The notebook downloads source files from the public GitHub repository. An approved training session will require the Supabase secret key and owner UUID in Kaggle Secrets; never put those values in notebook source or GitHub.
-- User-reported Kaggle environment: PyTorch 2.11.0+cu130, CUDA available, two Tesla T4 devices visible. This is a notebook diagnostic, not a training benchmark.
-- Next step: run the safe notebook validation cells and inspect the output. Do not enable training until the frontend readiness gate is complete and the owner explicitly approves it.
+- GitHub Actions CPU is the only remote training provider; Google Colab is manual-only.
+- The provider registry and dashboard expose GitHub Actions CPU for remote training; Google Colab remains a manual-only option.
+- Hugging Face Hub remains optional private checkpoint/artifact storage only.
+- CI for this provider-removal revision is pending. No training has started and no production Supabase function or secret was changed.
 
 ---
 
@@ -199,7 +187,7 @@
 ## Product and security constraints
 
 - Website first; no real training until the user explicitly approves it.
-- $0 budget. No paid APIs, paid trials, billing setup, Kaggle, or phone-number-dependent setup.
+- $0 budget. No paid APIs, paid trials, billing setup, or phone-number-dependent setup.
 - No external AI inference APIs, pretrained weights, existing models, or externally generated training data. ULTRON's model, data generator, and training code are independently implemented.
 - No production Supabase schema, RLS, grants, storage, Edge Function, or secret changes without separate explicit approval.
 - Never put privileged keys, service-role secrets, or passwords in browser code, notebooks, commits, or logs.
@@ -368,8 +356,8 @@ All earlier pairing implementation notes later in this README are historical onl
 
 - PR #47 merged to `main` on 2026-11-19 (merge commit `1f80f1b473d4ecb18fd9feeb13892d3dc5a87a1b`).
 - A training session must not report a safe pause or handoff unless the latest checkpoint is durably committed to primary Supabase Storage or independently verified in the configured secondary backup.
-- If neither durable path succeeds, the worker stops training and deliberately does not release its lease; the lease expires naturally so another worker cannot race ahead from stale progress. The local checkpoint is diagnostic/recovery material only and is not treated as durable across Kaggle runtime resets.
-- Kaggle's local checkpoint directory is under `/kaggle/working/ultron-checkpoints`; it is temporary and must never be mistaken for cross-session persistence. Supabase remains the required primary durable store; Hugging Face is optional secondary backup.
+- If neither durable path succeeds, the worker stops training and deliberately does not release its lease; the lease expires naturally so another worker cannot race ahead from stale progress. The local checkpoint is diagnostic/recovery material only and is not treated as durable across provider runtime resets.
+- Worker-local checkpoint directories are temporary and must never be mistaken for cross-session persistence. Supabase remains the required primary durable store; Hugging Face Hub is optional secondary backup storage only.
 - The regression test covers failure to commit the primary checkpoint when no secondary backup is configured. Real training remains disabled.
 
 
@@ -379,16 +367,15 @@ All earlier pairing implementation notes later in this README are historical onl
 - The test saves and restores GradScaler state when FP16 is active, and compares the next update from a fresh runtime with an uninterrupted reference on the same device and precision.
 - CPU-only CI exercises the full-precision fallback. An optional CUDA test runs in GPU-enabled CI and is skipped on CPU-only runners.
 - Fake-Storage regression tests inject interrupted component upload and interrupted fresh-runtime download, then verify that only the test's own temporary prefix is cleaned.
-- Fake Storage cannot prove real Supabase permissions, network behavior, or live bucket cleanup. The Kaggle/Supabase round trip remains a separate validation requirement.
+- Fake Storage cannot prove real Supabase permissions, network behavior, or live bucket cleanup. The GitHub Actions/Supabase checkpoint round trip remains a separate validation requirement.
 - The command does not call the training-status API, acquire a production lease, modify production run pointers, or start real training.
-- Required Kaggle Secrets remain `SUPABASE_SECRET_KEY` and `SUPABASE_OWNER_ID`. Never paste or print secret values.
-- Command after pulling the PR branch in Kaggle: `!python train.py --checkpoint-recovery-test`.
+- Never paste or print provider secret values. Checkpoint recovery tests use isolated temporary storage; live provider recovery must be validated separately.
 
 ### Next steps
 
 1. Run the full repository test suite and inspect all required GitHub checks.
 2. Review the exact merged code after CI passes.
-3. Treat live Kaggle/Supabase recovery as unverified until the isolated command succeeds against the actual private bucket.
+3. Treat live GitHub Actions/Supabase recovery as unverified until the isolated command succeeds against the actual private bucket.
 4. Keep real training disabled until live recovery and the separate readiness review pass, followed by explicit user approval.
 
 
@@ -396,13 +383,15 @@ All earlier pairing implementation notes later in this README are historical onl
 
 - Added a dedicated owner-only Training Control view to the static dashboard. The iPad is the control console; compute runs on the selected provider, not on the iPad.
 - The first remotely launchable target is GitHub Actions CPU, through the existing `cpu-training.yml` workflow and the `ultron-cpu-start` repository-dispatch event.
-- Kaggle, Google Colab, Lightning AI and other providers remain explicitly manual-only. The selector does not claim that their sessions can be started remotely.
+- GitHub Actions CPU is the only remote training provider. Google Colab remains manual-only.
 - The new `training-control` Supabase Edge Function validates the signed-in Supabase user against `ULTRON_OWNER_USER_ID` before every action. It calls GitHub using a server-side `ULTRON_GITHUB_TOKEN`; no GitHub credential is present in browser code.
 - The function supports status, start and stop. Stop cancels the active GitHub Actions workflow; Pause is intentionally absent because the training worker has no safe remote pause protocol.
 - Start requires an explicit confirmation in the dashboard. It can launch a real neural training session, so do not press Start until the owner has reviewed the configured GitHub Actions secrets and explicitly intends to train.
 - This branch is stacked on PR #50 and must not be merged before PR #50. No production Supabase Edge Function has been deployed and no production secret has been changed by this code change.
 - Deployment gate: configure Supabase Edge Function secrets `ULTRON_OWNER_USER_ID` and `ULTRON_GITHUB_TOKEN`; the GitHub fine-grained token should be restricted to this repository with Actions read/write and Contents write (for repository dispatch). Deploy the function with JWT verification enabled. Verify unauthenticated and non-owner requests fail before testing any real Start action.
-- The GitHub Actions runner also requires repository variable `SUPABASE_URL` and repository secrets `SUPABASE_SECRET_KEY` plus `SUPABASE_OWNER_ID`. These are separate from Kaggle Secrets and must be configured under the repository Actions settings. Never place these values in dashboard files or notebook source.
+- The GitHub Actions runner also requires repository variable `SUPABASE_URL` and repository secrets `SUPABASE_SECRET_KEY` plus `SUPABASE_OWNER_ID`. These must be configured under the repository Actions settings. Never place these values in dashboard files or notebook source.
 - The training workflow now names each dispatched run with its server-generated request ID to improve status visibility.
 - RAM slider remains a browser preference only; it does not enforce a cloud runner memory limit.
 - Next: inspect the full diff, run CI and security regression checks, then complete the deployment checklist only after code review. Do not start training during validation.
+
+

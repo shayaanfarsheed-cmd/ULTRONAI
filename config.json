@@ -63,9 +63,7 @@
   "runtime": {
     "platform_detection": true,
     "supported_platforms": [
-      "kaggle",
       "google_colab",
-      "lightning_ai",
       "github_actions",
       "other"
     ],
@@ -221,13 +219,13 @@
       "github_actions_cpu"
     ],
     "manual_only_platforms": [
-      "google_colab",
-      "kaggle"
+      "google_colab"
     ],
     "do_not_start_when_quota_or_cost_is_uncertain": true,
     "failed_start_timeout_seconds": 1200,
     "failed_server_cooldown_seconds": 21600,
-    "quota_switch_threshold_percent": 90
+    "quota_switch_threshold_percent": 90,
+    "owner_selected_remote_platforms": []
   },
   "quota_management": {
     "warning_threshold_percent": 80,

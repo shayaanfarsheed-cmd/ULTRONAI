@@ -3,8 +3,6 @@ from __future__ import annotations
 import json
 import os
 import re
-import subprocess
-import tempfile
 import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
@@ -149,57 +147,13 @@ def select_next_server(
 def build_start_instruction(server: Mapping[str, Any], requires_manual_check: bool = False) -> str:
     server_id = str(server.get("id"))
     instructions = {
-        "kaggle": "Open Kaggle, open the ULTRON Training Control notebook, then press Run All.",
         "google_colab": "Open Colab, choose a free GPU if one is available, then select Runtime > Run all.",
-        "lightning_ai": "Open Lightning AI, open your free Studio, verify the selected hardware is free, then run the notebook.",
         "github_actions_cpu": "Open GitHub Actions, select ULTRON CPU Training, then press Run workflow.",
-        "huggingface_cpu": "Open your CPU Basic Space, start it, then launch the ULTRON training notebook.",
     }
     instruction = instructions.get(server_id, f"Open {server.get('name', server_id)} and start the ULTRON notebook.")
     if requires_manual_check:
         instruction = "Check that the free quota and hardware are available, mark this server Ready, then " + instruction[0].lower() + instruction[1:]
     return instruction
-
-
-def launch_kaggle_kernel(repository_root: str | Path, environment: Mapping[str, str] | None = None) -> bool:
-    env = dict(os.environ if environment is None else environment)
-    username = env.get("KAGGLE_USERNAME", "").strip()
-    key = env.get("KAGGLE_KEY", "").strip()
-    slug = env.get("KAGGLE_KERNEL_SLUG", "ultron-training-control").strip()
-    if not username or not key or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{1,49}", username):
-        return False
-    if not re.fullmatch(r"[a-z0-9][a-z0-9-]{1,49}", slug):
-        return False
-    root = Path(repository_root)
-    notebook = root / "train.ipynb"
-    if not notebook.is_file():
-        return False
-    with tempfile.TemporaryDirectory(prefix="ultron-kaggle-") as temporary:
-        folder = Path(temporary)
-        (folder / "train.ipynb").write_bytes(notebook.read_bytes())
-        metadata = {
-            "id": f"{username}/{slug}",
-            "title": "ULTRON Training Control",
-            "code_file": "train.ipynb",
-            "language": "python",
-            "kernel_type": "notebook",
-            "is_private": True,
-            "enable_gpu": True,
-            "enable_internet": True,
-        }
-        (folder / "kernel-metadata.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
-        try:
-            result = subprocess.run(
-                ["kaggle", "kernels", "push", "-p", str(folder)],
-                capture_output=True,
-                text=True,
-                timeout=300,
-                env=env,
-                check=False,
-            )
-        except Exception:
-            return False
-        return result.returncode == 0
 
 
 def dispatch_github_workflow(
@@ -245,6 +199,8 @@ def _auto_start_allowed(
     environment: Mapping[str, str],
 ) -> tuple[bool, str]:
     switching = config.get("switching", {})
+    if server.get("owner_remote_launch") or server.get("id") in set(switching.get("owner_selected_remote_platforms", [])):
+        return False, "This provider requires an explicit owner-confirmed launch and cannot be auto-started."
     if not bool(status_row.get("automatic_start_enabled")):
         return False, "Automatic start is disabled on the dashboard."
     if not bool(switching.get("automatic_switching_enabled", True)):
@@ -269,10 +225,6 @@ def _auto_start_allowed(
     timestamps = [item for item in timestamps if item is not None]
     if timestamps and (now - max(timestamps)).total_seconds() < cooldown:
         return False, "Automatic-start cooldown is still active."
-    if server.get("id") == "kaggle":
-        required = ("KAGGLE_USERNAME", "KAGGLE_KEY")
-        if any(not environment.get(name) for name in required):
-            return False, "Kaggle API credentials are not configured in GitHub Actions secrets."
     if server.get("id") == "github_actions_cpu":
         if not (environment.get("GITHUB_TOKEN") or environment.get("GH_TOKEN")):
             return False, "GitHub workflow dispatch token is unavailable."
@@ -469,9 +421,7 @@ def run_switcher(
         to_server=target_id,
         metadata={"automatic": True, "provider": target.get("provider")},
     )
-    if target_id == "kaggle":
-        launched = launch_kaggle_kernel(repository_root, env)
-    elif target_id == "github_actions_cpu":
+    if target_id == "github_actions_cpu":
         launched = dispatch_github_workflow(
             repository=str(env.get("GITHUB_REPOSITORY", "shayaanfarsheed-cmd/ULTRONAI")),
             workflow_file="cpu-training.yml",

@@ -88,7 +88,7 @@
               <select id="trainingServerSelect" class="training-control-select" aria-describedby="trainingServerHelp">
                 <option value="github_actions_cpu">GitHub Actions CPU · REMOTE LAUNCH</option>
               </select>
-              <p id="trainingServerHelp" class="fine-print">GitHub Actions CPU is the first supported remote launcher. Kaggle, Colab, Lightning AI and other providers remain manual-only until their launch adapters are implemented and verified.</p>
+              <p id="trainingServerHelp" class="fine-print">GitHub Actions CPU is ULTRON’s only remote training provider. Colab remains manual-only.</p>
               <div class="training-control-actions">
                 <button id="trainingStartButton" class="primary-button" type="button" disabled>Start real training</button>
                 <button id="trainingStopButton" class="secondary-button" type="button" disabled>Stop active workflow</button>
@@ -96,7 +96,7 @@
             </article>
             <article class="panel section-panel">
               <div class="eyebrow">LIVE WORKFLOW STATUS</div>
-              <h2>GitHub Actions</h2>
+              <h2 id="trainingStatusTitle">GitHub Actions</h2>
               <div class="training-control-status"><span class="status-dot status-warn"></span><strong id="trainingControlState">OWNER SIGN-IN REQUIRED</strong></div>
               <p id="trainingControlDetails" class="muted-text">Workflow status has not been requested.</p>
               <a id="trainingRunLink" class="training-control-run-link" href="https://github.com/shayaanfarsheed-cmd/ULTRONAI/actions" target="_blank" rel="noopener" hidden>Open workflow run ↗</a>
@@ -109,13 +109,13 @@
             <div class="eyebrow">SAFETY / EXECUTION LIMITS</div>
             <h2>What Start does</h2>
             <ul>
-              <li>Starts the existing ULTRON CPU workflow on a GitHub-hosted runner.</li>
-              <li>Uses the repository's configured Supabase training secrets to resume or start the neural training process.</li>
-              <li>Does not use the iPad as the compute device. The iPad is the remote owner console.</li>
-              <li>Does not launch Kaggle or Colab; those remain manual notebook sessions.</li>
-              <li>Stop requests cancellation of the active GitHub Actions workflow. There is no Pause button until a safe pause protocol is implemented.</li>
+              
+              
+              <li>GitHub Actions CPU runs the training worker; the iPad is the remote owner console.</li>
+              <li>Colab remains manual-only and is not controlled by the remote Start/Stop buttons.</li>
+              <li>Stop cancels the active GitHub Actions workflow. Only checkpoints already committed to durable storage are guaranteed to survive cancellation.</li>
             </ul>
-            <p class="fine-print">A GitHub-hosted CPU runner is not a GPU. Runtime availability, free-tier eligibility and execution limits are controlled by GitHub. The RAM preference slider elsewhere in this dashboard does not cap cloud-runner memory.</p>
+            <p class="fine-print">GitHub Actions hosted CPU runner limits apply. The RAM preference slider elsewhere in this dashboard does not cap cloud-runner memory.</p>
           </article>
         </section>
 

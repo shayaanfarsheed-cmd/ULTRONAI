@@ -157,11 +157,7 @@ def run_training_session(
 
     platform = platform_id or detect_platform()
     if checkpoint_root is None:
-        checkpoint_root = (
-            Path("/kaggle/working/ultron-checkpoints")
-            if platform == "kaggle"
-            else Path.home() / ".ultron" / "checkpoints"
-        )
+        checkpoint_root = Path.home() / ".ultron" / "checkpoints"
     server = next((item for item in servers.get("servers", []) if item.get("id") == platform), None)
     if server is None:
         server = next((item for item in servers.get("servers", []) if item.get("provider") == platform), None)

@@ -156,7 +156,7 @@ def run_checkpoint_recovery_test(
             expected_curriculum = copy.deepcopy(curriculum.state_dict())
             expected_scaler = copy.deepcopy(scaler.state_dict()) if scaler is not None else None
 
-            # A fresh local directory and fresh objects represent a new Kaggle runtime.
+            # A fresh local directory and fresh objects represent a new provider runtime.
             fresh_store = LocalCheckpointStore(fresh_dir, keep_last=1, maximum_file_bytes=maximum_file_bytes)
             downloaded = remote.download_checkpoint(owner_id, test_run_id, checkpoint_id, fresh_store)
             fresh_model, fresh_optimizer, fresh_scheduler = _make_objects(tokenizer, device)

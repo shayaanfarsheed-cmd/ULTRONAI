@@ -70,7 +70,7 @@ No migration SQL or Edge Function deployment is authorized by this guide.
 
 The training worker may require environment secrets such as `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, and `SUPABASE_OWNER_ID`. These belong only in a trusted provider/runner secret manager. They are not website configuration and must never be copied into ChatGPT, GitHub source files, notebook output, or browser storage.
 
-**Kaggle is excluded from ULTRON's active provider plan because the user declined Kaggle.** Do not create Kaggle credentials, configure Kaggle secrets, or launch Kaggle jobs. Any future provider must be confirmed as genuinely free, available without adding a payment method, and compliant with its published limits. Budget remains $0.
+GitHub Actions CPU is the only remote training provider. Google Colab is manual-only. Any future provider change requires confirmation that it is genuinely free, needs no payment method, and complies with published limits. Budget remains $0.
 
 No provider job or live training run may start without separate explicit approval.
 
