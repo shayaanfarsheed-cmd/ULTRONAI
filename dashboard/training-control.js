@@ -23,7 +23,7 @@
     node.hidden = !text;
   }
 
-  function setStatus(run) {
+  function setStatus(run, serverId) {
     const label = $("trainingControlState");
     const details = $("trainingControlDetails");
     const stop = $("trainingStopButton");
@@ -35,9 +35,11 @@
       link.hidden = true;
       return;
     }
-    label.textContent = String(run.status || "unknown").replace(/_/g, " ").toUpperCase();
-    details.textContent = [run.conclusion || "No conclusion yet", run.created_at ? new Date(run.created_at).toLocaleString() : ""].filter(Boolean).join(" · ");
+    label.textContent = String(run.status || "unknown").replace(/^KernelWorkerStatus\./, "").replace(/_/g, " ").toUpperCase();
+    details.textContent = [run.message || run.conclusion || "No conclusion yet", run.created_at ? new Date(run.created_at).toLocaleString() : ""].filter(Boolean).join(" · ");
+    $("trainingStartButton").disabled = !ownerSession();
     const active = run.status === "queued" || run.status === "in_progress";
+    stop.hidden = false;
     stop.disabled = !active || !ownerSession();
     link.href = run.html_url || "https://github.com/shayaanfarsheed-cmd/ULTRONAI/actions";
     link.hidden = !run.html_url;
@@ -64,16 +66,26 @@
 
   async function refreshStatus() {
     const startButton = $("trainingStartButton");
-    if (startButton) startButton.disabled = !ownerSession() || $("trainingServerSelect").value !== "github_actions_cpu";
+    const selectedServer = $("trainingServerSelect").value;
+    const canRemoteLaunch = selectedServer === "github_actions_cpu";
+    if (startButton) startButton.disabled = !ownerSession() || !canRemoteLaunch;
+    $("trainingStopButton").hidden = false;
+    $("trainingStatusTitle").textContent = "GitHub Actions CPU";
+    $("trainingServerHelp").textContent = "GitHub Actions CPU is ULTRON’s remote training provider. Google Colab remains a separate manual-only option.";
     if (busy) return;
+    if (selectedServer !== "github_actions_cpu") {
+      setStatus(null, selectedServer);
+      message("Google Colab is manual-only. Remote status and Start/Stop controls are available for GitHub Actions CPU.", "warn");
+      return;
+    }
     if (!ownerSession()) {
       setStatus(null);
       message("Owner sign-in is required. Public visitors cannot view private workflow activity or launch training.", "warn");
       return;
     }
     try {
-      const result = await callControl("status");
-      setStatus(result.run);
+      const result = await callControl("status", selectedServer);
+      setStatus(result.run, selectedServer);
       message("", "");
     } catch (error) {
       message(error.message, "error");
@@ -84,10 +96,11 @@
     if (busy) return;
     const serverId = $("trainingServerSelect").value;
     if (serverId !== "github_actions_cpu") {
-      message("That provider is manual-only. Choose GitHub Actions CPU for website launch.", "warn");
+      message("That provider does not have a remote launch adapter yet.", "warn");
       return;
     }
-    if (!window.confirm("Start ULTRON neural training on GitHub Actions CPU? This will use the configured training secrets and begin a real training session.")) return;
+    const confirmation = "Start ULTRON neural training on GitHub Actions CPU? This will use the configured training secrets and begin a real training session.";
+    if (!window.confirm(confirmation)) return;
     busy = true;
     $("trainingStartButton").disabled = true;
     message("Submitting the owner-approved launch request…", "");
@@ -99,16 +112,18 @@
       message(error.message, "error");
     } finally {
       busy = false;
-      $("trainingStartButton").disabled = !ownerSession();
+      $("trainingStartButton").disabled = !ownerSession() || $("trainingServerSelect").value !== "github_actions_cpu";
     }
   }
 
   async function stop() {
-    if (busy || !window.confirm("Cancel the currently queued or running ULTRON GitHub Actions workflow? The latest durable checkpoint will be retained if the training process has committed one.")) return;
+    const selectedServer = $("trainingServerSelect").value;
+    const confirmation = "Cancel the currently queued or running ULTRON GitHub Actions workflow? The latest durable checkpoint will be retained if the training process has committed one.";
+    if (busy || !window.confirm(confirmation)) return;
     busy = true;
     $("trainingStopButton").disabled = true;
     try {
-      const result = await callControl("stop");
+      const result = await callControl("stop", $("trainingServerSelect").value);
       message(result.message || (result.stopped ? "Cancellation requested." : "No active run found."), "success");
       await refreshStatus();
     } catch (error) {
@@ -129,7 +144,7 @@
       const servers = (data.servers || []).filter((server) => server.enabled !== false);
       select.innerHTML = servers.map((server) => {
         const remote = server.id === "github_actions_cpu";
-        const label = String(server.name || server.id) + (remote ? " · REMOTE LAUNCH" : " · MANUAL ONLY");
+        const label = String(server.name || server.id) + (remote ? " · OWNER REMOTE LAUNCH" : " · MANUAL ONLY");
         return '<option value="' + String(server.id).replace(/[^a-z0-9_-]/gi, "") + '">' + label.replace(/[&<>"]/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c])) + "</option>";
       }).join("");
       select.value = "github_actions_cpu";
@@ -146,12 +161,16 @@
     $("trainingServerSelect").addEventListener("change", function () {
       const canLaunch = $("trainingServerSelect").value === "github_actions_cpu" && Boolean(ownerSession());
       $("trainingStartButton").disabled = !canLaunch;
+      $("trainingStopButton").hidden = false;
+      $("trainingStatusTitle").textContent = "GitHub Actions CPU";
+      $("trainingServerHelp").textContent = "GitHub Actions CPU is ULTRON’s remote training provider. Google Colab remains a separate manual-only option.";
       message(canLaunch ? "" : "Selected provider is manual-only; open its provider page from the Servers section.", canLaunch ? "" : "warn");
+      refreshStatus();
     });
     window.addEventListener("ultron:owner-mode-changed", refreshStatus);
     loadServers().then(refreshStatus);
     if (pollTimer) window.clearInterval(pollTimer);
-    pollTimer = window.setInterval(refreshStatus, 20000);
+    pollTimer = window.setInterval(refreshStatus, 60000);
   }
 
   window.refreshTrainingControlStatus = refreshStatus;

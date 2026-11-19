@@ -2,8 +2,6 @@ name: ULTRON Server Switcher
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "*/5 * * * *"
 
 permissions:
   contents: read
@@ -30,22 +28,18 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
-          python -m pip install kaggle
 
       - name: Evaluate training state and perform an allowed switch
         env:
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           SUPABASE_OWNER_ID: ${{ secrets.SUPABASE_OWNER_ID }}
-          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
-          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
-          KAGGLE_KERNEL_SLUG: ${{ vars.KAGGLE_KERNEL_SLUG }}
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_REF_NAME: main
         run: |
-          if [[ -z "$SUPABASE_URL" || -z "$SUPABASE_SECRET_KEY" || -z "$SUPABASE_OWNER_ID" || -z "$KAGGLE_USERNAME" || -z "$KAGGLE_KEY" || -z "$KAGGLE_KERNEL_SLUG" ]]; then
-            echo "::notice::Switcher skipped safely: required Supabase or Kaggle repository configuration is not present."
+          if [[ -z "$SUPABASE_URL" || -z "$SUPABASE_SECRET_KEY" || -z "$SUPABASE_OWNER_ID" ]]; then
+            echo "::notice::Switcher skipped safely: required Supabase repository configuration is not present."
             exit 0
           fi
           python ultron_switcher.py --config config.json --servers servers.json --repository-root .

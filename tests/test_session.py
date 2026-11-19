@@ -206,9 +206,9 @@ class TrainingSessionTests(unittest.TestCase):
 
     def _servers(self):
         return {"servers": [{
-            "id": "kaggle",
-            "name": "Kaggle",
-            "limits": {"session_limit_hours": 12},
+            "id": "lightning_ai",
+            "name": "Lightning AI Free CPU",
+            "limits": {"free_studio_restart_hours": 4, "training_session_target_hours": 3.5},
         }]}
 
     def _model_factory(self, tokenizer):
@@ -231,7 +231,7 @@ class TrainingSessionTests(unittest.TestCase):
                 checkpoint_root=folder,
                 api=api,
                 remote_store=remote,
-                platform_id="kaggle",
+                platform_id="lightning_ai",
                 runtime_override={"device": "cpu", "batch_size": 2, "cpu_threads": 1, "mixed_precision": "none"},
                 model_factory=self._model_factory,
             )
@@ -252,7 +252,7 @@ class TrainingSessionTests(unittest.TestCase):
                 checkpoint_root=folder,
                 api=api,
                 remote_store=remote,
-                platform_id="kaggle",
+                platform_id="lightning_ai",
                 runtime_override={"device": "cpu", "batch_size": 2, "cpu_threads": 1, "mixed_precision": "none"},
                 model_factory=self._model_factory,
             )
@@ -269,7 +269,7 @@ class TrainingSessionTests(unittest.TestCase):
                 checkpoint_root=folder,
                 api=api,
                 remote_store=remote,
-                platform_id="kaggle",
+                platform_id="lightning_ai",
                 runtime_override={"device": "cpu", "batch_size": 2, "cpu_threads": 1, "mixed_precision": "none"},
                 model_factory=self._model_factory,
             )
@@ -313,7 +313,7 @@ class TrainingSessionTests(unittest.TestCase):
                 checkpoint_root=folder,
                 api=api,
                 remote_store=remote,
-                platform_id="kaggle",
+                platform_id="lightning_ai",
                 runtime_override={"device": "cpu", "batch_size": 2, "cpu_threads": 1, "mixed_precision": "none"},
                 model_factory=self._model_factory,
                 monotonic=clock,
@@ -347,7 +347,7 @@ class TrainingSessionTests(unittest.TestCase):
                 checkpoint_root=folder,
                 api=api,
                 remote_store=remote,
-                platform_id="kaggle",
+                platform_id="lightning_ai",
                 runtime_override={"device": "cpu", "batch_size": 2, "cpu_threads": 1, "mixed_precision": "none"},
                 model_factory=self._model_factory,
                 monotonic=lambda: 0.0,
@@ -382,7 +382,7 @@ class TrainingSessionTests(unittest.TestCase):
                 checkpoint_root=folder,
                 api=api,
                 remote_store=remote,
-                platform_id="kaggle",
+                platform_id="lightning_ai",
                 runtime_override={"device": "cpu", "batch_size": 2, "cpu_threads": 1, "mixed_precision": "none"},
                 model_factory=self._model_factory,
                 monotonic=clock,
@@ -406,7 +406,7 @@ class TrainingSessionTests(unittest.TestCase):
                 checkpoint_root=folder,
                 api=api,
                 remote_store=remote,
-                platform_id="kaggle",
+                platform_id="lightning_ai",
                 runtime_override={"device": "cpu", "batch_size": 2, "cpu_threads": 1, "mixed_precision": "none"},
                 model_factory=self._model_factory,
             )
@@ -425,7 +425,7 @@ class TrainingSessionTests(unittest.TestCase):
                 checkpoint_root=first_folder,
                 api=api,
                 remote_store=remote,
-                platform_id="kaggle",
+                platform_id="lightning_ai",
                 runtime_override={"device": "cpu", "batch_size": 2, "cpu_threads": 1, "mixed_precision": "none"},
                 max_steps_override=2,
                 model_factory=self._model_factory,
@@ -441,7 +441,7 @@ class TrainingSessionTests(unittest.TestCase):
                 checkpoint_root=second_folder,
                 api=api,
                 remote_store=remote,
-                platform_id="kaggle",
+                platform_id="lightning_ai",
                 runtime_override={"device": "cpu", "batch_size": 2, "cpu_threads": 1, "mixed_precision": "none"},
                 model_factory=self._model_factory,
             )
@@ -461,7 +461,7 @@ class TrainingSessionTests(unittest.TestCase):
                 checkpoint_root=first_folder,
                 api=api,
                 remote_store=remote,
-                platform_id="kaggle",
+                platform_id="lightning_ai",
                 runtime_override={"device": "cpu", "batch_size": 2, "cpu_threads": 1, "mixed_precision": "none"},
                 max_steps_override=2,
                 model_factory=self._model_factory,
@@ -477,7 +477,7 @@ class TrainingSessionTests(unittest.TestCase):
                 checkpoint_root=second_folder,
                 api=api,
                 remote_store=remote,
-                platform_id="kaggle",
+                platform_id="lightning_ai",
                 runtime_override={"device": "cpu", "batch_size": 2, "cpu_threads": 1, "mixed_precision": "none"},
                 max_steps_override=2,
                 model_factory=self._model_factory,
@@ -504,7 +504,7 @@ class TrainingSessionTests(unittest.TestCase):
                 checkpoint_root=folder,
                 api=api,
                 remote_store=remote,
-                platform_id="kaggle",
+                platform_id="lightning_ai",
                 runtime_override={"device": "cpu", "batch_size": 2, "cpu_threads": 1, "mixed_precision": "none"},
                 max_steps_override=2,
                 model_factory=self._model_factory,
@@ -528,7 +528,7 @@ class TrainingSessionTests(unittest.TestCase):
                 checkpoint_root=folder,
                 api=api,
                 remote_store=remote,
-                platform_id="kaggle",
+                platform_id="lightning_ai",
                 runtime_override={"device": "cpu", "batch_size": 2, "cpu_threads": 1, "mixed_precision": "none"},
                 model_factory=self._model_factory,
             )

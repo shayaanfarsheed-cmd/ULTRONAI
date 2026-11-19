@@ -320,19 +320,19 @@ class SupabaseLeaseTests(unittest.TestCase):
             }
 
     def test_first_worker_acquires_new_lease(self):
-        result = self.api.acquire_lease("run-1", "Kaggle", "worker-a", ttl_seconds=120)
+        result = self.api.acquire_lease("run-1", "Lightning CPU", "worker-a", ttl_seconds=120)
         self.assertTrue(result.acquired)
         self.assertEqual(result.fencing_token, 1)
         self.assertEqual(self.client.rows["run-1"]["lease_holder"], "worker-a")
 
     def test_second_worker_waits_while_lease_is_valid(self):
-        self.api.acquire_lease("run-1", "Kaggle", "worker-a", ttl_seconds=120)
+        self.api.acquire_lease("run-1", "Lightning CPU", "worker-a", ttl_seconds=120)
         result = self.api.acquire_lease("run-1", "Colab", "worker-b", ttl_seconds=120)
         self.assertFalse(result.acquired)
         self.assertEqual(result.lease_holder, "worker-a")
 
     def test_expired_lease_takeover_increments_fencing_token(self):
-        self.api.acquire_lease("run-1", "Kaggle", "worker-a", ttl_seconds=120)
+        self.api.acquire_lease("run-1", "Lightning CPU", "worker-a", ttl_seconds=120)
         self.client.rows["run-1"]["lease_expires_at"] = iso_utc(utc_now() - timedelta(seconds=5))
         result = self.api.acquire_lease("run-1", "Colab", "worker-b", ttl_seconds=120)
         self.assertTrue(result.acquired)
@@ -340,14 +340,14 @@ class SupabaseLeaseTests(unittest.TestCase):
         self.assertEqual(self.client.rows["run-1"]["lease_holder"], "worker-b")
 
     def test_old_worker_cannot_renew_after_takeover(self):
-        self.api.acquire_lease("run-1", "Kaggle", "worker-a", ttl_seconds=120)
+        self.api.acquire_lease("run-1", "Lightning CPU", "worker-a", ttl_seconds=120)
         self.client.rows["run-1"]["lease_expires_at"] = iso_utc(utc_now() - timedelta(seconds=5))
         self.api.acquire_lease("run-1", "Colab", "worker-b", ttl_seconds=120)
         renewed = self.api.renew_lease("run-1", "worker-a", 1, ttl_seconds=120)
         self.assertFalse(renewed)
 
     def test_checkpoint_commit_requires_current_lease(self):
-        self.api.acquire_lease("run-1", "Kaggle", "worker-a", ttl_seconds=120)
+        self.api.acquire_lease("run-1", "Lightning CPU", "worker-a", ttl_seconds=120)
         result = self.api.commit_checkpoint(
             "run-1",
             "worker-a",
@@ -381,7 +381,7 @@ class SupabaseLeaseTests(unittest.TestCase):
             )
 
     def test_release_clears_lease_and_preserves_run(self):
-        self.api.acquire_lease("run-1", "Kaggle", "worker-a", ttl_seconds=120)
+        self.api.acquire_lease("run-1", "Lightning CPU", "worker-a", ttl_seconds=120)
         self.assertTrue(self.api.release_lease("run-1", "worker-a", 1, "handoff_needed"))
         row = self.client.rows["run-1"]
         self.assertIsNone(row["lease_holder"])
@@ -389,14 +389,14 @@ class SupabaseLeaseTests(unittest.TestCase):
         self.assertEqual(row["state"], "handoff_needed")
 
     def test_new_run_cannot_take_second_lease_for_same_owner(self):
-        self.api.acquire_lease("run-1", "Kaggle", "worker-a", ttl_seconds=120)
+        self.api.acquire_lease("run-1", "Lightning CPU", "worker-a", ttl_seconds=120)
         result = self.api.acquire_lease("run-2", "Colab", "worker-b", ttl_seconds=120)
         self.assertFalse(result.acquired)
         self.assertEqual(result.run_id, "run-1")
 
     def test_session_log_start_and_end(self):
-        self.api.acquire_lease("run-1", "Kaggle", "worker-a", ttl_seconds=120)
-        session_id = self.api.start_session("run-1", "Kaggle")
+        self.api.acquire_lease("run-1", "Lightning CPU", "worker-a", ttl_seconds=120)
+        session_id = self.api.start_session("run-1", "Lightning CPU")
         self.assertTrue(self.api.end_session(session_id, 120.5, "handoff"))
         self.assertEqual(self.client.logs[0]["gpu_seconds"], 120.5)
         self.assertEqual(self.client.logs[0]["end_reason"], "handoff")
@@ -427,8 +427,8 @@ class SupabaseLeaseTests(unittest.TestCase):
         self.assertIn("/rest/v1/training_status", captured["request"].full_url)
 
     def test_switch_request_is_completed_on_target_first_heartbeat(self):
-        self.api.acquire_lease("run-1", "Kaggle", "worker-a", ttl_seconds=120)
-        request_id = self.api.create_switch_request("run-1", "kaggle", "google_colab", "user_requested")
+        self.api.acquire_lease("run-1", "Lightning CPU", "worker-a", ttl_seconds=120)
+        request_id = self.api.create_switch_request("run-1", "lightning_ai", "google_colab", "user_requested")
         self.assertEqual(len(self.client.switches), 1)
         self.api.assign_switch_target(request_id, "google_colab", {"manual": True})
         completed = self.api.mark_switch_requests_done("run-1", "google_colab")
@@ -436,15 +436,15 @@ class SupabaseLeaseTests(unittest.TestCase):
         self.assertEqual(self.client.switches[0]["result"], "done")
 
     def test_server_status_updates_only_the_requested_server_entry(self):
-        self.api.acquire_lease("run-1", "Kaggle", "worker-a", ttl_seconds=120)
+        self.api.acquire_lease("run-1", "Lightning CPU", "worker-a", ttl_seconds=120)
         self.assertTrue(self.api.update_server_status(
             "run-1",
-            "kaggle",
+            "lightning_ai",
             "unavailable_until",
             reason="maintenance",
             unavailable_until="2026-11-18T12:00:00Z",
         ))
-        status = self.client.rows["run-1"]["server_statuses"]["kaggle"]
+        status = self.client.rows["run-1"]["server_statuses"]["lightning_ai"]
         self.assertEqual(status["status"], "unavailable_until")
         self.assertEqual(status["reason"], "maintenance")
 

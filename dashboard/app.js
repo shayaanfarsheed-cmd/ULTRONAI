@@ -659,12 +659,8 @@
     title.textContent = derived === "dead" ? "The previous run appears dead" : "Handoff needed";
     if (server.id === "github_actions_cpu") {
       text.textContent = status.automatic_start_enabled ? "CPU fallback is only a provider option; training must be started inside the provider session." : "Open GitHub Actions, select ULTRON CPU Training, and press Run workflow.";
-    } else if (server.id === "kaggle") {
-      text.textContent = status.automatic_start_enabled ? "Open the provider notebook and make any training decision inside that session." : "Open Kaggle, choose the free GPU if available, and press Run All.";
     } else if (server.id === "google_colab") {
       text.textContent = "Open Colab, select a free GPU if offered, then press Runtime → Run all.";
-    } else if (server.id === "lightning_ai") {
-      text.textContent = "Open Lightning AI, confirm the Studio is free, then open train.py and run it.";
     } else {
       text.textContent = "Open the selected free server and run the ULTRON training entry point.";
     }

@@ -77,30 +77,19 @@ class FakeSwitchAPI:
 def sample_servers():
     return [
         {
-            "id": "kaggle",
-            "order": 1,
-            "name": "Kaggle",
-            "role": "primary_gpu",
-            "enabled": True,
-            "current_status": "unknown",
-            "automatic_start": "yes",
-            "notebook_open_url": "https://www.kaggle.com/code",
-            "limits": {"quota_period": "weekly", "weekly_gpu_hours_baseline": 30},
-        },
-        {
             "id": "google_colab",
-            "order": 2,
+            "order": 1,
             "name": "Google Colab",
-            "role": "backup_gpu",
+            "role": "manual_gpu_runtime",
             "enabled": True,
             "current_status": "unknown",
             "automatic_start": "no",
             "notebook_open_url": "https://colab.research.google.com/",
-            "limits": {"quota_period": "dynamic", "session_limit_hours": 12},
+            "limits": {"quota_period": "weekly", "weekly_gpu_hours_baseline": 30},
         },
         {
             "id": "github_actions_cpu",
-            "order": 3,
+            "order": 2,
             "name": "GitHub Actions CPU",
             "role": "cpu_fallback",
             "enabled": True,
@@ -116,17 +105,16 @@ class SwitcherTests(unittest.TestCase):
     def test_weekly_quota_usage_uses_gpu_seconds_and_period(self):
         now = datetime(2026, 11, 17, 12, 0, tzinfo=timezone.utc)
         logs = [{
-            "server_name": "Kaggle",
+            "server_name": "Google Colab",
             "started_at": "2026-11-16T08:00:00Z",
             "ended_at": "2026-11-16T11:00:00Z",
             "gpu_seconds": 27 * 3600,
-            "details": {"server_id": "kaggle", "compute_device": "cuda"},
+            "details": {"server_id": "google_colab", "compute_device": "cuda"},
         }]
         usage = calculate_quota_usage(sample_servers(), logs, now)
-        self.assertEqual(usage["kaggle"]["used_hours"], 27.0)
-        self.assertEqual(usage["kaggle"]["usage_percent"], 90.0)
-        self.assertTrue(usage["kaggle"]["warning"])
-        self.assertIsNone(usage["google_colab"]["usage_percent"])
+        self.assertEqual(usage["google_colab"]["used_hours"], 27.0)
+        self.assertEqual(usage["google_colab"]["usage_percent"], 90.0)
+        self.assertTrue(usage["google_colab"]["warning"])
 
     def test_selector_picks_first_ready_server_in_order(self):
         servers = sample_servers()
@@ -135,7 +123,6 @@ class SwitcherTests(unittest.TestCase):
             servers,
             statuses,
             {},
-            exclude_server_id="kaggle",
             fallback_server_id="github_actions_cpu",
         )
         self.assertEqual(decision["server"]["id"], "google_colab")
@@ -147,7 +134,6 @@ class SwitcherTests(unittest.TestCase):
             servers,
             statuses,
             {},
-            exclude_server_id="kaggle",
             fallback_server_id="github_actions_cpu",
         )
         self.assertEqual(decision["server"]["id"], "github_actions_cpu")
@@ -162,7 +148,7 @@ class SwitcherTests(unittest.TestCase):
         decision = select_next_server(
             servers,
             statuses,
-            {"kaggle": {"usage_percent": 95}},
+            {"google_colab": {"usage_percent": 95}},
             threshold_percent=90,
             exclude_server_id=None,
             fallback_server_id="github_actions_cpu",
@@ -175,7 +161,7 @@ class SwitcherTests(unittest.TestCase):
         status = {
             "run_id": "run-1",
             "state": "handoff_needed",
-            "current_server": "Kaggle",
+            "current_server": "Google Colab",
             "lease_expires_at": None,
             "last_heartbeat_at": "2026-11-17T11:00:00Z",
             "automatic_start_enabled": False,
@@ -192,27 +178,27 @@ class SwitcherTests(unittest.TestCase):
         }
         result = run_switcher(config, {"servers": sample_servers()}, api=api, environment={}, now=now)
         self.assertEqual(result["state"], "guided_switch")
-        self.assertEqual(result["target_server"], "google_colab")
-        self.assertIn("Runtime > Run all", result["instruction"])
-        self.assertEqual(api.requests[0]["to_server"], "google_colab")
+        self.assertEqual(result["target_server"], "github_actions_cpu")
+        self.assertIn("GitHub Actions", result["instruction"])
+        self.assertEqual(api.requests[0]["to_server"], "github_actions_cpu")
 
     def test_quota_at_ninety_percent_requests_handoff(self):
         now = datetime(2026, 11, 17, 12, 0, tzinfo=timezone.utc)
         status = {
             "run_id": "run-1",
             "state": "running",
-            "current_server": "Kaggle",
+            "current_server": "Google Colab",
             "lease_expires_at": "2026-11-17T12:05:00Z",
             "last_heartbeat_at": "2026-11-17T11:59:30Z",
             "automatic_start_enabled": False,
             "server_statuses": {},
         }
         logs = [{
-            "server_name": "Kaggle",
+            "server_name": "Google Colab",
             "started_at": "2026-11-16T08:00:00Z",
             "ended_at": "2026-11-16T11:00:00Z",
             "gpu_seconds": 27 * 3600,
-            "details": {"server_id": "kaggle", "compute_device": "cuda"},
+            "details": {"server_id": "google_colab", "compute_device": "cuda"},
         }]
         api = FakeSwitchAPI(status, logs=logs)
         config = {
@@ -225,20 +211,20 @@ class SwitcherTests(unittest.TestCase):
         self.assertEqual(api.created[0]["reason"], "quota")
 
     def test_auto_start_requires_dashboard_toggle_ready_status_and_credentials(self):
-        server = sample_servers()[0]
+        server = sample_servers()[1]
         allowed, _ = _auto_start_allowed(
             server,
             {"status": "ready"},
             {"automatic_start_enabled": True},
             {"switching": {
                 "automatic_switching_enabled": True,
-                "platform_allowlist": ["kaggle"],
+                "platform_allowlist": ["github_actions_cpu"],
                 "maximum_automatic_starts_per_day": 3,
                 "automatic_start_cooldown_seconds": 1200,
             }},
             [],
             datetime(2026, 11, 17, tzinfo=timezone.utc),
-            {"KAGGLE_USERNAME": "example_user", "KAGGLE_KEY": "example_key"},
+            {"GITHUB_TOKEN": "test-token"},
         )
         self.assertTrue(allowed)
 

@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "project": "ULTRON Training Control",
-  "updated_at": "2026-11-17",
+  "updated_at": "2026-11-19",
   "status_model": {
     "initial_status": "unknown",
     "allowed_statuses": [
@@ -45,73 +45,58 @@
   },
   "servers": [
     {
-      "id": "kaggle",
+      "id": "github_actions_cpu",
       "order": 1,
-      "name": "Kaggle Notebooks",
-      "provider": "kaggle",
-      "role": "manual_gpu_runtime",
+      "name": "GitHub Actions CPU Fallback",
+      "provider": "github_actions",
+      "role": "primary_cpu_runtime",
       "enabled": true,
-      "notebook_open_url": "https://www.kaggle.com/code",
-      "notebook_source_url": "https://github.com/shayaanfarsheed-cmd/ULTRONAI/blob/main/train.ipynb",
-      "documentation_url": "https://www.kaggle.com/docs/notebooks",
-      "terms_url": "https://www.kaggle.com/terms",
+      "notebook_open_url": "https://github.com/shayaanfarsheed-cmd/ULTRONAI/actions",
+      "notebook_source_url": "https://github.com/shayaanfarsheed-cmd/ULTRONAI/blob/main/train.py",
+      "documentation_url": "https://docs.github.com/en/actions",
+      "terms_url": "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
       "hardware": {
-        "default_cpu": {
-          "cores": 4,
-          "memory_gb": 30
-        },
-        "free_gpu_options": [
-          {
-            "name": "NVIDIA Tesla P100",
-            "gpus": 1,
-            "cpu_cores": 4,
-            "memory_gb": 29
-          },
-          {
-            "name": "NVIDIA Tesla T4",
-            "gpus": 2,
-            "cpu_cores": 4,
-            "memory_gb": 29
-          }
-        ],
-        "cpu_fallback": true,
-        "gpu_availability": "limited_and_may_queue"
+        "runner_label": "ubuntu-latest",
+        "cpu_cores": 4,
+        "memory_gb": 16,
+        "storage_gb": 14,
+        "gpu_memory_gb": 0,
+        "cpu_only": true
       },
       "limits": {
-        "session_limit_hours": 12,
-        "tpu_session_limit_hours": 9,
-        "weekly_gpu_hours_baseline": 30,
-        "weekly_gpu_hours_can_be_higher": true,
-        "quota_period": "weekly",
-        "phone_verification_required_for_gpu": true,
-        "monthly_gpu_quota": null,
-        "quota_notes": "Kaggle documents 30 GPU hours per week or sometimes higher depending on demand and resources. The 12-hour limit applies to CPU/GPU notebook sessions; TPU sessions are limited to 9 hours.",
-        "training_session_target_hours": 11.5
+        "job_execution_limit_hours": 6,
+        "standard_runner_cost_for_public_repository": 0,
+        "standard_runner_minutes_for_public_repository": "unlimited",
+        "artifact_storage_mb_in_account_plan": 500,
+        "quota_period": "public_repository_standard_runner",
+        "quota_notes": "Standard GitHub-hosted runners are free and unlimited for public repositories. Each workflow job can execute for up to 6 hours. Avoid storing checkpoints as Actions artifacts; use the configured checkpoint storage.",
+        "training_session_target_hours": 5.5
       },
-      "automatic_start": "no",
+      "automatic_start": "yes",
       "start_steps": [
-        "Open the private ULTRON-Training-Engine notebook in Kaggle.",
-        "Run the validation cells first; they do not start training.",
-        "Only after separate owner approval, add the required Supabase credentials to Kaggle Secrets and explicitly enable the training cell."
+        "Open the repository Actions tab and select the ULTRON CPU training workflow.",
+        "For a guided start, press Run workflow.",
+        "The switcher may trigger this workflow through the official workflow_dispatch event after quota, cooldown and lease checks.",
+        "The worker resumes from the newest committed and verified cloud checkpoint."
       ],
-      "current_status": "manual_only",
-      "status_reason": "Enabled for manually launched Kaggle notebook sessions only. Automatic provider selection and automatic starts remain disabled.",
+      "current_status": "unknown",
+      "status_reason": "Primary free CPU training provider; owner-triggered launch through GitHub Actions.",
       "sources": [
-        "https://www.kaggle.com/docs/notebooks",
-        "https://www.kaggle.com/docs/efficient-gpu-usage",
-        "https://www.kaggle.com/docs/api",
-        "https://www.kaggle.com/terms"
+        "https://docs.github.com/en/actions/how-tos/write-workflows/choose-where-workflows-run/choose-the-runner-for-a-job",
+        "https://docs.github.com/en/actions/reference/limits",
+        "https://docs.github.com/en/actions/concepts/billing-and-usage",
+        "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
+        "https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#workflow_dispatch"
       ],
       "last_reviewed": "2026-11-17",
-      "automatic_start_enabled_by_default": false,
-      "manual_only": true
+      "automatic_start_enabled_by_default": false
     },
     {
       "id": "google_colab",
       "order": 2,
       "name": "Google Colab Free",
       "provider": "google_colab",
-      "role": "backup_gpu",
+      "role": "manual_gpu_runtime",
       "enabled": true,
       "notebook_open_url": "https://colab.research.google.com/",
       "notebook_source_url": "https://colab.research.google.com/github/shayaanfarsheed-cmd/ULTRONAI/blob/main/train.ipynb",
@@ -148,145 +133,6 @@
       ],
       "last_reviewed": "2026-11-17",
       "automatic_start_enabled_by_default": false
-    },
-    {
-      "id": "lightning_ai",
-      "order": 3,
-      "name": "Lightning AI Studios Free",
-      "provider": "lightning_ai",
-      "role": "conditional_backup",
-      "enabled": true,
-      "notebook_open_url": "https://lightning.ai/",
-      "notebook_source_url": "https://github.com/shayaanfarsheed-cmd/ULTRONAI/blob/main/train.py",
-      "documentation_url": "https://studio.lightning.ai/pricing/",
-      "terms_url": "https://lightning.ai/terms",
-      "hardware": {
-        "default_free_cpu": {
-          "cores": 4,
-          "memory_gb": 16
-        },
-        "maximum_cpu_cores_listed_on_free_plan": 32,
-        "gpu_hardware": "available_only_when_covered_by_free_credits_or_explicitly_free",
-        "cpu_fallback": true
-      },
-      "limits": {
-        "active_free_cpu_studios": 1,
-        "free_studio_restart_hours": 4,
-        "free_credits_at_registration_without_payment_card": 5,
-        "additional_credits_listed": 25,
-        "additional_credits_require_payment_card": true,
-        "maximum_advertised_initial_credits": 30,
-        "monthly_recurring_free_credits": 0,
-        "quota_period": "initial_credits_not_monthly",
-        "gpu_hours": null,
-        "quota_notes": "The Free plan lists one active free CPU Studio with 4-hour restarts. The FAQ states 5 credits at registration; 25 additional credits require adding a card. Credits are not a recurring monthly allowance. No payment method will be added for ULTRON.",
-        "credits_notes": "The free offer is a limited credit allocation, not a guaranteed monthly recurring GPU quota. Verify the balance and hardware price in the account before each run.",
-        "training_session_target_hours": 3.5
-      },
-      "automatic_start": "conditional",
-      "start_steps": [
-        "Sign in to Lightning AI and open the browser Studio.",
-        "Use the Free default CPU Studio unless free credits and a free GPU option are explicitly confirmed.",
-        "Open the repository train.py in the Studio browser terminal or editor.",
-        "Store Supabase credentials in environment secrets, not files."
-      ],
-      "current_status": "unknown",
-      "status_reason": "Studio availability and remaining free credits must be checked in the user's account.",
-      "sources": [
-        "https://studio.lightning.ai/pricing/",
-        "https://studio.lightning.ai/docs/platform/developers/sdk/studio/",
-        "https://lightning.ai/terms"
-      ],
-      "last_reviewed": "2026-11-17",
-      "automatic_start_enabled_by_default": false
-    },
-    {
-      "id": "github_actions_cpu",
-      "order": 4,
-      "name": "GitHub Actions CPU Fallback",
-      "provider": "github_actions",
-      "role": "cpu_fallback",
-      "enabled": true,
-      "notebook_open_url": "https://github.com/shayaanfarsheed-cmd/ULTRONAI/actions",
-      "notebook_source_url": "https://github.com/shayaanfarsheed-cmd/ULTRONAI/blob/main/train.py",
-      "documentation_url": "https://docs.github.com/en/actions",
-      "terms_url": "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
-      "hardware": {
-        "runner_label": "ubuntu-latest",
-        "cpu_cores": 4,
-        "memory_gb": 16,
-        "storage_gb": 14,
-        "gpu_memory_gb": 0,
-        "cpu_only": true
-      },
-      "limits": {
-        "job_execution_limit_hours": 6,
-        "standard_runner_cost_for_public_repository": 0,
-        "standard_runner_minutes_for_public_repository": "unlimited",
-        "artifact_storage_mb_in_account_plan": 500,
-        "quota_period": "public_repository_standard_runner",
-        "quota_notes": "Standard GitHub-hosted runners are free and unlimited for public repositories. Each workflow job can execute for up to 6 hours. Avoid storing checkpoints as Actions artifacts; use the configured checkpoint storage.",
-        "training_session_target_hours": 5.5
-      },
-      "automatic_start": "yes",
-      "start_steps": [
-        "Open the repository Actions tab and select the ULTRON CPU training workflow.",
-        "For a guided start, press Run workflow.",
-        "The switcher may trigger this workflow through the official workflow_dispatch event after quota, cooldown and lease checks.",
-        "The worker resumes from the newest committed and verified cloud checkpoint."
-      ],
-      "current_status": "unknown",
-      "status_reason": "Workflow will be ready after cpu-training.yml is installed and the required GitHub Actions secrets are configured.",
-      "sources": [
-        "https://docs.github.com/en/actions/how-tos/write-workflows/choose-where-workflows-run/choose-the-runner-for-a-job",
-        "https://docs.github.com/en/actions/reference/limits",
-        "https://docs.github.com/en/actions/concepts/billing-and-usage",
-        "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
-        "https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#workflow_dispatch"
-      ],
-      "last_reviewed": "2026-11-17",
-      "automatic_start_enabled_by_default": false
-    },
-    {
-      "id": "huggingface_cpu",
-      "order": 5,
-      "name": "Hugging Face Spaces CPU Basic",
-      "role": "secondary_cpu_fallback",
-      "enabled": true,
-      "current_status": "unknown",
-      "automatic_start": "no",
-      "automatic_start_enabled_by_default": false,
-      "notebook_url": "https://huggingface.co/spaces",
-      "documentation_url": "https://huggingface.co/docs/hub/spaces-overview",
-      "hardware": {
-        "preferred": "cpu_basic",
-        "cpu_cores": 2,
-        "memory_gb": 16,
-        "gpu_memory_gb": 0,
-        "disk_gb": 50,
-        "disk_persistent": false
-      },
-      "limits": {
-        "session_hours": null,
-        "gpu_hours": 0,
-        "quota_period": "not_applicable",
-        "quota_notes": "CPU Basic is listed as 2 vCPU, 16 GB RAM and 50 GB non-persistent disk at no hourly hardware cost. Confirm account and Space eligibility before relying on it. This is a slow CPU fallback, not a GPU server.",
-        "training_session_target_hours": 5.5
-      },
-      "start_notes": [
-        "Use only CPU Basic hardware; do not upgrade to paid hardware.",
-        "Confirm the account permits the required compute Space before setup.",
-        "Treat local Space disk as temporary and upload verified checkpoints externally.",
-        "Use for validation or short CPU runs rather than expecting GPU training speed."
-      ],
-      "sources": [
-        "https://huggingface.co/docs/hub/spaces-overview"
-      ],
-      "last_reviewed": "2026-11-17",
-      "provider": "huggingface_spaces",
-      "notebook_open_url": "https://huggingface.co/spaces",
-      "notebook_source_url": "https://github.com/shayaanfarsheed-cmd/ULTRONAI/blob/main/train.ipynb",
-      "status_reason": "Space has not yet been created in the user's Hugging Face account."
     }
   ],
   "status_values": [
