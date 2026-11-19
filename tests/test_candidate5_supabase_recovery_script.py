@@ -35,6 +35,9 @@ class Candidate5SupabaseRecoveryScriptTest(unittest.TestCase):
         }
         checks = {
             "remote_upload_and_manifest_verified": True,
+            "corrupted_checkpoint_rejected": True,
+            "missing_checkpoint_component_rejected": True,
+            "valid_checkpoint_accepted_after_fault_repair": True,
             "fresh_runtime_download_and_integrity_verified": True,
             "model_weights_match_uninterrupted_run": True,
             "optimizer_state_matches_uninterrupted_run": True,
