@@ -105,6 +105,10 @@ def run_benchmark(
         weight_decay=float(training.get("weight_decay", 0.1)),
         foreach=bool(training.get("adamw_foreach", False)),
     )
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimizer,
+        T_max=max(1, int(training.get("maximum_training_steps", 100000))),
+    )
 
     durations: list[float] = []
     losses: list[float] = []
@@ -127,6 +131,7 @@ def run_benchmark(
         elapsed = time.perf_counter() - started
         if not torch.isfinite(torch.tensor(loss)):
             raise RuntimeError("Benchmark produced a non-finite loss")
+        scheduler.step()
         if index >= warmup:
             durations.append(elapsed)
             losses.append(loss)
