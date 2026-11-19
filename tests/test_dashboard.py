@@ -16,6 +16,27 @@ class DashboardStaticTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def test_browser_math_agent_behaviour(self):
+        result = subprocess.run(
+            ["node", "--test", str(ROOT / "tests" / "math_agent.test.js")],
+            cwd=ROOT, capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_math_agent_view_is_public_bounded_and_explicit_about_training(self):
+        html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
+        agent = (DASHBOARD / "math-agent.js").read_text(encoding="utf-8")
+        self.assertIn('data-view="math"', html)
+        self.assertIn('id="view-math"', html)
+        self.assertIn('id="mathAgentForm"', html)
+        self.assertIn('id="mathStartButton"', html)
+        self.assertIn('id="mathStopButton"', html)
+        self.assertIn('id="mathResetButton"', html)
+        self.assertIn("MAX 5,000 QUESTIONS", html)
+        self.assertIn("does not update model weights", html)
+        self.assertIn("function verify(topic, question, answer)", agent)
+        self.assertIn("BigInt", agent)
+
     def test_dashboard_keyboard_and_mobile_accessibility_hooks(self):
         html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
