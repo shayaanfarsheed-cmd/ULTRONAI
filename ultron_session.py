@@ -268,7 +268,7 @@ def run_training_session(
         lr=float(training_settings.get("learning_rate", 0.0003)),
         weight_decay=float(training_settings.get("weight_decay", 0.1)),
         # Foreach batches small optimizer operations; can be disabled in config.
-        foreach=training_settings.get("adamw_foreach", device != "cpu"),
+        foreach=training_settings.get("adamw_foreach", False),
     )
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
         optimizer,
