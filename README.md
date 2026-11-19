@@ -1,11 +1,11 @@
-## Latest update — 2026-11-19 (verified self-learning dry-run)
+## Latest update — 2026-11-19 (verified self-learning architecture)
 
 - PR #35 merged at `d8dcdd72b95c94538985132cb055cf227b69eb26`; its three required CI workflows passed and the GitHub Pages build/deployment workflow completed successfully.
 - Data Library limits on `main`: 50,000 files per upload, 20 MiB per file, 5,000 MiB (5 GiB) total per batch, and 12 path levels. Uploads remain owner-only and storage-only.
-- The existing from-scratch generator covers 14 supported maths topics and the independent verifier checks generated examples. New `ultron_self_learning.py` connects them in a bounded, deterministic generation-and-verification dry run.
-- The dry run reports accepted/rejected candidates and topic/difficulty counts, uses the existing deterministic 80/10/10 question-hash split, and excludes rejected candidates from accepted examples.
-- This stage does not write datasets to disk, modify model weights, invoke the trainer, or start training. A successful dry run is not evidence that the model has learned.
-- New regression coverage: `tests/test_self_learning.py`. Validate the new PR before merging; update this README at each milestone.
+- PR #36 adds `ultron_self_learning.py`, a bounded deterministic generation-and-independent-verification dry run, with regression tests for deterministic output, split isolation, corrupted examples, generator failures and safety boundaries. CI was started; results must pass before merge.
+- The learning architecture is documented in `docs/SELF_LEARNING_ARCHITECTURE.md`: verifier feedback, curated synthetic data, targeted model updates, persistent memory/retrieval, test-time self-verification, anti-forgetting replay, held-out evaluation and anti-collapse/reward-hacking checks.
+- Training remains disabled in this stage. The dry run does not write datasets, modify weights or invoke the trainer. No LoRA/adapters are assumed; consider them only after a trained baseline exists and the model architecture supports them.
+- Next gates: validate the dry-run pipeline; build held-out baseline evaluation; add inspectable memory/retrieval; add answer-time verification; only then propose bounded training for explicit owner approval.
 
 ---
 
