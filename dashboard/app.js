@@ -1335,7 +1335,7 @@
       entry.path = safeDataRelativePath(entry.path);
       totalBytes += entry.file.size;
     });
-    if (totalBytes > 500 * 1024 * 1024) throw new Error("This selection exceeds 500 MiB. Split it into smaller folders.");
+    if (totalBytes > 5000 * 1024 * 1024) throw new Error("This selection exceeds 5,000 MiB (5 GiB). Split it into smaller folders.");
     const button = $("dataUploadButton");
     if (state.dataLibraryBusy) return;
     state.dataLibraryBusy = true;
