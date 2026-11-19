@@ -496,7 +496,6 @@ class TrainingSessionTests(unittest.TestCase):
         api = FakeAPI()
         remote = RemoteCheckpointStore(FailingStorage(), keep_last=3)
         config = self._config()
-        config["persistence"]["checkpoint_interval_seconds"] = 0
         with tempfile.TemporaryDirectory() as folder:
             result = run_training_session(
                 config,
