@@ -92,6 +92,26 @@ MATH_KNOWLEDGE: dict[str, dict[str, str]] = {
         "rule": "Probability = favourable outcomes / total equally likely outcomes.",
         "method": "Form the favourable-to-total fraction and reduce it.",
     },
+    "median_and_range": {
+        "concept": "Median and range",
+        "rule": "The median is the middle value after sorting; range is maximum minus minimum.",
+        "method": "Sort the five values, select the third, then subtract the smallest from the largest.",
+    },
+    "simple_interest": {
+        "concept": "Simple interest",
+        "rule": "Simple interest I = principal × rate × time / 100.",
+        "method": "Multiply principal, percentage rate and years, then divide by 100.",
+    },
+    "unit_conversion": {
+        "concept": "Metric unit conversion",
+        "rule": "Convert using the exact scale factor between the supported metric units.",
+        "method": "Multiply the amount by the conversion factor.",
+    },
+    "pythagorean_theorem": {
+        "concept": "Pythagorean theorem",
+        "rule": "For a right triangle, the hypotenuse squared equals the sum of the squares of the legs.",
+        "method": "Add the squared legs and take the exact integer square root.",
+    },
 }
 
 
@@ -268,12 +288,20 @@ def solve_question(topic: str, question: str) -> dict[str, Any]:
         ]
 
     elif topic == "exponents_and_roots":
-        square = re.fullmatch(r"Calculate: (\d+) \*\* 2", question)
+        power = re.fullmatch(r"Calculate: (\d+) \*\* (\d+)", question)
         root = re.fullmatch(r"Calculate: sqrt\((\d+)\)", question)
-        if square:
-            base = int(square.group(1))
-            result = base * base
-            steps = [f"Step 1: Multiply {base} by itself.", f"Step 2: {base} ** 2 = {result}."]
+        if power:
+            base, exponent = map(int, power.groups())
+            if not 2 <= exponent <= 8:
+                raise AgentInputError("Exponent must be between 2 and 8")
+            result = base ** exponent
+            if exponent == 2:
+                steps = [f"Step 1: Multiply {base} by itself.", f"Step 2: {base} ** 2 = {result}."]
+            else:
+                steps = [
+                    f"Step 1: Multiply {base} by itself {exponent} times.",
+                    f"Step 2: {base} ** {exponent} = {result}.",
+                ]
         elif root:
             radicand = int(root.group(1))
             result = math.isqrt(radicand)
@@ -322,6 +350,64 @@ def solve_question(topic: str, question: str) -> dict[str, Any]:
             "Step 1: Divide favorable outcomes by total outcomes.",
             f"Step 2: The probability is {answer}.",
         ]
+    elif topic == "median_and_range":
+        match = re.fullmatch(r"Median and range of: ([0-9, ]+)", question)
+        if not match:
+            raise AgentInputError("Invalid median/range question")
+        values = sorted(int(item.strip()) for item in match.group(1).split(","))
+        if len(values) != 5:
+            raise AgentInputError("Median/range requires exactly five values")
+        median, spread = values[2], values[-1] - values[0]
+        rendered = ", ".join(str(value) for value in values)
+        answer = f"median={median}, range={spread}"
+        steps = [
+            f"Step 1: Sort the five values: {rendered}.",
+            f"Step 2: The middle value is {median}; the range is {values[-1]} - {values[0]} = {spread}.",
+            f"Step 3: {answer}.",
+        ]
+
+    elif topic == "simple_interest":
+        match = re.fullmatch(r"Simple interest: principal (\\d+), rate (\\d+)%, time (\\d+) years", question)
+        if not match:
+            raise AgentInputError("Invalid simple-interest question")
+        principal, rate, years = map(int, match.groups())
+        answer = _fraction_text(Fraction(principal * rate * years, 100))
+        steps = [
+            "Step 1: Use I = P * r * t / 100.",
+            f"Step 2: I = {principal} * {rate} * {years} / 100 = {answer}.",
+        ]
+
+    elif topic == "unit_conversion":
+        match = re.fullmatch(r"Convert: (\\d+) (m|cm|kg) to (cm|mm|g)", question)
+        if not match:
+            raise AgentInputError("Invalid unit-conversion question")
+        amount_text, unit_from, unit_to = match.groups()
+        factors = {("m", "cm"): 100, ("cm", "mm"): 10, ("kg", "g"): 1000}
+        factor = factors.get((unit_from, unit_to))
+        if factor is None:
+            raise AgentInputError("Unsupported unit conversion")
+        result = int(amount_text) * factor
+        answer = str(result)
+        steps = [
+            f"Step 1: 1 {unit_from} = {factor} {unit_to}.",
+            f"Step 2: {amount_text} * {factor} = {result} {unit_to}.",
+        ]
+
+    elif topic == "pythagorean_theorem":
+        match = re.fullmatch(r"Hypotenuse of right triangle: legs (\\d+), (\\d+)", question)
+        if not match:
+            raise AgentInputError("Invalid Pythagorean question")
+        left, right = map(int, match.groups())
+        square = left * left + right * right
+        root = math.isqrt(square)
+        if root * root != square:
+            raise AgentInputError("Triangle legs do not produce an integer hypotenuse")
+        answer = str(root)
+        steps = [
+            f"Step 1: Use c^2 = a^2 + b^2 = {left}^2 + {right}^2.",
+            f"Step 2: c = sqrt({square}) = {root}.",
+        ]
+
     else:
         raise AgentInputError(f"No solver is registered for topic: {topic}")
 
