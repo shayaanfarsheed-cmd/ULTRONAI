@@ -67,6 +67,12 @@ class DataPipelineTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             generate_example("advanced_calculus", random.Random(1))
 
+    def test_invalid_difficulty_is_rejected_instead_of_silently_clamped(self):
+        for difficulty in (0, 4, True, 1.5):
+            with self.subTest(difficulty=difficulty):
+                with self.assertRaises(ValueError):
+                    generate_example("whole_number_arithmetic", random.Random(1), difficulty=difficulty)
+
     def test_ratio_verifier_rejects_wrong_simplification(self):
         example = generate_example("ratios_and_proportions", random.Random(88), sample_index=88)
         corrupted = dict(example)
