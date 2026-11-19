@@ -1,3 +1,16 @@
+# Latest update — 2026-11-19 (Conversational reasoning architecture started)
+
+- PR work is on branch `architecture/conversational-reasoning-foundation`; it is not merged.
+- Added `docs/CONVERSATIONAL_REASONING_ARCHITECTURE.md`, defining a mathematics-first conversational assistant with request routing, structured problem parsing, explicit solution plans, independent verification, bounded repair/abstention, evidence-based mistake diagnosis, adaptive teaching, concept dependencies and user-controlled memory.
+- Current baseline is accurately distinguished: the 4,038,478-parameter transformer is randomly initialized; the existing Math Agent is deterministic/rule-based and supports restricted formats. The Math Agent is not the neural model.
+- The target is to adopt useful interaction/reliability qualities associated with GPT/Astra/Claude, not to clone proprietary systems or claim equivalent general intelligence. The 3–5M parameter target is a constrained math-specialist goal.
+- Staged delivery: conversational math shell → structured reasoning kernel → mistake diagnosis/teaching → neural model/tokenizer/context improvements → possible broader assistant scope.
+- No code/model weights/training data/database configuration changed in this architecture-only stage. No real training started; no external AI APIs, pretrained weights, paid services or externally generated training data are permitted.
+- Next: implement Stage 1 as a responsive multi-turn mathematics chat shell, routing supported prompts to the existing deterministic solver with bounded session context, clarification and explicit unsupported-input handling. Add browser regression tests and keep the neural model status honest.
+- Keep README updated at every milestone. Do not merge without explicit owner approval.
+
+---
+
 ## Current provider decision — 2026-11-19
 
 - **GitHub Actions CPU is the sole remote training provider** and the dashboard's only remote Start/Stop target.
