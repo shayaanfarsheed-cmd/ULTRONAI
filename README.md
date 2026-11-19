@@ -1,3 +1,15 @@
+# Latest update — 2026-11-19 (Axioms and proof foundations)
+
+- Extended `docs/CONVERSATIONAL_REASONING_ARCHITECTURE.md` with an axioms-and-proofs foundation.
+- ULTRON's knowledge representation must distinguish axioms/postulates, definitions, inference rules, theorems/lemmas, conjectures, counterexamples and proofs.
+- Planned foundations include logic/equality, Peano-style natural numbers and induction, number systems/field properties, order axioms, and explicitly scoped Euclidean/non-Euclidean geometry; later topic-specific systems (sets, probability, groups, rings and fields) are introduced with named assumptions.
+- Axioms are relative to a declared formal system, not universal truths independent of assumptions. Derived theorems must not be mislabeled as axioms.
+- Required validation includes proof-step justification, proof-tree replay, missing-premise/domain mismatch detection, non-circular dependencies, induction, inequality sign handling, geometry-system boundaries and counterexamples.
+- This is an architecture/documentation update only. No solver code, model weights, datasets, database configuration or training behavior changed; no real training started.
+- Next: implement Stage 1 conversational mathematics shell, then implement a structured proof/axiom knowledge representation with tests before using axioms in model training.
+
+---
+
 # Latest update — 2026-11-19 (Conversational reasoning architecture started)
 
 - PR work is on branch `architecture/conversational-reasoning-foundation`; it is not merged.
