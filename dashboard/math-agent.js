@@ -139,7 +139,26 @@
       default: fail("Unsupported topic");
     }
   }
-  const api={TOPICS,TOPIC_KEYS,MAX_QUESTION_LENGTH,solve,verify,generate};
+  // Score only frozen, held-out test cases. Expected answers are consulted after solving.
+  function evaluateHeldout(dataset) {
+    if (!dataset || dataset.dataset_id !== "ultron-heldout-foundation-v1" || dataset.frozen !== true || !Array.isArray(dataset.examples) || dataset.examples.length === 0) fail("Invalid frozen evaluation dataset.");
+    const ids = new Set();
+    const perTopic = Object.create(null);
+    const cases = dataset.examples.map(sample => {
+      if (!sample || sample.split !== "test" || typeof sample.sample_id !== "string" || !sample.sample_id || ids.has(sample.sample_id) || !TOPICS[sample.topic] || typeof sample.question !== "string" || typeof sample.answer !== "string") fail("Evaluation dataset contains an invalid or non-test sample.");
+      ids.add(sample.sample_id);
+      const solved = solve(sample.topic, sample.question);
+      const independentlyVerified = verify(sample.topic, sample.question, solved.answer);
+      const passed = independentlyVerified && solved.answer === sample.answer;
+      if (!perTopic[sample.topic]) perTopic[sample.topic] = { total: 0, passed: 0 };
+      perTopic[sample.topic].total += 1;
+      if (passed) perTopic[sample.topic].passed += 1;
+      return { sampleId: sample.sample_id, topic: sample.topic, question: sample.question, expected: sample.answer, actual: solved.answer, independentlyVerified, passed };
+    });
+    const passed = cases.filter(item => item.passed).length;
+    return { datasetId: dataset.dataset_id, total: cases.length, passed, failed: cases.length - passed, accuracy: passed / cases.length, perTopic, cases };
+  }
+  const api={TOPICS,TOPIC_KEYS,MAX_QUESTION_LENGTH,solve,verify,generate,evaluateHeldout};
   if(typeof module!=="undefined"&&module.exports)module.exports=api;
   root.ULTRON_MATH_AGENT=api;
 })(typeof globalThis!=="undefined"?globalThis:this);
