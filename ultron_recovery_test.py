@@ -14,7 +14,7 @@ from ultron_storage import RemoteCheckpointStore
 from ultron_training import CurriculumController, MathBatchStream, make_grad_scaler, train_steps
 
 
-def _make_objects(tokenizer: CharTokenizer):
+def _make_objects(tokenizer: CharTokenizer, device: str):
     model = ULTRONTransformer(
         vocab_size=tokenizer.vocab_size,
         context_length=192,
@@ -23,7 +23,9 @@ def _make_objects(tokenizer: CharTokenizer):
         heads=4,
         feedforward_multiplier=2,
         dropout=0.1,
-    )
+    ).to(device)
+    # Move the model before creating the optimizer so its parameter references
+    # and optimizer state are bound to the final device from the outset.
     optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4, weight_decay=0.01)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=8)
     return model, optimizer, scheduler
@@ -93,7 +95,7 @@ def run_checkpoint_recovery_test(
             seed=seed,
             shuffle=True,
         )
-        model, optimizer, scheduler = _make_objects(tokenizer)
+        model, optimizer, scheduler = _make_objects(tokenizer, device)
         scaler = make_grad_scaler(device, precision)
         train_steps(
             model,
@@ -157,7 +159,7 @@ def run_checkpoint_recovery_test(
             # A fresh local directory and fresh objects represent a new Kaggle runtime.
             fresh_store = LocalCheckpointStore(fresh_dir, keep_last=1, maximum_file_bytes=maximum_file_bytes)
             downloaded = remote.download_checkpoint(owner_id, test_run_id, checkpoint_id, fresh_store)
-            fresh_model, fresh_optimizer, fresh_scheduler = _make_objects(tokenizer)
+            fresh_model, fresh_optimizer, fresh_scheduler = _make_objects(tokenizer, device)
             fresh_curriculum = CurriculumController(stages, require_held_out=False)
             fresh_scaler = make_grad_scaler(device, precision)
             fresh_stream = MathBatchStream(
@@ -168,7 +170,6 @@ def run_checkpoint_recovery_test(
                 seed=seed + 1,
                 shuffle=True,
             )
-            fresh_model.to(device)
             restored = fresh_store.load_latest(
                 fresh_model,
                 fresh_optimizer,
@@ -206,11 +207,34 @@ def run_checkpoint_recovery_test(
             scaler_exact = (fresh_scaler is None and expected_scaler is None) or (
                 fresh_scaler is not None and _equal_nested(fresh_scaler.state_dict(), expected_scaler)
             )
-            if not all((model_exact, optimizer_exact, scheduler_exact, stream_exact, curriculum_exact, scaler_exact)):
+            source_parameter_ids = {id(parameter) for parameter in model.parameters()}
+            source_optimizer_ids = {
+                id(parameter)
+                for group in optimizer.param_groups
+                for parameter in group["params"]
+            }
+            fresh_parameter_ids = {id(parameter) for parameter in fresh_model.parameters()}
+            fresh_optimizer_ids = {
+                id(parameter)
+                for group in fresh_optimizer.param_groups
+                for parameter in group["params"]
+            }
+            source_optimizer_bound = source_optimizer_ids == source_parameter_ids and all(
+                parameter.device == torch.device(device)
+                for group in optimizer.param_groups for parameter in group["params"]
+            )
+            fresh_optimizer_bound = fresh_optimizer_ids == fresh_parameter_ids and all(
+                parameter.device == torch.device(device)
+                for group in fresh_optimizer.param_groups for parameter in group["params"]
+            )
+            if not all((model_exact, optimizer_exact, scheduler_exact, stream_exact, curriculum_exact, scaler_exact,
+                        source_optimizer_bound, fresh_optimizer_bound)):
                 raise RuntimeError(
                     "Resume diverged from uninterrupted execution: "
                     f"model={model_exact}, optimizer={optimizer_exact}, scheduler={scheduler_exact}, "
-                    f"data_stream={stream_exact}, curriculum={curriculum_exact}, scaler={scaler_exact}"
+                    f"data_stream={stream_exact}, curriculum={curriculum_exact}, scaler={scaler_exact}, "
+                    f"source_optimizer_bound={source_optimizer_bound}, "
+                    f"fresh_optimizer_bound={fresh_optimizer_bound}"
                 )
 
             result = {
@@ -230,6 +254,8 @@ def run_checkpoint_recovery_test(
                     "data_stream_position_and_rng_match": stream_exact,
                     "curriculum_state_matches": curriculum_exact,
                     "gradient_scaler_state_matches": scaler_exact,
+                    "source_optimizer_bound_to_model_on_target_device": source_optimizer_bound,
+                    "resumed_optimizer_bound_to_model_on_target_device": fresh_optimizer_bound,
                 },
                 "training_status_database_written": False,
                 "production_run_id_touched": False,
