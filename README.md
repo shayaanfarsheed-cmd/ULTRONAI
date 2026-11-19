@@ -4,7 +4,7 @@
 - Adds `ultron_agent.py`, a bounded deterministic math-solving agent for all 14 currently supported foundation topics.
 - The agent receives only the generated topic and question. It deliberately discards the generator's answer and solution steps before solving, then submits its own answer and worked steps to the separate verifier.
 - Includes an inspectable topic knowledge base with a concept, core rule/formula, and solving method. Each returned sample solution includes this short mathematical summary and the actual working.
-- Adds a bounded benchmark (maximum 50,000 questions and configurable time limit) reporting generated questions/second, independently verified correct solutions/second, accuracy, failures, and per-topic metrics. It retains at most 20 sample solutions in the report.
+- Adds a bounded one-second throughput benchmark by default (maximum 50,000 questions, configurable duration) reporting generated questions/second, independently verified correct solutions/second, accuracy, failures, and per-topic metrics. CLI: `python ultron_agent.py`; use `--count 50000 --seconds 1` to measure the one-second ceiling. It retains at most 20 sample solutions in the report.
 - The initial solver supports the generator's exact foundation question templates. Unsupported formats are rejected rather than guessed. The engine is deterministic/rule-based, not the randomly initialized neural model; it does not learn or update weights.
 - Regression tests cover every supported topic, exact fraction/decimal arithmetic, malformed input rejection, throughput metrics, determinism, and no-training guarantees.
 - No website, database, production configuration, model weights, or training behavior changed. No training was started.
