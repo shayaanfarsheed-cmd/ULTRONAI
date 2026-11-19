@@ -351,12 +351,14 @@ class RemoteCheckpointStore:
                 names.add(relative)
                 paths.append(f"{checkpoint_prefix}/{relative}")
             object_paths[checkpoint_id] = paths
-            required = set(self.COMPONENTS) | {"upload_receipt.json"}
-            if not required.issubset(names):
+            if not {"manifest.json", "upload_receipt.json"}.issubset(names):
                 continue
             try:
                 manifest_data = self.storage.download(self.bucket, f"{checkpoint_prefix}/manifest.json")
                 manifest = json.loads(manifest_data.decode("utf-8"))
+                required = set(manifest.get("files", {})) | {"manifest.json", "upload_receipt.json"}
+                if not required.issubset(names):
+                    continue
                 receipt_data = self.storage.download(self.bucket, f"{checkpoint_prefix}/upload_receipt.json")
                 receipt = json.loads(receipt_data.decode("utf-8"))
                 if manifest.get("checkpoint_id") != checkpoint_id:
