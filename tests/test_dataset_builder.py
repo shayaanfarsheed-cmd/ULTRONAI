@@ -28,6 +28,8 @@ class MathDatasetBuilderTests(unittest.TestCase):
             self.assertTrue(manifest["frozen_evaluation"]["reserved_from_training"])
             self.assertTrue(manifest["reproducibility"]["verified"])
             self.assertEqual(manifest["quality_report"]["status"], "passed")
+            self.assertEqual(manifest["quality_report"]["cross_split_exact_leakage_count"], 0)
+            self.assertEqual(manifest["quality_report"]["near_duplicate_leakage_count"], 0)
 
             root = Path(directory)
             for split, count in manifest["split_counts"].items():
@@ -40,6 +42,8 @@ class MathDatasetBuilderTests(unittest.TestCase):
             frozen_ids = {row["sample_id"] for row in load_heldout_dataset()["examples"]}
             test_rows = [json.loads(line) for line in (root / "test.jsonl").read_text(encoding="utf-8").splitlines()]
             self.assertTrue(frozen_ids.issubset({row["sample_id"] for row in test_rows}))
+            train_rows = [json.loads(line) for line in (root / "train.jsonl").read_text(encoding="utf-8").splitlines()]
+            self.assertTrue(frozen_ids.isdisjoint({row["sample_id"] for row in train_rows}))
 
 
 if __name__ == "__main__":
