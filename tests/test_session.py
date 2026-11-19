@@ -1,3 +1,4 @@
+import json
 import tempfile
 import unittest
 from datetime import timedelta
@@ -433,7 +434,10 @@ class TrainingSessionTests(unittest.TestCase):
             )
         self.assertEqual(first["state"], "paused")
         newest_id = api.status["last_checkpoint_id"]
-        newest_path = f"owner-1/run-1/{newest_id}/model.safetensors"
+        manifest_path = f"owner-1/run-1/{newest_id}/manifest.json"
+        newest_manifest = json.loads(storage.objects[("checkpoints", manifest_path)].decode("utf-8"))
+        model_shard = next(name for name in newest_manifest["files"] if name.startswith("model-"))
+        newest_path = f"owner-1/run-1/{newest_id}/{model_shard}"
         storage.objects[("checkpoints", newest_path)] = b"corrupt"
         with tempfile.TemporaryDirectory() as second_folder:
             second = run_training_session(

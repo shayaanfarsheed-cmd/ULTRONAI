@@ -1,0 +1,42 @@
+name: ULTRON Checkpoint Storage Smoke Test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ultron-checkpoint-storage-smoke
+  cancel-in-progress: false
+
+jobs:
+  storage-round-trip:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      OMP_NUM_THREADS: "2"
+      MKL_NUM_THREADS: "2"
+      PYTHONUNBUFFERED: "1"
+      SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      SUPABASE_OWNER_ID: ${{ secrets.SUPABASE_OWNER_ID }}
+    steps:
+      - name: Check out ULTRON
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Verify private checkpoint storage round trip and cleanup
+        run: python scripts/verify_supabase_checkpoint_storage.py

@@ -77,8 +77,9 @@ class CheckpointTests(unittest.TestCase):
                 for parameter in model.parameters():
                     parameter.add_(1)
             second = store.save(model, optimizer, self._state(2), scheduler)
-            newest_model = Path(directory) / second["checkpoint_id"] / "model.safetensors"
-            newest_model.write_bytes(b"corrupted checkpoint")
+            newest_model = next(name for name in second["files"] if name.startswith("model-"))
+            newest_path = Path(directory) / second["checkpoint_id"] / newest_model
+            newest_path.write_bytes(b"corrupted checkpoint")
             with torch.no_grad():
                 for parameter in model.parameters():
                     parameter.zero_()
@@ -128,11 +129,38 @@ class CheckpointTests(unittest.TestCase):
             manifest = store.save(model, optimizer, self._state(1), scheduler)
             folder = Path(directory) / manifest["checkpoint_id"]
             names = {item.name for item in folder.iterdir()}
-            self.assertIn("model.safetensors", names)
-            self.assertIn("optimizer.safetensors", names)
+            self.assertTrue(any(name.startswith("model-") and name.endswith(".safetensors") for name in names))
+            self.assertTrue(any(name.startswith("optimizer-") and name.endswith(".safetensors") for name in names))
             self.assertIn("rng.safetensors", names)
             self.assertIn("state.json", names)
             self.assertFalse(any(name.endswith((".pt", ".pth", ".pkl", ".pickle")) for name in names))
+
+
+    def test_sharded_model_and_optimizer_checkpoint_round_trip(self):
+        with tempfile.TemporaryDirectory() as directory:
+            model = nn.Sequential(*[nn.Linear(256, 256) for _ in range(4)])
+            optimizer = AdamW(model.parameters(), lr=0.001)
+            scheduler = StepLR(optimizer, step_size=2, gamma=0.5)
+            sample = torch.randn(2, 256)
+            model(sample).sum().backward()
+            optimizer.step()
+            scheduler.step()
+            expected = {key: value.detach().clone() for key, value in model.state_dict().items()}
+            store = LocalCheckpointStore(directory, maximum_file_bytes=1_500_000)
+            manifest = store.save(model, optimizer, self._state(1), scheduler)
+            model_shards = [name for name in manifest["files"] if name.startswith("model-")]
+            optimizer_shards = [name for name in manifest["files"] if name.startswith("optimizer-")]
+            self.assertGreater(len(model_shards), 1)
+            self.assertGreater(len(optimizer_shards), 1)
+            self.assertTrue(all(entry["size_bytes"] <= 1_500_000 for entry in manifest["files"].values()))
+            restored_model = nn.Sequential(*[nn.Linear(256, 256) for _ in range(4)])
+            restored_optimizer = AdamW(restored_model.parameters(), lr=0.001)
+            restored_scheduler = StepLR(restored_optimizer, step_size=2, gamma=0.5)
+            restored = store.load_latest(restored_model, restored_optimizer, restored_scheduler, restore_rng=False)
+            self.assertEqual(restored["step"], 1)
+            for key, value in restored_model.state_dict().items():
+                self.assertTrue(torch.equal(value, expected[key]))
+            self.assertEqual(restored_scheduler.state_dict(), scheduler.state_dict())
 
     def test_step_cannot_move_backwards(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -194,7 +222,8 @@ class CheckpointTests(unittest.TestCase):
             manifest = source.save(model, optimizer, self._state(1), scheduler)
             source_folder = Path(source_dir) / manifest["checkpoint_id"]
             files = {item.name: item.read_bytes() for item in source_folder.iterdir() if item.is_file()}
-            files["model.safetensors"] = b"bad"
+            model_shard = next(name for name in manifest["files"] if name.startswith("model-"))
+            files[model_shard] = b"bad"
             target = LocalCheckpointStore(target_dir)
             with self.assertRaises(CheckpointError):
                 target.import_checkpoint(manifest["checkpoint_id"], files)

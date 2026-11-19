@@ -128,14 +128,6 @@ class SupabaseStorageClient:
 
 
 class RemoteCheckpointStore:
-    COMPONENTS = (
-        "model.safetensors",
-        "optimizer.safetensors",
-        "rng.safetensors",
-        "state.json",
-        "manifest.json",
-    )
-
     def __init__(
         self,
         storage: SupabaseStorageClient,
@@ -169,7 +161,7 @@ class RemoteCheckpointStore:
         prefix = self._prefix(owner_id, run_id)
         folder = local_store.root / checkpoint_id
         component_sizes: dict[str, int] = {}
-        for name in self.COMPONENTS:
+        for name in [*manifest["files"].keys(), "manifest.json"]:
             content = (folder / name).read_bytes()
             if len(content) > self.maximum_file_bytes:
                 raise SupabaseStorageError(413, f"Checkpoint component exceeds the configured limit: {name}")
@@ -214,8 +206,18 @@ class RemoteCheckpointStore:
         local_store: LocalCheckpointStore,
     ) -> dict[str, Any]:
         prefix = self._prefix(owner_id, run_id)
-        files = {}
-        for name in self.COMPONENTS:
+        manifest_path = f"{prefix}/{checkpoint_id}/manifest.json"
+        manifest_data = self.storage.download(self.bucket, manifest_path)
+        try:
+            manifest = json.loads(manifest_data.decode("utf-8"))
+            if manifest.get("checkpoint_id") != checkpoint_id or not isinstance(manifest.get("files"), dict):
+                raise ValueError("manifest identity mismatch")
+        except Exception as error:
+            raise CheckpointError("Remote checkpoint manifest is invalid") from error
+        files = {"manifest.json": manifest_data}
+        for name in manifest["files"]:
+            if Path(name).name != name:
+                raise CheckpointError("Remote checkpoint manifest contains an unsafe path")
             object_path = f"{prefix}/{checkpoint_id}/{name}"
             files[name] = self.storage.download(self.bucket, object_path)
         return local_store.import_checkpoint(checkpoint_id, files)
@@ -341,12 +343,14 @@ class RemoteCheckpointStore:
                 names.add(relative)
                 paths.append(f"{checkpoint_prefix}/{relative}")
             object_paths[checkpoint_id] = paths
-            required = set(self.COMPONENTS) | {"upload_receipt.json"}
-            if not required.issubset(names):
+            if not {"manifest.json", "upload_receipt.json"}.issubset(names):
                 continue
             try:
                 manifest_data = self.storage.download(self.bucket, f"{checkpoint_prefix}/manifest.json")
                 manifest = json.loads(manifest_data.decode("utf-8"))
+                required = set(manifest.get("files", {})) | {"manifest.json", "upload_receipt.json"}
+                if not required.issubset(names):
+                    continue
                 receipt_data = self.storage.download(self.bucket, f"{checkpoint_prefix}/upload_receipt.json")
                 receipt = json.loads(receipt_data.decode("utf-8"))
                 if manifest.get("checkpoint_id") != checkpoint_id:

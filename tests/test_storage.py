@@ -109,6 +109,28 @@ class RemoteCheckpointTests(unittest.TestCase):
             self.assertEqual(downloaded["step"], 1)
             self.assertTrue(target.verify_checkpoint(manifest["checkpoint_id"])[0])
 
+
+    def test_sharded_remote_checkpoint_round_trip_and_prune(self):
+        with tempfile.TemporaryDirectory() as source_dir, tempfile.TemporaryDirectory() as target_dir:
+            model = nn.Sequential(*[nn.Linear(256, 256) for _ in range(4)])
+            optimizer = torch.optim.AdamW(model.parameters())
+            model(torch.randn(2, 256)).sum().backward()
+            optimizer.step()
+            source = LocalCheckpointStore(source_dir, maximum_file_bytes=1_500_000)
+            manifest = self._save(source, model, optimizer, 1)
+            self.assertGreater(sum(name.startswith("model-") for name in manifest["files"]), 1)
+            self.assertGreater(sum(name.startswith("optimizer-") for name in manifest["files"]), 1)
+            storage = FakeStorage()
+            remote = RemoteCheckpointStore(storage, maximum_file_bytes=1_500_000)
+            uploaded = remote.upload_checkpoint(source, manifest["checkpoint_id"], "owner-1", "run-1")
+            self.assertTrue(uploaded["verified"])
+            self.assertEqual(len(remote.list_remote_candidates("owner-1", "run-1")), 1)
+            target = LocalCheckpointStore(target_dir, maximum_file_bytes=1_500_000)
+            downloaded = remote.download_checkpoint("owner-1", "run-1", manifest["checkpoint_id"], target)
+            self.assertEqual(downloaded["step"], 1)
+            self.assertTrue(target.verify_checkpoint(manifest["checkpoint_id"])[0])
+            self.assertEqual(remote.prune_remote("owner-1", "run-1"), [])
+
     def test_remote_verification_detects_corrupt_object(self):
         with tempfile.TemporaryDirectory() as source_dir:
             model = nn.Linear(4, 2)
@@ -121,7 +143,8 @@ class RemoteCheckpointTests(unittest.TestCase):
             storage = FakeStorage()
             remote = RemoteCheckpointStore(storage)
             remote.upload_checkpoint(source, manifest["checkpoint_id"], "owner-1", "run-1")
-            path = f"owner-1/run-1/{manifest['checkpoint_id']}/model.safetensors"
+            model_shard = next(name for name in manifest["files"] if name.startswith("model-"))
+            path = f"owner-1/run-1/{manifest['checkpoint_id']}/{model_shard}"
             storage.objects[("checkpoints", path)] = b"corrupt"
             with self.assertRaises(Exception):
                 remote.verify_remote_checkpoint("owner-1", "run-1", manifest["checkpoint_id"])
