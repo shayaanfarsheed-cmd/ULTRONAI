@@ -1,8 +1,16 @@
 from __future__ import annotations
 
 import os
+import sys
 import tempfile
 from pathlib import Path
+
+# Running a file inside scripts/ puts that directory, not the repository root,
+# at sys.path[0]. Add the project root so top-level ULTRON modules are importable
+# both in GitHub Actions and when this script is launched directly.
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 import torch
 from torch import nn
