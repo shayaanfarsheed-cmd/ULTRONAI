@@ -1,4 +1,5 @@
 name: ULTRON CPU Training
+run-name: ULTRON CPU · ${{ github.event.client_payload.request_id || github.event_name }}
 
 on:
   workflow_dispatch:

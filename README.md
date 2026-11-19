@@ -390,3 +390,19 @@ All earlier pairing implementation notes later in this README are historical onl
 2. Review the exact merged code after CI passes.
 3. Treat live Kaggle/Supabase recovery as unverified until the isolated command succeeds against the actual private bucket.
 4. Keep real training disabled until live recovery and the separate readiness review pass, followed by explicit user approval.
+
+
+## iPad owner launch control — implementation in progress (2026-11-19)
+
+- Added a dedicated owner-only Training Control view to the static dashboard. The iPad is the control console; compute runs on the selected provider, not on the iPad.
+- The first remotely launchable target is GitHub Actions CPU, through the existing `cpu-training.yml` workflow and the `ultron-cpu-start` repository-dispatch event.
+- Kaggle, Google Colab, Lightning AI and other providers remain explicitly manual-only. The selector does not claim that their sessions can be started remotely.
+- The new `training-control` Supabase Edge Function validates the signed-in Supabase user against `ULTRON_OWNER_USER_ID` before every action. It calls GitHub using a server-side `ULTRON_GITHUB_TOKEN`; no GitHub credential is present in browser code.
+- The function supports status, start and stop. Stop cancels the active GitHub Actions workflow; Pause is intentionally absent because the training worker has no safe remote pause protocol.
+- Start requires an explicit confirmation in the dashboard. It can launch a real neural training session, so do not press Start until the owner has reviewed the configured GitHub Actions secrets and explicitly intends to train.
+- This branch is stacked on PR #50 and must not be merged before PR #50. No production Supabase Edge Function has been deployed and no production secret has been changed by this code change.
+- Deployment gate: configure Supabase Edge Function secrets `ULTRON_OWNER_USER_ID` and `ULTRON_GITHUB_TOKEN`; the GitHub fine-grained token should be restricted to this repository with Actions read/write and Contents write (for repository dispatch). Deploy the function with JWT verification enabled. Verify unauthenticated and non-owner requests fail before testing any real Start action.
+- The GitHub Actions runner also requires repository variable `SUPABASE_URL` and repository secrets `SUPABASE_SECRET_KEY` plus `SUPABASE_OWNER_ID`. These are separate from Kaggle Secrets and must be configured under the repository Actions settings. Never place these values in dashboard files or notebook source.
+- The training workflow now names each dispatched run with its server-generated request ID to improve status visibility.
+- RAM slider remains a browser preference only; it does not enforce a cloud runner memory limit.
+- Next: inspect the full diff, run CI and security regression checks, then complete the deployment checklist only after code review. Do not start training during validation.

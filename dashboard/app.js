@@ -152,6 +152,7 @@
     if (account) account.textContent = isOwner ? "OWNER MODE" : "GUEST MODE";
     setConnection(isOwner ? "OWNER" : "GUEST MODE", isOwner ? "connected" : "");
     renderAll();
+    window.dispatchEvent(new Event("ultron:owner-mode-changed"));
   }
 
   async function verifyOwnerSession() {
@@ -904,6 +905,7 @@
     });
     const labels = {
       overview: ["OVERVIEW", "System overview"],
+      control: ["TRAINING CONTROL", "Owner training control"],
       learning: ["HOW ULTRON LEARNS", "Learning system"],
       activity: ["ACTIVITY", "Training activity"],
       servers: ["SERVERS", "Free compute servers"],
@@ -917,6 +919,7 @@
     $("viewName").textContent = labels[view][0];
     $("pageTitle").textContent = labels[view][1];
     if (view === "overview") scheduleChartDraw();
+    if (view === "control" && typeof window.refreshTrainingControlStatus === "function") window.refreshTrainingControlStatus();
     if (view === "data") loadDataLibrary().catch(function (error) { showDataLibraryNotice(error.message, "error"); });
     if (view === "checkpoints") loadCheckpointCandidates().then(renderCheckpointList).catch(function (error) {
       showCheckpointNotice(error.message, "warn");
