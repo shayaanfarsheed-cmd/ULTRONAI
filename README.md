@@ -363,7 +363,7 @@ All earlier pairing implementation notes later in this README are historical onl
 - The regression test covers failure to commit the primary checkpoint when no secondary backup is configured. Real training remains disabled.
 
 
-## Isolated Kaggle checkpoint recovery validation — in progress
+## Checkpoint recovery hardening — PR in progress
 
 - Purpose: prove that a checkpoint uploaded to Supabase Storage can be downloaded into a fresh local runtime and continue with the same next optimizer update as an uninterrupted run.
 - The new `--checkpoint-recovery-test` command uses a unique temporary run prefix under the authenticated owner's existing private `checkpoints` Storage folder. It uploads immutable checkpoint components and a verification receipt, downloads them into a fresh temporary directory, restores model/optimizer/scheduler/RNG/data-stream/curriculum state, and compares the next training update against an uninterrupted reference.
@@ -382,3 +382,21 @@ All earlier pairing implementation notes later in this README are historical onl
 3. After the PR is reviewed and merged, pull the updated repository in the Kaggle notebook and run `!python train.py --checkpoint-recovery-test`.
 4. Confirm the report shows exact step-2 restore and step-3 continuation, all state comparisons pass, and the temporary Storage objects were cleaned up.
 5. Do not start real training until the recovery test passes and the user separately approves it.
+
+
+### Recovery-test coverage added
+
+- The isolated recovery command now defaults to the available execution device: CUDA when available, otherwise CPU.
+- On CUDA it selects BF16 only when the device reports BF16 support; otherwise it selects FP16 and saves/restores the GradScaler state. CPU validation uses full precision.
+- The uninterrupted-vs-resumed next-update comparison now runs on the selected device and precision, and the report records both values.
+- Regression tests simulate a failure during component upload and during fresh-runtime download. They assert the test's unique temporary Storage prefix is cleaned and no objects remain.
+- An optional CUDA regression test runs automatically in GPU-enabled CI; it is skipped on CPU-only CI. A passing CPU CI run therefore does not prove CUDA recovery.
+- The fake Storage tests still do not prove live Supabase permissions, network behavior, or real bucket cleanup. The manual Kaggle Storage round trip remains a separate required validation.
+- This command remains an isolated recovery test only. It does not create or update training status, acquire a production lease, or start real training.
+
+### Next steps
+
+1. Run the full repository test suite and inspect all required GitHub checks for this PR.
+2. If CI passes, review the exact merged code before considering the change complete.
+3. Live Kaggle/Supabase recovery remains unverified until an authorized Kaggle runtime executes the command. Never represent CPU-only CI as proof of GPU or live Storage recovery.
+4. Keep real training disabled until the live recovery test and separate readiness review pass, followed by explicit user approval.
