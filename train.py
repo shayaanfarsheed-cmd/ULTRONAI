@@ -318,7 +318,7 @@ def build_preflight_report(
         "configuration_valid": not errors,
         "configuration_errors": errors,
         "training_started": False,
-        "message": "Preflight only. The training engine is added in the next implementation stage."
+        "message": "Preflight only. The training engine is available but does not start unless --train is explicitly supplied."
     }
 
 
@@ -522,6 +522,34 @@ def build_training_smoke_report(config: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+
+def build_connection_report(api: Any | None = None, storage: Any | None = None, bucket: str = "checkpoints") -> dict[str, Any]:
+    """Verify the private training database and checkpoint bucket without writing data."""
+    if api is None:
+        from ultron_supabase import from_environment
+        api = from_environment()
+    if storage is None:
+        from ultron_storage import SupabaseStorageClient
+        secret_key = os.environ.get("SUPABASE_SECRET_KEY", "").strip()
+        if not secret_key:
+            raise RuntimeError("SUPABASE_SECRET_KEY is required for the private backend connection test")
+        storage = SupabaseStorageClient(api.client.project_url, secret_key)
+    rows = api.client.select(
+        "training_status",
+        {"owner_id": f"eq.{api.owner_id}"},
+        columns="run_id,state,updated_at",
+        limit=1,
+        order="updated_at.desc",
+    )
+    objects = storage.list_objects(bucket, prefix=api.owner_id, limit=1)
+    return {
+        "connected": True,
+        "database": {"schema": "training_api", "owner_scoped_read": True, "existing_status_record_visible": bool(rows)},
+        "checkpoint_storage": {"bucket": bucket, "accessible": True, "owner_checkpoint_objects_seen": len(objects)},
+        "writes_performed": False,
+        "training_started": False,
+    }
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="ultron-train", description="ULTRON portable training preflight")
     parser.add_argument("--config", default="config.json")
@@ -531,6 +559,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--data-smoke-test", action="store_true")
     parser.add_argument("--checkpoint-smoke-test", action="store_true")
     parser.add_argument("--training-smoke-test", action="store_true")
+    parser.add_argument("--connection-test", action="store_true", help="Read-only test of the private Supabase training API and checkpoint bucket")
     parser.add_argument("--train", action="store_true")
     args = parser.parse_args(argv)
 
@@ -565,6 +594,14 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if not report["configuration_valid"]:
         return 2
+
+    if args.connection_test:
+        try:
+            connection_report = build_connection_report(bucket=str(config.get("storage", {}).get("supabase_bucket", "checkpoints")))
+            print(json.dumps(connection_report, indent=2))
+        except Exception as error:
+            print(json.dumps({"connected": False, "error_type": type(error).__name__, "message": str(error), "writes_performed": False, "training_started": False}, indent=2))
+            return 8
 
     if args.train:
         from ultron_session import run_training_session

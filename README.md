@@ -1,3 +1,15 @@
+## Latest update — 2026-11-19 (Kaggle backend connection verification)
+
+- Added a read-only `--connection-test` path to `train.py`. It verifies an owner-scoped read from the private `training_api.training_status` table and read access to the owner's private checkpoint Storage prefix.
+- The connection test performs no database writes, creates no run, acquires no training lease, uploads no checkpoint, and does not update model weights.
+- The Kaggle notebook now has a separate `ENABLE_BACKEND_CONNECTION_TEST` switch. Add only `SUPABASE_SECRET_KEY` and `SUPABASE_OWNER_ID` to Kaggle Secrets; the project URL is already in `config.json`. Never paste secrets into notebook code, GitHub, or chat.
+- A successful connection test is the first integration gate. The notebook still keeps `ENABLE_REAL_TRAINING = False`; real training must remain off until the full training/checkpoint/evaluation path and frontend readiness are validated and the owner explicitly approves starting it.
+- Hugging Face backup credentials remain optional as a pair (`HF_TOKEN` and `HF_REPO_ID`); Supabase remains the primary checkpoint store.
+- No production Supabase schema, RLS, Storage policy, Edge Function, or secret was changed.
+- Next step: update the Kaggle notebook from `main`, add the two required Kaggle Secrets, run the read-only backend connection test, and share its sanitized output. Then validate the training loop and checkpoint resume without starting a long training run.
+
+---
+
 ## Latest update — 2026-11-19 (Kaggle manual runtime compatibility)
 
 - Kaggle is now supported as an explicitly manual notebook runtime. It is not included in the automatic provider allowlist, and automatic starts remain disabled.

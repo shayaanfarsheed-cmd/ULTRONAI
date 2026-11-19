@@ -2,7 +2,7 @@ import json
 import unittest
 from pathlib import Path
 
-from train import build_preflight_report, detect_platform, resolve_runtime_settings, validate_project_config
+from train import build_connection_report, build_preflight_report, detect_platform, resolve_runtime_settings, validate_project_config
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -78,6 +78,40 @@ class RuntimeTests(unittest.TestCase):
 
     def test_project_config_invariants(self):
         self.assertEqual(validate_project_config(CONFIG, SERVERS), [])
+
+
+    def test_connection_report_is_read_only_and_checks_database_and_storage(self):
+        class FakeClient:
+            project_url = "https://example.supabase.co"
+
+            def __init__(self):
+                self.calls = []
+
+            def select(self, table, filters, columns="*", limit=None, order=None):
+                self.calls.append((table, filters, columns, limit, order))
+                return []
+
+        class FakeAPI:
+            owner_id = "owner-test"
+            client = FakeClient()
+
+        class FakeStorage:
+            def __init__(self):
+                self.calls = []
+
+            def list_objects(self, bucket, prefix, limit=1000, offset=0):
+                self.calls.append((bucket, prefix, limit, offset))
+                return []
+
+        api = FakeAPI()
+        storage = FakeStorage()
+        report = build_connection_report(api=api, storage=storage, bucket="checkpoints")
+        self.assertTrue(report["connected"])
+        self.assertFalse(report["writes_performed"])
+        self.assertFalse(report["training_started"])
+        self.assertEqual(api.client.calls[0][0], "training_status")
+        self.assertEqual(api.client.calls[0][1], {"owner_id": "eq.owner-test"})
+        self.assertEqual(storage.calls, [("checkpoints", "owner-test", 1, 0)])
 
     def test_preflight_does_not_start_training_or_reveal_secret_values(self):
         report = build_preflight_report(
