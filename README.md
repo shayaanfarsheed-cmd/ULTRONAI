@@ -1,3 +1,15 @@
+## Candidate 5 live Supabase checkpoint test — implementation in review (2026-11-19)
+
+- Branch: `test/candidate5-live-supabase-checkpoint`.
+- Added `scripts/verify_candidate5_supabase_checkpoint.py`, which instantiates the exact Candidate 5 architecture (512 width, 8 layers, 16 heads, context 192; expected 25,398,350 parameters), performs one deterministic optimizer update so AdamW moments are populated, writes a sharded checkpoint, uploads every component to the existing private `checkpoints` bucket, verifies remote component hashes, downloads into a fresh local directory, and checks exact model, AdamW, and scheduler restoration.
+- Added manual-only workflow `.github/workflows/candidate5-live-storage.yml`. It runs only on explicit `workflow_dispatch`, uses existing GitHub Actions secrets, and never exposes credentials to pull-request code.
+- The test uses a unique `SUPABASE_OWNER_ID/candidate5-live-<run-id>` prefix and removes only objects under that exact prefix in a `finally` cleanup. It does not overwrite persistent checkpoints or change Supabase configuration.
+- The 45,000,000-byte per-object limit is checked locally before upload. **Total remaining Supabase bucket quota is not available through the current Storage API integration and is reported as UNKNOWN**; the upload itself is the provider-side capacity test. Do not infer total capacity from per-file limits.
+- This is a storage/reload test, not a training run or proof of mathematical capability. Candidate 5 remains unpromoted; production config is unchanged and real training remains disabled.
+- Next: complete required CI checks and review PR. After merge, manually dispatch **ULTRON Candidate 5 Live Supabase Checkpoint** on `main`; inspect upload, hash verification, fresh restore, and cleanup logs. Only after this passes should we run a separate full Candidate 5 interrupted-resume validation against the live provider.
+
+---
+
 ## Candidate 5 checkpoint and recovery validation — in progress (2026-11-19)
 
 - Started branch `test/candidate5-checkpoint-recovery` after the Supabase storage smoke-test repair.
