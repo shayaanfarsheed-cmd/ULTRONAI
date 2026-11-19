@@ -524,3 +524,12 @@ All earlier pairing implementation notes later in this README are historical onl
 - It compares PyTorch CPU thread counts (1/2) and AdamW foreach (off/on) using a bounded synthetic batch, reporting steps/second and peak RSS.
 - Results are diagnostic only: synthetic throughput is not a claim about full training speed. Runs are limited to 1–20 measured steps per configuration.
 - Initial dispatch exposed a Python import-path bug because direct script execution added `scripts/` but not the repository root to `sys.path`. The follow-up fix explicitly adds the repository root before importing ULTRON modules; rerun the benchmark after its checks pass.
+
+
+## Checkpoint storage smoke-test fix — 2026-11-19
+
+- The first `ULTRON Checkpoint Storage Smoke Test` run failed before any Supabase request: direct execution of `scripts/verify_supabase_checkpoint_storage.py` could not import the root-level `ultron_checkpoint` module.
+- The fix explicitly adds the repository root to `sys.path` before importing project modules.
+- The same run showed empty workflow inputs for `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, and `SUPABASE_OWNER_ID`. Configure repository variable `SUPABASE_URL` and repository secrets `SUPABASE_SECRET_KEY` / `SUPABASE_OWNER_ID` in GitHub Actions settings before rerunning. Never paste secret values into chat or commit them.
+- The Node.js 20 message was a deprecation warning, not the cause of the failed job.
+- Next: pass CI for this fix, configure the missing Actions values, rerun the smoke workflow, and verify upload/download/restore/cleanup. Do not switch to Candidate 5 or start training until storage and resume validation pass.
