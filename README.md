@@ -1,3 +1,12 @@
+## Latest update — 2026-11-19 (5 GiB Data Library batch cap)
+
+- PR #33's intended 5,000 MiB (5 GiB) total upload-batch cap is being rebased onto the latest `main` after PR #34's bulk/folder deletion merge.
+- The regression test now checks the actual 500-item listing page size (`const pageSize = 500`) instead of the obsolete `selected.length > 500` assertion.
+- Limits remain 50,000 files per upload and 20 MiB per file. Uploads remain owner-only and storage-only; no file is executed and no training starts.
+- Validate all required CI workflows on the updated pull request before merging. README must be kept current at each milestone.
+
+---
+
 ## Latest update — 2026-11-18 (owner-only cloud data library — implementation proposed)
 
 - New work is on branch `feature/owner-data-library-sync`; it is not merged or deployed.
@@ -216,7 +225,7 @@ All earlier pairing implementation notes later in this README are historical onl
 
 - Data Library supports individual files and browser directory selection.
 - Directory uploads preserve each file relative path under the verified owner private Storage folder; uploads run sequentially with file-count progress.
-- Limits: 20 MiB per file, 50,000 files per upload, 500 MiB per batch, maximum 12 path levels. Library listing is paginated in batches of 500 to support large folders.
+- Limits: 20 MiB per file, 50,000 files per upload, 5,000 MiB (5 GiB) per batch, maximum 12 path levels. Library listing is paginated in batches of 500 to support large folders.
 - Library browsing is recursive; download, delete and Ask ULTRON use the complete relative path.
 - Uploading is storage only: no execution, Lean proof validation, training-dataset creation, or training start. Ask ULTRON searches only its supported UTF-8 text formats.
 - Directory picker support depends on the browser; multi-file selection is the fallback.
@@ -224,7 +233,7 @@ All earlier pairing implementation notes later in this README are historical onl
 
 ### Next step
 
-- Validate the 50,000-file Data Library cap and paginated recursive listing in CI before merging the change. The 500 MiB per-batch and 20 MiB per-file limits remain unchanged.
+- Validate the 50,000-file Data Library cap and paginated recursive listing in CI before merging the change. The 5,000 MiB (5 GiB) per-batch and 20 MiB per-file limits are enforced.
 
 
 ## Data Library deletion controls — in progress
