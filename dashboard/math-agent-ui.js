@@ -15,7 +15,9 @@
     function reset(){if(running)stop();completed=0;verified=0;failed=0;started=0;metrics();$("mathAgentStatus").textContent="Ready. No benchmark is running.";result.innerHTML='<p class="empty-state">Choose a topic and solve a question, or start a bounded benchmark.</p>';}
     async function batch(){if(stopRequested)return stop();const sliceStart=performance.now();let sliceCount=0;while(completed<5000&&sliceCount<25&&performance.now()-sliceStart<30){const key=agent.TOPIC_KEYS[completed%agent.TOPIC_KEYS.length],q=agent.generate(key,completed+1);try{const solved=agent.solve(key,q);completed++;if(agent.verify(key,q,solved.answer))verified++;else failed++;if(completed===1)showSolution(solved,agent.verify(key,q,solved.answer));}catch(_){completed++;failed++;}sliceCount++;if(stopRequested)return stop();}metrics();if(completed>=5000){running=false;$("mathStartButton").disabled=false;$("mathStopButton").disabled=true;$("mathAgentStatus").textContent="Benchmark complete: 5,000-question safety limit reached.";return;}timer=setTimeout(batch,0);}
     $("mathStartButton").addEventListener("click",()=>{if(running)return;running=true;stopRequested=false;completed=0;verified=0;failed=0;started=performance.now();$("mathStartButton").disabled=true;$("mathStopButton").disabled=false;$("mathAgentStatus").textContent="Running a bounded browser benchmark…";batch();});
-    $("mathStopButton").addEventListener("click",stop);$("mathResetButton").addEventListener("click",reset);$("mathStopButton").disabled=true;metrics();
+    $("mathStopButton").addEventListener("click",stop);$("mathResetButton").addEventListener("click",reset);
+    document.addEventListener("visibilitychange",()=>{if(document.hidden&&running)stop();});
+    $("mathStopButton").disabled=true;metrics();
   }
   document.addEventListener("DOMContentLoaded",init);
 })();
