@@ -1,14 +1,18 @@
-## Latest update — 2026-11-19 (Stage 2 read-only evaluation runner — PR validation pending)
+## Latest update — 2026-11-19 (Stage 2 read-only evaluation runner merged)
 
-- Work is on branch `feature/stage-2-readonly-evaluation-runner`; it is not merged or deployed.
-- Adds `ultron_evaluation.py`, a read-only scorer for explicit `sample_id -> predicted answer` mappings against the frozen `ultron-heldout-foundation-v1` fixture.
-- Reports overall accuracy, per-topic accuracy, per-difficulty accuracy, and failure rows distinguishing missing predictions from incorrect answers. Whitespace-only normalization is applied; mathematical answer content remains exact-match.
-- Reports include evaluator/dataset versions and a deterministic SHA-256 fingerprint of the canonical prediction mapping. The command-line interface requires an explicit predictions JSON file; it never treats expected fixture answers or verifier output as model predictions.
-- Runner validates frozen dataset identity, unique sample IDs/questions, and test-split assignment (including the shared `question_split()` rule). Unknown prediction IDs and non-string predictions are rejected.
-- Regression tests cover perfect/partial predictions, failure categories, normalization, unknown IDs, invalid values, deterministic reports, dataset immutability, and split isolation.
-- This is a scoring utility only. It does not load a model, run inference, change weights/checkpoints, feed evaluation examples into training/curriculum, or start training. The 14-case pilot remains too small to establish broad mathematical competence.
-- Required before merge: all three PR workflows (ULTRON Test Suite, ULTRON Training Prototype Validation, and ULTRON preflight tests) must pass on the exact final PR head; review the final diff and verify the merge. Then update this README on main with the merge SHA and checks.
-- Next after merge: expand the frozen held-out cases in a separate isolated step, balancing topics and difficulty. Keep the current runner's read-only boundary intact.
+- PR #39 merged successfully at `b5bcd25f1130276cdf614161be46b2cf5cd355ce`; final PR head was `6d21e32d3d2e75e7e27da97e0e7fff8f726cb0c3`.
+- All three required workflows passed on that exact head:
+  - ULTRON Test Suite — run `44438882204` (success).
+  - ULTRON preflight tests — run `44438882182` (success).
+  - ULTRON Training Prototype Validation — run `44438882236` (success).
+- Adds `ultron_evaluation.py`, a read-only scorer for explicit `sample_id -> predicted answer` mappings against the canonical frozen `ultron-heldout-foundation-v1` fixture.
+- Reports overall, per-topic, and per-difficulty accuracy; missing/incorrect answer categories; evaluator/dataset versions; and a deterministic SHA-256 fingerprint of the canonical prediction mapping. Mathematical answer content is exact-match after whitespace normalization.
+- The runner requires the exact canonical fixture, frozen identity, unique sample IDs/questions, and reserved `test` split. Unknown prediction IDs and non-string predictions are rejected. It cannot silently score a modified or partial fixture.
+- Example: `python ultron_evaluation.py --predictions predictions.json --output report.json --model-label checkpoint-001`. The input JSON maps fixture sample IDs to model-produced answer strings.
+- Regression tests cover perfect/partial predictions, failure categories, normalization, unknown IDs, invalid values, deterministic reports, dataset immutability, and rejection of modified/partial evaluation fixtures.
+- This is a scoring utility only. It does not load a model or run inference, change weights/checkpoints, feed evaluation examples into training/curriculum, or start training. The 14-case pilot remains too small to establish broad mathematical competence.
+- No website, database, or production behavior changed. No real model training was started.
+- Next isolated step: expand the frozen held-out cases with balanced topics and difficulty coverage. Keep the evaluation split excluded from training and curriculum selection, and merge that step before moving on.
 
 ## Latest update — 2026-11-19 (Stage 2 held-out evaluation pilot merged)
 
