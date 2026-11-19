@@ -1,7 +1,7 @@
 import random
 import unittest
 
-from ultron_data import SUPPORTED_TOPICS, generate_dataset, generate_example, question_split
+from ultron_data import InvalidGeneratedExampleError, generate_dataset, generate_example, question_split
 from ultron_self_learning import run_generation_dry_run
 
 
@@ -69,7 +69,7 @@ class SelfLearningDryRunTests(unittest.TestCase):
 
     def test_generator_failures_are_reported_separately_from_split_rejections(self):
         def broken_generator(*args, **kwargs):
-            raise ArithmeticError("synthetic generator failure")
+            raise InvalidGeneratedExampleError("synthetic invalid candidate")
 
         report = run_generation_dry_run(
             1,
@@ -81,7 +81,7 @@ class SelfLearningDryRunTests(unittest.TestCase):
         self.assertEqual(report["accepted_count"], 0)
         self.assertEqual(report["rejected_count"], 0)
         self.assertEqual(report["generation_error_count"], 5)
-        self.assertEqual(report["generation_errors"], {"ArithmeticError": 5})
+        self.assertEqual(report["generation_errors"], {"InvalidGeneratedExampleError": 5})
         self.assertEqual(report["status"], "incomplete")
 
     def test_unexpected_generator_errors_propagate(self):
@@ -89,6 +89,18 @@ class SelfLearningDryRunTests(unittest.TestCase):
             raise TypeError("programming defect")
 
         with self.assertRaisesRegex(TypeError, "programming defect"):
+            run_generation_dry_run(
+                1,
+                seed=1,
+                topics=("whole_number_arithmetic",),
+                generator=broken_generator,
+            )
+
+    def test_unexpected_value_errors_from_generator_propagate(self):
+        def broken_generator(*args, **kwargs):
+            raise ValueError("programming defect")
+
+        with self.assertRaisesRegex(ValueError, "programming defect"):
             run_generation_dry_run(
                 1,
                 seed=1,
