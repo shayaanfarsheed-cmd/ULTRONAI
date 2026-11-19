@@ -64,6 +64,28 @@ class RecoveryTest(unittest.TestCase):
         self.assertFalse(result["real_training_started"])
         self.assertEqual(storage.objects, {})
 
+    def test_candidate5_sharded_remote_checkpoint_restores_exact_next_step(self):
+        storage = FakeStorage()
+        architecture = {
+            "dimension": 512,
+            "layers": 8,
+            "heads": 16,
+            "feedforward_multiplier": 4,
+        }
+        result = run_checkpoint_recovery_test(
+            storage,
+            "owner-test",
+            architecture=architecture,
+        )
+        self.assertTrue(result["recovery_test_passed"])
+        self.assertEqual(result["architecture"], architecture)
+        self.assertEqual(result["model_parameter_count"], 25_398_350)
+        self.assertEqual(result["saved_step"], 2)
+        self.assertEqual(result["resumed_step"], 3)
+        self.assertTrue(all(result["checks"].values()))
+        self.assertTrue(result["temporary_storage_cleanup_verified"])
+        self.assertEqual(storage.objects, {})
+
     def test_partial_upload_is_cleaned_without_a_completed_receipt(self):
         storage = FakeStorage(fail_upload_at=3)
         with self.assertRaisesRegex(RuntimeError, "simulated interrupted upload"):

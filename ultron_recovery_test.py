@@ -14,14 +14,20 @@ from ultron_storage import RemoteCheckpointStore
 from ultron_training import CurriculumController, MathBatchStream, make_grad_scaler, train_steps
 
 
-def _make_objects(tokenizer: CharTokenizer, device: str):
+def _make_objects(tokenizer: CharTokenizer, device: str, architecture: Mapping[str, int] | None = None):
+    settings = dict(architecture or {
+        "dimension": 32,
+        "layers": 1,
+        "heads": 4,
+        "feedforward_multiplier": 2,
+    })
     model = ULTRONTransformer(
         vocab_size=tokenizer.vocab_size,
         context_length=192,
-        dimension=32,
-        layers=1,
-        heads=4,
-        feedforward_multiplier=2,
+        dimension=int(settings["dimension"]),
+        layers=int(settings["layers"]),
+        heads=int(settings["heads"]),
+        feedforward_multiplier=int(settings["feedforward_multiplier"]),
         dropout=0.1,
     ).to(device)
     # Move the model before creating the optimizer so its parameter references
@@ -50,6 +56,7 @@ def run_checkpoint_recovery_test(
     maximum_file_bytes: int = 45_000_000,
     device: str = "auto",
     precision: str = "auto",
+    architecture: Mapping[str, int] | None = None,
 ) -> dict[str, Any]:
     """Exercise an isolated Storage-only checkpoint round trip and exact next-step resume."""
     if not owner_id or "/" in owner_id or "\\" in owner_id:
@@ -95,7 +102,7 @@ def run_checkpoint_recovery_test(
             seed=seed,
             shuffle=True,
         )
-        model, optimizer, scheduler = _make_objects(tokenizer, device)
+        model, optimizer, scheduler = _make_objects(tokenizer, device, architecture)
         scaler = make_grad_scaler(device, precision)
         train_steps(
             model,
@@ -159,7 +166,7 @@ def run_checkpoint_recovery_test(
             # A fresh local directory and fresh objects represent a new provider runtime.
             fresh_store = LocalCheckpointStore(fresh_dir, keep_last=1, maximum_file_bytes=maximum_file_bytes)
             downloaded = remote.download_checkpoint(owner_id, test_run_id, checkpoint_id, fresh_store)
-            fresh_model, fresh_optimizer, fresh_scheduler = _make_objects(tokenizer, device)
+            fresh_model, fresh_optimizer, fresh_scheduler = _make_objects(tokenizer, device, architecture)
             fresh_curriculum = CurriculumController(stages, require_held_out=False)
             fresh_scaler = make_grad_scaler(device, precision)
             fresh_stream = MathBatchStream(
@@ -249,6 +256,8 @@ def run_checkpoint_recovery_test(
                 "recovery_test_passed": True,
                 "device": device,
                 "precision": precision,
+                "architecture": dict(architecture or {"dimension": 32, "layers": 1, "heads": 4, "feedforward_multiplier": 2}),
+                "model_parameter_count": sum(parameter.numel() for parameter in fresh_model.parameters()),
                 "test_run_id": test_run_id,
                 "checkpoint_id": checkpoint_id,
                 "saved_step": int(downloaded["step"]),
