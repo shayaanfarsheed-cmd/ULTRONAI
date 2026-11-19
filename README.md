@@ -616,3 +616,21 @@ All earlier pairing implementation notes later in this README are historical onl
 3. Manually run `ULTRON Candidate 5 Live Interrupted Recovery` from GitHub Actions.
 4. Inspect the structured report and verify every recovery assertion plus temporary-object cleanup.
 5. Continue with math-data quality, duplicate/leakage controls, and held-out evaluation. Keep real training disabled until the full readiness checklist passes and the owner explicitly authorizes a first run.
+
+## Recovery fault injection and mathematics dataset — PR #68
+
+- PR #68 combines isolated Candidate 5 live-Supabase interrupted-recovery validation with a from-scratch mathematics dataset quality pipeline.
+- Recovery tests are intentionally run after merge. The manual-only workflow injects a corrupted tensor component and a missing component under one unique temporary checkpoint prefix, requires both failures to be rejected, restores the valid component, and compares the next update from a fresh runtime against an uninterrupted reference. It checks model, optimizer, scheduler, data-stream/RNG, curriculum, scaler and optimizer-parameter binding, then verifies temporary-object cleanup.
+- The mathematics generator covers 18 foundation topics. The deterministic generator rotates each topic through difficulty levels 1–3, and the independent verifier checks answers and solution steps. The deterministic solving agent and frozen evaluation fixture now cover all 18 topics.
+- The dataset builder targets 110,000 examples: 100,000 train, 5,000 validation and 5,000 test. It reserves the canonical frozen evaluation examples in the test split, independently verifies examples, audits exact and near duplicates and cross-split leakage, checks topic/difficulty/split coverage, runs a fixed-seed reproducibility probe, and writes SHA-256 manifests.
+- The manual-only dataset workflow builds the artifact and uploads it to GitHub Actions artifacts for 30 days. It does not start model training.
+- Structural-template overlap is reported separately from near-duplicate leakage: the same problem form with different numeric values is not automatically treated as a leaked example.
+- The 110,000-example corpus is an initial foundation dataset, not proof of target competence. It must be generated and its artifact/report inspected after merge before it is considered established.
+- Pull-request CI does not use Supabase secrets. The live recovery test is manual-only and limited to a unique prefix in the existing private `checkpoints` bucket. No bucket, schema, RLS, Edge Function, secret or persistent production checkpoint is changed.
+- No external AI API, pretrained weights, existing model, externally generated training data, or real training session is used.
+
+### Post-merge actions
+
+1. Run **ULTRON Candidate 5 Live Interrupted Recovery** and inspect every structured assertion, including corruption rejection, missing-component rejection, exact continuation and cleanup.
+2. Run **ULTRON Build and Audit Mathematics Dataset** with the fixed seed. Inspect the manifest, all split counts, topic/difficulty coverage, duplicate/leakage report and held-out reservation.
+3. Only after both post-merge tests pass, continue the separate readiness review. Keep real training disabled until the full readiness gates pass and the owner explicitly authorizes it.
