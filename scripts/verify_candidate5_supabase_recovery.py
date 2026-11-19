@@ -31,7 +31,7 @@ def main() -> dict:
         raise SystemExit(
             "Missing required Supabase workflow configuration; no storage request was made."
         )
-    if "/" in owner_id or "\\\\" in owner_id or owner_id in {".", ".."}:
+    if any(char in owner_id for char in ("/", chr(92))) or owner_id in {".", ".."}:
         raise SystemExit("SUPABASE_OWNER_ID must be a path-safe owner identifier.")
 
     storage = SupabaseStorageClient(project_url, secret_key, timeout_seconds=180)
