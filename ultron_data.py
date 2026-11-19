@@ -29,6 +29,10 @@ SUPPORTED_TOPICS = (
     "basic_geometry",
     "basic_statistics",
     "basic_probability",
+    "median_and_range",
+    "simple_interest",
+    "unit_conversion",
+    "pythagorean_theorem",
 )
 
 
@@ -242,6 +246,61 @@ def generate_example(topic: str, rng: random.Random, difficulty: int = 1, sample
         answer = _format_fraction(result)
         question = f"Probability: {favorable} favorable, {total} total"
         steps = [f"Step 1: Divide favorable outcomes by total outcomes.", f"Step 2: The probability is {answer}."]
+        return _make_example(topic, question, steps, answer, level, sample_index)
+
+    if topic == "median_and_range":
+        values = sorted(rng.randint(1, upper) for _ in range(5))
+        median = values[2]
+        spread = values[-1] - values[0]
+        rendered = ", ".join(str(value) for value in values)
+        answer = f"median={median}; range={spread}"
+        question = f"Median and range of: {rendered}"
+        steps = [
+            f"Step 1: Sort the five values: {rendered}.",
+            f"Step 2: The middle value is {median}; the range is {values[-1]} - {values[0]} = {spread}.",
+            f"Step 3: {answer}.",
+        ]
+        return _make_example(topic, question, steps, answer, level, sample_index)
+
+    if topic == "simple_interest":
+        principal = rng.randint(20, max(30, upper * 10))
+        rate = rng.choice((2, 3, 4, 5, 6, 8, 10, 12))
+        years = rng.randint(1, level + 2)
+        interest = Fraction(principal * rate * years, 100)
+        answer = _format_fraction(interest)
+        question = f"Simple interest: principal {principal}, rate {rate}%, time {years} years"
+        steps = [
+            f"Step 1: Use I = P * r * t / 100.",
+            f"Step 2: I = {principal} * {rate} * {years} / 100 = {answer}.",
+        ]
+        return _make_example(topic, question, steps, answer, level, sample_index)
+
+    if topic == "unit_conversion":
+        conversion, factor, unit_from, unit_to = rng.choice((
+            ("meters to centimeters", 100, "m", "cm"),
+            ("centimeters to millimeters", 10, "cm", "mm"),
+            ("kilograms to grams", 1000, "kg", "g"),
+        ))
+        amount = rng.randint(1, upper)
+        result = amount * factor
+        question = f"Convert: {amount} {unit_from} to {unit_to}"
+        steps = [
+            f"Step 1: 1 {unit_from} = {factor} {unit_to}.",
+            f"Step 2: {amount} * {factor} = {result} {unit_to}.",
+        ]
+        return _make_example(topic, question, steps, str(result), level, sample_index)
+
+    if topic == "pythagorean_theorem":
+        triples = ((3, 4, 5), (5, 12, 13), (8, 15, 17), (7, 24, 25), (20, 21, 29))
+        left, right, hypotenuse = rng.choice(triples)
+        scale = rng.randint(1, level * 3)
+        left, right, hypotenuse = left * scale, right * scale, hypotenuse * scale
+        question = f"Hypotenuse of right triangle: legs {left}, {right}"
+        answer = str(hypotenuse)
+        steps = [
+            f"Step 1: Use c^2 = a^2 + b^2 = {left}^2 + {right}^2.",
+            f"Step 2: c = sqrt({left * left + right * right}) = {hypotenuse}.",
+        ]
         return _make_example(topic, question, steps, answer, level, sample_index)
 
     raise ValueError(f"Unsupported topic: {topic}")
