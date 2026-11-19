@@ -1,5 +1,13 @@
 from __future__ import annotations
-import argparse, json, os, platform, resource, statistics, time
+import argparse, json, os, platform, resource, statistics, sys, time
+from pathlib import Path
+
+# Executing `python scripts/benchmark_cpu.py` puts scripts/ on sys.path,
+# not necessarily the repository root where ULTRON's modules live.
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+if str(REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPOSITORY_ROOT))
+
 import torch
 from ultron_model import CharTokenizer, ULTRONTransformer
 from ultron_training import train_one_batch
