@@ -219,12 +219,20 @@ def run_checkpoint_recovery_test(
                 for group in fresh_optimizer.param_groups
                 for parameter in group["params"]
             }
+            target_device = torch.device(device)
+
+            def is_on_target_device(parameter: torch.nn.Parameter) -> bool:
+                return (
+                    parameter.device.type == target_device.type
+                    and (target_device.index is None or parameter.device.index == target_device.index)
+                )
+
             source_optimizer_bound = source_optimizer_ids == source_parameter_ids and all(
-                parameter.device == torch.device(device)
+                is_on_target_device(parameter)
                 for group in optimizer.param_groups for parameter in group["params"]
             )
             fresh_optimizer_bound = fresh_optimizer_ids == fresh_parameter_ids and all(
-                parameter.device == torch.device(device)
+                is_on_target_device(parameter)
                 for group in fresh_optimizer.param_groups for parameter in group["params"]
             )
             if not all((model_exact, optimizer_exact, scheduler_exact, stream_exact, curriculum_exact, scaler_exact,
