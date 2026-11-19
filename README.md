@@ -1,3 +1,15 @@
+## Latest update — 2026-11-19 (Stage 2 read-only evaluation runner — PR validation pending)
+
+- Work is on branch `feature/stage-2-readonly-evaluation-runner`; it is not merged or deployed.
+- Adds `ultron_evaluation.py`, a read-only scorer for explicit `sample_id -> predicted answer` mappings against the frozen `ultron-heldout-foundation-v1` fixture.
+- Reports overall accuracy, per-topic accuracy, per-difficulty accuracy, and failure rows distinguishing missing predictions from incorrect answers. Whitespace-only normalization is applied; mathematical answer content remains exact-match.
+- Reports include evaluator/dataset versions and a deterministic SHA-256 fingerprint of the canonical prediction mapping. The command-line interface requires an explicit predictions JSON file; it never treats expected fixture answers or verifier output as model predictions.
+- Runner validates frozen dataset identity, unique sample IDs/questions, and test-split assignment (including the shared `question_split()` rule). Unknown prediction IDs and non-string predictions are rejected.
+- Regression tests cover perfect/partial predictions, failure categories, normalization, unknown IDs, invalid values, deterministic reports, dataset immutability, and split isolation.
+- This is a scoring utility only. It does not load a model, run inference, change weights/checkpoints, feed evaluation examples into training/curriculum, or start training. The 14-case pilot remains too small to establish broad mathematical competence.
+- Required before merge: all three PR workflows (ULTRON Test Suite, ULTRON Training Prototype Validation, and ULTRON preflight tests) must pass on the exact final PR head; review the final diff and verify the merge. Then update this README on main with the merge SHA and checks.
+- Next after merge: expand the frozen held-out cases in a separate isolated step, balancing topics and difficulty. Keep the current runner's read-only boundary intact.
+
 ## Latest update — 2026-11-19 (Stage 2 held-out evaluation pilot merged)
 
 - PR #38 merged successfully at `efe67f98f09046458fca8d4e4760ed0c85be5ccd`.
