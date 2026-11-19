@@ -121,7 +121,8 @@ class RemoteCheckpointTests(unittest.TestCase):
             storage = FakeStorage()
             remote = RemoteCheckpointStore(storage)
             remote.upload_checkpoint(source, manifest["checkpoint_id"], "owner-1", "run-1")
-            path = f"owner-1/run-1/{manifest['checkpoint_id']}/model.safetensors"
+            model_shard = next(name for name in manifest["files"] if name.startswith("model-"))
+            path = f"owner-1/run-1/{manifest['checkpoint_id']}/{model_shard}"
             storage.objects[("checkpoints", path)] = b"corrupt"
             with self.assertRaises(Exception):
                 remote.verify_remote_checkpoint("owner-1", "run-1", manifest["checkpoint_id"])
