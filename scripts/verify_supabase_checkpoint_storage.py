@@ -19,32 +19,59 @@ from ultron_checkpoint import LocalCheckpointStore
 from ultron_storage import RemoteCheckpointStore, SupabaseStorageClient
 
 
+def _collect_prefix_objects(storage: SupabaseStorageClient, bucket: str, prefix: str) -> list[str]:
+    """Recursively enumerate object paths below a virtual Storage folder.
+
+    Supabase Storage's list endpoint returns immediate children. Directories
+    have a null object id, so deleting the directory name itself does not
+    delete the files nested below it.
+    """
+    objects: set[str] = set()
+    visited: set[str] = set()
+
+    def visit(folder: str) -> None:
+        folder = folder.strip("/")
+        if folder in visited:
+            return
+        visited.add(folder)
+        offset = 0
+        while True:
+            page = storage.list_objects(bucket, folder, limit=500, offset=offset)
+            if not page:
+                break
+            for item in page:
+                name = str(item.get("name", "")).strip("/")
+                if not name or name in {".", ".."}:
+                    continue
+                if name.startswith(folder + "/"):
+                    path = name
+                else:
+                    path = f"{folder}/{name}"
+                if not path.startswith(prefix.strip("/") + "/"):
+                    continue
+                # Supabase returns virtual directories with id=null. Recurse
+                # into them; only actual objects can be passed to Storage.remove.
+                if item.get("id") is None:
+                    visit(path)
+                else:
+                    objects.add(path)
+            offset += len(page)
+            if len(page) < 500:
+                break
+
+    visit(prefix)
+    return sorted(objects)
+
+
 def _cleanup_prefix(storage: SupabaseStorageClient, bucket: str, prefix: str) -> None:
-    paths: list[str] = []
-    offset = 0
-    while True:
-        page = storage.list_objects(bucket, prefix, limit=500, offset=offset)
-        if not page:
-            break
-        for item in page:
-            name = str(item.get("name", "")).strip("/")
-            if not name:
-                continue
-            if name.startswith(prefix + "/"):
-                object_path = name
-            else:
-                object_path = f"{prefix}/{name}"
-            if object_path.startswith(prefix + "/"):
-                paths.append(object_path)
-        offset += len(page)
-        if len(page) < 500:
-            break
+    paths = _collect_prefix_objects(storage, bucket, prefix)
     for start in range(0, len(paths), 100):
         storage.remove(bucket, paths[start:start + 100])
-    remaining = storage.list_objects(bucket, prefix, limit=500, offset=0)
+    remaining = _collect_prefix_objects(storage, bucket, prefix)
     if remaining:
-        raise RuntimeError("Temporary checkpoint objects remain after cleanup")
-
+        raise RuntimeError(
+            f"Temporary checkpoint cleanup left {len(remaining)} object(s) behind"
+        )
 
 def main() -> None:
     project_url = os.environ.get("SUPABASE_URL", "")
