@@ -10,6 +10,10 @@ from typing import Any, Iterable
 from ultron_verify import verify_example
 
 
+class InvalidGeneratedExampleError(ValueError):
+    """Raised when a generated example fails its independent verification."""
+
+
 SUPPORTED_TOPICS = (
     "whole_number_arithmetic",
     "fractions",
@@ -53,7 +57,7 @@ def _make_example(topic: str, question: str, steps: list[str], answer: str, diff
         "answer": answer,
     }
     if not verify_example(example):
-        raise ValueError(f"Generated example failed independent verification: {topic}")
+        raise InvalidGeneratedExampleError(f"Generated example failed verification: {topic}")
     return example
 
 
