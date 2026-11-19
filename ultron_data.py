@@ -367,9 +367,12 @@ def generate_dataset(
     split_buckets = {"train": set(range(8)), "validation": {8}, "test": {9}}
     if not isinstance(split, str) or split not in split_buckets:
         raise ValueError("Split must be train, validation or test")
-    if isinstance(topics, (str, bytes)):
+    if topics is None or isinstance(topics, (str, bytes)):
         raise ValueError("Topics must be an iterable of unique supported topic names")
-    topic_list = tuple(topics)
+    try:
+        topic_list = tuple(topics)
+    except TypeError as error:
+        raise ValueError("Topics must be an iterable of unique supported topic names") from error
     if (
         not topic_list
         or any(not isinstance(topic, str) or topic not in SUPPORTED_TOPICS for topic in topic_list)
