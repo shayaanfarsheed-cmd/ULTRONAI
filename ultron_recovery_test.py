@@ -11,7 +11,7 @@ import torch
 from ultron_checkpoint import LocalCheckpointStore
 from ultron_model import CharTokenizer, ULTRONTransformer
 from ultron_storage import RemoteCheckpointStore
-from ultron_training import CurriculumController, MathBatchStream, train_steps
+from ultron_training import CurriculumController, MathBatchStream, make_grad_scaler, train_steps
 
 
 def _make_objects(tokenizer: CharTokenizer):
@@ -46,6 +46,8 @@ def run_checkpoint_recovery_test(
     owner_id: str,
     bucket: str = "checkpoints",
     maximum_file_bytes: int = 45_000_000,
+    device: str = "auto",
+    precision: str = "auto",
 ) -> dict[str, Any]:
     """Exercise an isolated Storage-only checkpoint round trip and exact next-step resume."""
     if not owner_id or "/" in owner_id or "\\" in owner_id:
@@ -55,6 +57,18 @@ def run_checkpoint_recovery_test(
 
     torch.set_num_threads(1)
     torch.manual_seed(20261119)
+    if device == "auto":
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+    if device.startswith("cuda") and not torch.cuda.is_available():
+        raise RuntimeError("CUDA recovery was requested but CUDA is unavailable")
+    if precision == "auto":
+        precision = ("bf16" if torch.cuda.is_bf16_supported() else "fp16") if device.startswith("cuda") else "none"
+    if device == "cpu" and precision != "none":
+        raise ValueError("CPU recovery test only supports precision='none'")
+    if precision == "bf16" and (not device.startswith("cuda") or not torch.cuda.is_bf16_supported()):
+        raise RuntimeError("BF16 recovery requires a CUDA device with BF16 support")
+    if precision == "fp16" and not device.startswith("cuda"):
+        raise ValueError("FP16 recovery requires CUDA")
     seed = 20261119
     test_run_id = f"recovery-test-{uuid.uuid4().hex}"
     remote = RemoteCheckpointStore(storage, bucket=bucket, keep_last=1, maximum_file_bytes=maximum_file_bytes)
@@ -80,14 +94,16 @@ def run_checkpoint_recovery_test(
             shuffle=True,
         )
         model, optimizer, scheduler = _make_objects(tokenizer)
+        scaler = make_grad_scaler(device, precision)
         train_steps(
             model,
             optimizer,
             stream,
             steps=2,
-            device="cpu",
-            precision="none",
+            device=device,
+            precision=precision,
             scheduler=scheduler,
+            scaler=scaler,
             start_step=0,
         )
         saved_state = {
@@ -104,6 +120,7 @@ def run_checkpoint_recovery_test(
             "loss": None,
             "learning_rate": float(optimizer.param_groups[0]["lr"]),
             "recovery_test": True,
+            "grad_scaler_state": scaler.state_dict() if scaler is not None else None,
         }
 
         with TemporaryDirectory(prefix="ultron-recovery-source-") as source_dir, TemporaryDirectory(
@@ -124,9 +141,10 @@ def run_checkpoint_recovery_test(
                 optimizer,
                 stream,
                 steps=1,
-                device="cpu",
-                precision="none",
+                device=device,
+                precision=precision,
                 scheduler=scheduler,
+                scaler=scaler,
                 start_step=2,
             )
             expected_model = {name: tensor.detach().clone() for name, tensor in model.state_dict().items()}
@@ -134,12 +152,14 @@ def run_checkpoint_recovery_test(
             expected_scheduler = copy.deepcopy(scheduler.state_dict())
             expected_stream = copy.deepcopy(stream.state_dict())
             expected_curriculum = copy.deepcopy(curriculum.state_dict())
+            expected_scaler = copy.deepcopy(scaler.state_dict()) if scaler is not None else None
 
             # A fresh local directory and fresh objects represent a new Kaggle runtime.
             fresh_store = LocalCheckpointStore(fresh_dir, keep_last=1, maximum_file_bytes=maximum_file_bytes)
             downloaded = remote.download_checkpoint(owner_id, test_run_id, checkpoint_id, fresh_store)
             fresh_model, fresh_optimizer, fresh_scheduler = _make_objects(tokenizer)
             fresh_curriculum = CurriculumController(stages, require_held_out=False)
+            fresh_scaler = make_grad_scaler(device, precision)
             fresh_stream = MathBatchStream(
                 examples,
                 tokenizer,
@@ -148,26 +168,30 @@ def run_checkpoint_recovery_test(
                 seed=seed + 1,
                 shuffle=True,
             )
+            fresh_model.to(device)
             restored = fresh_store.load_latest(
                 fresh_model,
                 fresh_optimizer,
                 scheduler=fresh_scheduler,
                 restore_rng=True,
-                map_location="cpu",
+                map_location=device,
             )
             if restored is None or int(restored["step"]) != 2:
                 raise RuntimeError("Fresh runtime did not restore the exact saved step")
             fresh_stream.load_state_dict(restored["state"]["data_stream_state"])
             fresh_curriculum.load_state_dict(restored["state"]["curriculum_state"])
+            if fresh_scaler is not None and restored["state"].get("grad_scaler_state"):
+                fresh_scaler.load_state_dict(restored["state"]["grad_scaler_state"])
 
             train_steps(
                 fresh_model,
                 fresh_optimizer,
                 fresh_stream,
                 steps=1,
-                device="cpu",
-                precision="none",
+                device=device,
+                precision=precision,
                 scheduler=fresh_scheduler,
+                scaler=fresh_scaler,
                 start_step=int(restored["step"]),
             )
 
@@ -179,15 +203,20 @@ def run_checkpoint_recovery_test(
             scheduler_exact = _equal_nested(fresh_scheduler.state_dict(), expected_scheduler)
             stream_exact = _equal_nested(fresh_stream.state_dict(), expected_stream)
             curriculum_exact = _equal_nested(fresh_curriculum.state_dict(), expected_curriculum)
-            if not all((model_exact, optimizer_exact, scheduler_exact, stream_exact, curriculum_exact)):
+            scaler_exact = (fresh_scaler is None and expected_scaler is None) or (
+                fresh_scaler is not None and _equal_nested(fresh_scaler.state_dict(), expected_scaler)
+            )
+            if not all((model_exact, optimizer_exact, scheduler_exact, stream_exact, curriculum_exact, scaler_exact)):
                 raise RuntimeError(
                     "Resume diverged from uninterrupted execution: "
                     f"model={model_exact}, optimizer={optimizer_exact}, scheduler={scheduler_exact}, "
-                    f"data_stream={stream_exact}, curriculum={curriculum_exact}"
+                    f"data_stream={stream_exact}, curriculum={curriculum_exact}, scaler={scaler_exact}"
                 )
 
             result = {
                 "recovery_test_passed": True,
+                "device": device,
+                "precision": precision,
                 "test_run_id": test_run_id,
                 "checkpoint_id": checkpoint_id,
                 "saved_step": int(downloaded["step"]),
@@ -200,6 +229,7 @@ def run_checkpoint_recovery_test(
                     "scheduler_state_matches_uninterrupted_run": scheduler_exact,
                     "data_stream_position_and_rng_match": stream_exact,
                     "curriculum_state_matches": curriculum_exact,
+                    "gradient_scaler_state_matches": scaler_exact,
                 },
                 "training_status_database_written": False,
                 "production_run_id_touched": False,
