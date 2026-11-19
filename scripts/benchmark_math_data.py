@@ -81,13 +81,16 @@ def run_benchmark(
     topics = [str(topic) for topic in stages[0]["topics"]]
 
     # Uses ULTRON's own deterministic generator and independent per-example verifier.
+    data_generation_started = time.perf_counter()
     examples = generate_dataset(
         examples_count,
         seed=seed,
         split="train",
         topics=topics,
     )
+    data_generation_seconds = time.perf_counter() - data_generation_started
     tokenizer = CharTokenizer()
+    data_encoding_started = time.perf_counter()
     stream = MathBatchStream(
         examples,
         tokenizer,
@@ -96,6 +99,7 @@ def run_benchmark(
         seed=seed,
         shuffle=True,
     )
+    dataset_encoding_seconds = time.perf_counter() - data_encoding_started
     model = build_model(config, tokenizer)
     parameter_count = model.parameter_count()
     model.to("cpu")
@@ -118,10 +122,11 @@ def run_benchmark(
     total_target_tokens = 0
 
     for index in range(warmup + steps):
+        # Match a production iteration: include stream selection and batch collation.
+        started = time.perf_counter()
         batch = stream.next_batch(tokenizer.stoi[" "])
         observed_shapes.append(list(batch["input_ids"].shape))
         total_target_tokens += int((batch["labels"] != -100).sum().item())
-        started = time.perf_counter()
         loss = train_one_batch(
             model,
             optimizer,
@@ -154,6 +159,9 @@ def run_benchmark(
         "model_context_length": context_length,
         "batch_size": int(runtime["batch_size"]),
         "generated_examples": len(examples),
+        "data_generation_seconds": data_generation_seconds,
+        "dataset_encoding_seconds": dataset_encoding_seconds,
+        "step_timing_scope": "batch_selection_and_collation_plus_forward_backward_optimizer_scheduler",
         "topics": topics,
         "verified_data_generator": "ultron_data.generate_dataset -> ultron_verify.verify_example",
         "warmup_steps": warmup,
