@@ -560,6 +560,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--checkpoint-smoke-test", action="store_true")
     parser.add_argument("--training-smoke-test", action="store_true")
     parser.add_argument("--connection-test", action="store_true", help="Read-only test of the private Supabase training API and checkpoint bucket")
+    parser.add_argument(
+        "--checkpoint-recovery-test",
+        action="store_true",
+        help="Run an isolated temporary Storage-only checkpoint restart/resume test; does not write training status or start real training",
+    )
     parser.add_argument("--train", action="store_true")
     args = parser.parse_args(argv)
 
@@ -594,6 +599,41 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if not report["configuration_valid"]:
         return 2
+
+    if args.checkpoint_recovery_test:
+        try:
+            from ultron_recovery_test import run_checkpoint_recovery_test
+            from ultron_storage import SupabaseStorageClient
+
+            secret_key = os.environ.get("SUPABASE_SECRET_KEY", "").strip()
+            owner_id = os.environ.get("SUPABASE_OWNER_ID", "").strip()
+            project_url = (
+                os.environ.get("SUPABASE_URL", "").strip()
+                or str(config.get("database", {}).get("project_url", "")).strip()
+            )
+            if not secret_key or not owner_id or not project_url:
+                raise RuntimeError(
+                    "SUPABASE_SECRET_KEY, SUPABASE_OWNER_ID, and a configured Supabase project URL are required"
+                )
+            storage = SupabaseStorageClient(project_url, secret_key)
+            recovery_report = run_checkpoint_recovery_test(
+                storage,
+                owner_id,
+                bucket=str(config.get("storage", {}).get("supabase_bucket", "checkpoints")),
+                maximum_file_bytes=int(
+                    float(config.get("persistence", {}).get("max_single_storage_object_mb", 45)) * 1_000_000
+                ),
+            )
+            print(json.dumps(recovery_report, indent=2))
+        except Exception as error:
+            print(json.dumps({
+                "recovery_test_passed": False,
+                "error_type": type(error).__name__,
+                "message": str(error),
+                "training_status_database_written": False,
+                "real_training_started": False,
+            }, indent=2))
+            return 9
 
     if args.connection_test:
         try:
