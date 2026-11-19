@@ -1,3 +1,14 @@
+## Latest update — 2026-11-19 (Frozen Math Agent evaluation in progress)
+
+- Current branch: `feature/frozen-math-evaluation`, based on main `c6a4f1f51027f6f3d9d7098a3ec1fce88ccc031a`.
+- Adds a separate browser action to score the Math Agent against the frozen `ultron-heldout-foundation-v1` test split. The solver computes its answer before the expected label is compared; an independent verifier must also agree.
+- The held-out score is distinct from the generated throughput benchmark, rejects malformed/non-test/duplicate-ID datasets, and is never sent to training or curriculum selection.
+- Automated regression coverage checks all 14 held-out cases and tampered dataset conditions. This is a small wiring/pilot set, not a statistically meaningful claim of broad mathematical ability.
+- No neural training, model-weight updates, external APIs, Supabase changes, or production configuration changes are included.
+- After this PR passes all required checks, merge it and verify the GitHub Pages deployment. Then continue the remaining frontend/device validation; keep training disabled.
+
+---
+
 ## Latest update — 2026-11-19 (Browser Math Agent merged)
 
 - PR #41 merged successfully at `8776a7cd73aee91fa1a98c8c59a1457b94d0196a`; final reviewed PR head was `ef3053bc28d4cd42dd0ee26cc621875c58efcec8`.
