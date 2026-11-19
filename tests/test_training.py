@@ -48,6 +48,18 @@ class TrainingEngineTests(unittest.TestCase):
         self.assertEqual(batch["input_ids"].shape, batch["labels"].shape)
         self.assertTrue(bool((batch["labels"] == -100).any()))
 
+    def test_held_out_evaluation_examples_cannot_enter_training(self):
+        from ultron_evaluation import HELD_OUT_EVALUATION_SET
+
+        with self.assertRaisesRegex(ValueError, "held-out evaluation"):
+            MathBatchStream(
+                HELD_OUT_EVALUATION_SET,
+                self.tokenizer,
+                192,
+                batch_size=2,
+                seed=1,
+            )
+
     def test_one_training_batch_updates_parameters(self):
         examples = generate_dataset(8, seed=20261117, split="train", topics=["whole_number_arithmetic"])
         stream = MathBatchStream(examples, self.tokenizer, 192, batch_size=4, seed=2)
