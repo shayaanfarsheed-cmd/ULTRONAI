@@ -272,15 +272,22 @@ def run_checkpoint_recovery_test(
             return result
     finally:
         if checkpoint_id is not None:
-            paths = [
-                f"{owner_id}/{test_run_id}/{checkpoint_id}/{name}"
-                for name in (*RemoteCheckpointStore.COMPONENTS, "upload_receipt.json")
-            ]
-            storage.remove(bucket, paths)
+            checkpoint_prefix = f"{owner_id}/{test_run_id}/{checkpoint_id}"
+            children = storage.list_objects(bucket, checkpoint_prefix, limit=1000)
+            paths = []
+            for item in children:
+                name = str(item.get("name", "")).strip("/")
+                if not name:
+                    continue
+                object_path = name if name.startswith(checkpoint_prefix + "/") else f"{checkpoint_prefix}/{name}"
+                if object_path.startswith(checkpoint_prefix + "/"):
+                    paths.append(object_path)
+            if paths:
+                storage.remove(bucket, paths)
             remaining = storage.list_objects(
                 bucket,
-                f"{owner_id}/{test_run_id}/{checkpoint_id}",
-                limit=100,
+                checkpoint_prefix,
+                limit=1000,
             )
             if remaining:
                 raise RuntimeError("Temporary recovery-test checkpoint cleanup could not be verified")
