@@ -4,12 +4,11 @@ import random
 from collections import Counter
 from typing import Any, Callable, Iterable, Mapping
 
-from ultron_data import SUPPORTED_TOPICS, generate_example, question_split
+from ultron_data import InvalidGeneratedExampleError, SUPPORTED_TOPICS, generate_example, question_split
 from ultron_verify import verify_example_detailed
 
 
 MAX_ACCEPTED_PER_RUN = 5000
-EXPECTED_GENERATOR_ERRORS = (ArithmeticError, ValueError)
 
 
 def run_generation_dry_run(
@@ -28,8 +27,8 @@ def run_generation_dry_run(
     cannot honestly be assigned to a data split, so they are reported
     separately from split-specific rejected candidates.
 
-    Expected invalid-example failures (ArithmeticError/ValueError) are
-    recorded. Unexpected generator/verifier programming errors propagate.
+    Only InvalidGeneratedExampleError is treated as an expected bad candidate.
+    All other generator/verifier exceptions propagate as programming failures.
     """
     if type(count) is not int or not 1 <= count <= MAX_ACCEPTED_PER_RUN:
         raise ValueError(f"count must be an integer between 1 and {MAX_ACCEPTED_PER_RUN}")
@@ -84,7 +83,7 @@ def run_generation_dry_run(
                 difficulty=difficulty,
                 sample_index=sample_index,
             )
-        except EXPECTED_GENERATOR_ERRORS as error:
+        except InvalidGeneratedExampleError as error:
             generation_errors[type(error).__name__] += 1
             continue
 
