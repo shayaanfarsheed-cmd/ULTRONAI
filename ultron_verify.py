@@ -487,7 +487,7 @@ def _expected_solution_steps(example: Mapping[str, Any]) -> list[str]:
         answer = f"median={median}; range={spread}"
         return [
             f"Step 1: Sort the five values: {rendered}.",
-            f"Step 2: The middle value is {median}; the range is {values[-1]} - {values[0]} = {spread}.",
+            f"Step 2: The middle value is {median}, and the range is {values[-1]} - {values[0]} = {spread}.",
             f"Step 3: {answer}.",
         ]
 
