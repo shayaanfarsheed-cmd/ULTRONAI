@@ -1,15 +1,16 @@
-## Latest update — 2026-11-19 (ULTRON Math Agent implementation)
+## Latest update — 2026-11-19 (ULTRON Math Agent merged)
 
-- Work is on branch `feature/math-solving-agent`; PR validation is pending.
-- Adds `ultron_agent.py`, a bounded deterministic math-solving agent for all 14 currently supported foundation topics.
-- The agent receives only the generated topic and question. It deliberately discards the generator's answer and solution steps before solving, then submits its own answer and worked steps to the separate verifier.
-- Includes an inspectable topic knowledge base with a concept, core rule/formula, and solving method. Each returned sample solution includes this short mathematical summary and the actual working.
-- Adds a bounded one-second throughput benchmark by default (maximum 50,000 questions, configurable duration) reporting generated questions/second, independently verified correct solutions/second, accuracy, failures, and per-topic metrics. CLI: `python ultron_agent.py`; use `--count 50000 --seconds 1` to measure the one-second ceiling. It retains at most 20 sample solutions in the report.
-- The initial solver supports the generator's exact foundation question templates. Unsupported formats are rejected rather than guessed. The engine is deterministic/rule-based, not the randomly initialized neural model; it does not learn or update weights.
-- Regression tests cover every supported topic, exact fraction/decimal arithmetic, malformed input rejection, throughput metrics, determinism, and no-training guarantees.
-- No website, database, production configuration, model weights, or training behavior changed. No training was started.
-- Required before merge: all three required PR workflows (ULTRON Test Suite, ULTRON preflight tests, and ULTRON Training Prototype Validation) must pass on the exact final PR head. Review the complete diff and fix any failures before merging.
-- Next step after validation: connect the agent to a user-facing ULTRON solve/benchmark interface as a separate frontend-first change; keep the neural model distinct until it has been trained and independently evaluated.
+- PR #40 merged successfully at `f5b366b5ecff7026e8bce9257ac53e3af81778d0`; final reviewed PR head was `ac9ef21f19f6a65afea5ed0bbe551d0d5f54dc67`.
+- All three required workflows passed on that exact final PR head:
+  - ULTRON Test Suite — run `44442061963` (success; 169 unit tests passed).
+  - ULTRON Training Prototype Validation — run `44442061790` (success).
+  - ULTRON preflight tests — run `44442061897` (success).
+- Adds `ultron_agent.py`, a deterministic, rule-based math agent for all 14 supported foundation topics. It accepts only topic + question, computes its own answer and worked steps, then sends those results to the separate `ultron_verify` verifier. Generator-provided answers and steps are not used by the solver.
+- Includes an inspectable mathematical knowledge summary for each topic (concept, rule/formula, and method). Each sample solution includes the summary and working.
+- Default CLI benchmark: `python ultron_agent.py`. It runs for one second by default, up to 50,000 questions, and reports questions/second, independently verified correct solutions/second, accuracy, failures, and per-topic metrics. Example: `python ultron_agent.py --count 50000 --seconds 1`.
+- Direct question input is limited to 1,000 characters. Unsupported question formats are rejected rather than guessed. The agent is not the randomly initialized neural model and does not update model weights.
+- No website, database, production configuration, or model weights changed. No actual model training was started. Training-prototype CI uses a bounded smoke test only.
+- Next isolated step: implement the user-facing ULTRON solve/benchmark interface and connect it to this agent, keeping the website/iPad frontend usable and training disabled.
 
 ## Latest update — 2026-11-19 (Stage 2 read-only evaluation runner merged)
 
