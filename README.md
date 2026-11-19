@@ -4,6 +4,7 @@
 - Both `ultron_data.py` and `ultron_self_learning.py` now use one shared `question_split()` function. A missing/invalid question is reported as unassigned and is never assigned by sample index.
 - Generator failures are reported separately from split-specific candidate rejections. Only the dedicated `InvalidGeneratedExampleError` is counted as an expected invalid candidate; unexpected generator and verifier programming errors propagate instead of being silently swallowed.
 - Candidate topic, difficulty and sample-index metadata are checked against the generation request. Input types and callable dependencies are validated.
+- The verifier now checks the generated solution-step sequence against steps independently reconstructed from the question; correct final answers with corrupted intermediate steps are rejected.
 - Regression tests now compare dry-run output directly with the existing dataset generator for train, validation and test splits; also cover missing questions, metadata mismatch, and unexpected exceptions.
 - The verifier remains the same verifier module used by the generator; the dry-run's second call is a boundary check for custom/injected generators, not a second independent verifier implementation.
 - No datasets are persisted, no model weights are changed, and no training is started. Re-run every required CI workflow against the latest PR head before considering merge.
