@@ -436,3 +436,4 @@ All earlier pairing implementation notes later in this README are historical onl
 - Added a separate manually triggered `ULTRON CPU Benchmark` workflow. It never invokes the production training entry point and needs no Supabase, Hugging Face, or owner secrets.
 - It compares PyTorch CPU thread counts (1/2) and AdamW foreach (off/on) using a bounded synthetic batch, reporting steps/second and peak RSS.
 - Results are diagnostic only: synthetic throughput is not a claim about full training speed. Runs are limited to 1–20 measured steps per configuration.
+- Initial dispatch exposed a Python import-path bug because direct script execution added `scripts/` but not the repository root to `sys.path`. The follow-up fix explicitly adds the repository root before importing ULTRON modules; rerun the benchmark after its checks pass.
