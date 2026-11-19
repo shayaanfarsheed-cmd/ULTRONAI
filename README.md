@@ -352,3 +352,12 @@ All earlier pairing implementation notes later in this README are historical onl
 - All delete operations require the verified owner session, confirm before deletion, and refresh the shared cloud listing after success. Other signed-in browsers see the change on their next refresh (normally within 20 seconds).
 - Guests cannot select or delete private files. Deletion is permanent; there is no recycle bin or restore function.
 - Validate the deletion regression tests and deployed behavior before treating these controls as live.
+
+
+## Training reliability hardening — pending PR
+
+- A training session must not report a safe pause or handoff unless the latest checkpoint is durably committed to primary Supabase Storage or independently verified in the configured secondary backup.
+- If neither durable path succeeds, the worker stops training and deliberately does not release its lease; the lease expires naturally so another worker cannot race ahead from stale progress. The local checkpoint is diagnostic/recovery material only and is not treated as durable across Kaggle runtime resets.
+- Kaggle's local checkpoint directory is under `/kaggle/working/ultron-checkpoints`; it is temporary and must never be mistaken for cross-session persistence. Supabase remains the required primary durable store; Hugging Face is optional secondary backup.
+- The current review branch adds explicit durability checks to no-GPU, session-limit, stop, pause, requested-handoff, and max-step exits, and routes pending retries through the same primary/secondary commit helper.
+- Real training remains disabled pending CI, code review, and explicit owner approval.
