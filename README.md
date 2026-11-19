@@ -1,3 +1,15 @@
+## Latest update — 2026-11-19 (Kaggle manual runtime compatibility)
+
+- Kaggle is now supported as an explicitly manual notebook runtime. It is not included in the automatic provider allowlist, and automatic starts remain disabled.
+- Kaggle runtime detection and GPU/CPU profiles are supported by `train.py`; configuration validation requires the Kaggle server entry to remain manual-only.
+- The Kaggle notebook now defaults to safe validation only. It checks preflight, model summary, and generated-data verification; it does not run optimizer steps, write checkpoints, load private credentials, or start a training session.
+- Real training remains disabled by default pending frontend/device readiness and separate explicit owner approval. The notebook's `ENABLE_REAL_TRAINING` flag is `False`.
+- The Kaggle API token (`kaggle.json`) is not required inside the notebook for this workflow. The notebook downloads source files from the public GitHub repository. An approved training session will require the Supabase secret key and owner UUID in Kaggle Secrets; never put those values in notebook source or GitHub.
+- User-reported Kaggle environment: PyTorch 2.11.0+cu130, CUDA available, two Tesla T4 devices visible. This is a notebook diagnostic, not a training benchmark.
+- Next step: run the safe notebook validation cells and inspect the output. Do not enable training until the frontend readiness gate is complete and the owner explicitly approves it.
+
+---
+
 ## Latest update — 2026-11-19 (Frozen Math Agent evaluation merged)
 
 - PR #42 merged at `172685831fedea21de2edc1982099fbcd83fdd0a`. The later README-only correction PR #43 merged at `803acb0bff49401a11673c04fd80d3ba827df623`.
