@@ -28,7 +28,7 @@
   function mul(a,b) { return fraction(a.n*b.n,a.d*b.d); }
   function div(a,b) { return fraction(a.n*b.d,a.d*b.n); }
   function decimalValue(s) { if(!/^-?\d+(?:\.\d+)?$/.test(s)) fail("Invalid decimal"); const neg=s[0]==="-"; const raw=neg?s.slice(1):s; const p=raw.split("."); const scale=10n**BigInt((p[1]||"").length); const n=BigInt(p[0]+(p[1]||"")); return fraction(neg?-n:n,scale); }
-  function decimalText(f) { if(f.d!==1n && (f.d.toString().match(/^10*$/)||/^10*$/.test(String(f.d)))) { let x=f.n, scale=String(f.d).length-1, neg=x<0n?"-":""; if(x<0n)x=-x; let s=String(x).padStart(scale+1,"0"); return (neg+(s.slice(0,-scale)||"0")+"."+s.slice(-scale)).replace(/\.?0+$/,""); } return ftext(f); }
+  function decimalText(f) { let d=f.d, twos=0, fives=0; while(d%2n===0n){d/=2n;twos++;} while(d%5n===0n){d/=5n;fives++;} if(d!==1n)return ftext(f); const scale=Math.max(twos,fives); if(scale===0)return String(f.n); const scaled=f.n*(2n**BigInt(scale-twos))*(5n**BigInt(scale-fives)); const negative=scaled<0n?"-":""; const digits=String(scaled<0n?-scaled:scaled).padStart(scale+1,"0"); return (negative+digits.slice(0,-scale)+"."+digits.slice(-scale)).replace(/\.?0+$/,""); }
   function solve(topic, question) {
     if(!TOPICS[topic]) fail("Choose a supported topic.");
     if(typeof question!=="string" || !question.trim() || question.length>MAX_QUESTION_LENGTH) fail("Enter a question of 1–1,000 characters.");
