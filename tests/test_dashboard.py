@@ -32,6 +32,8 @@ class DashboardStaticTests(unittest.TestCase):
         self.assertIn('id="mathStartButton"', html)
         self.assertIn('id="mathStopButton"', html)
         self.assertIn('id="mathResetButton"', html)
+        self.assertIn('id="mathTopicMetrics"', html)
+        self.assertIn('id="mathTopicHint"', html)
         self.assertIn("MAX 5,000 QUESTIONS", html)
         self.assertIn("does not update model weights", html)
         self.assertIn("function verify(topic, question, answer)", agent)
