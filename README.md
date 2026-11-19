@@ -1,4 +1,16 @@
-## Latest update — 2026-11-19 (verified self-learning architecture)
+## Latest update — 2026-11-19 (self-learning dry-run review fixes)
+
+- PR #36 remains open and unmerged. Follow-up review found that the dry-run duplicated split logic and used generation-index fallback for candidates without questions; this could misclassify failed candidates in split-specific reports.
+- Both `ultron_data.py` and `ultron_self_learning.py` now use one shared `question_split()` function. A missing/invalid question is reported as unassigned and is never assigned by sample index.
+- Generator failures are reported separately from split-specific candidate rejections. Expected invalid-example exceptions are counted; unexpected generator and verifier programming errors propagate instead of being silently swallowed.
+- Candidate topic, difficulty and sample-index metadata are checked against the generation request. Input types and callable dependencies are validated.
+- Regression tests now compare dry-run output directly with the existing dataset generator for train, validation and test splits; also cover missing questions, metadata mismatch, and unexpected exceptions.
+- The verifier remains the same verifier module used by the generator; the dry-run's second call is a boundary check for custom/injected generators, not a second independent verifier implementation.
+- No datasets are persisted, no model weights are changed, and no training is started. Re-run every required CI workflow against the latest PR head before considering merge.
+
+---
+
+
 
 - PR #35 merged at `d8dcdd72b95c94538985132cb055cf227b69eb26`; its three required CI workflows passed and the GitHub Pages build/deployment workflow completed successfully.
 - Data Library limits on `main`: 50,000 files per upload, 20 MiB per file, 5,000 MiB (5 GiB) total per batch, and 12 path levels. Uploads remain owner-only and storage-only.
