@@ -1,7 +1,7 @@
 import random
 import unittest
 
-from ultron_data import SUPPORTED_TOPICS, generate_example, generate_dataset
+from ultron_data import SUPPORTED_TOPICS, generate_example, generate_dataset, question_split
 from ultron_dataset_quality import (
     DatasetQualityError,
     _near_duplicate_pairs,
@@ -57,7 +57,7 @@ class DatasetQualityTests(unittest.TestCase):
 
     def test_invalid_answer_is_rejected_even_if_last_step_is_changed(self):
         example = generate_example("simple_interest", random.Random(45), sample_index=45)
-        corrupted = dict(example, split="train")
+        corrupted = dict(example, split=question_split(example["question"]))
         corrupted["answer"] = "999999"
         corrupted["steps"] = list(example["steps"][:-1]) + ["Step 2: I = 999999."]
         report = audit_dataset([corrupted], required_splits=("train",))
@@ -66,7 +66,7 @@ class DatasetQualityTests(unittest.TestCase):
 
     def test_wrong_deterministic_split_assignment_is_rejected(self):
         example = generate_example("whole_number_arithmetic", random.Random(46), sample_index=46)
-        wrong_split = "test" if __import__("ultron_data").question_split(example["question"]) == "train" else "train"
+        wrong_split = "test" if question_split(example["question"]) == "train" else "train"
         report = audit_dataset([dict(example, split=wrong_split)], required_splits=(wrong_split,))
         self.assertEqual(report["status"], "failed")
         self.assertIn("question_split_mismatch", {row["reason"] for row in report["invalid_examples"]})
