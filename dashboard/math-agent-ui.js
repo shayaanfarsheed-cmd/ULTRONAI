@@ -17,6 +17,7 @@
     $("mathStartButton").addEventListener("click",()=>{if(running)return;running=true;stopRequested=false;completed=0;verified=0;failed=0;started=performance.now();$("mathStartButton").disabled=true;$("mathStopButton").disabled=false;$("mathAgentStatus").textContent="Running a bounded browser benchmark…";batch();});
     $("mathStopButton").addEventListener("click",stop);$("mathResetButton").addEventListener("click",reset);
     document.addEventListener("visibilitychange",()=>{if(document.hidden&&running)stop();});
+    document.querySelectorAll("[data-view]").forEach(button=>button.addEventListener("click",()=>{if(button.getAttribute("data-view")!=="math"&&running)stop();}));
     $("mathStopButton").disabled=true;metrics();
   }
   document.addEventListener("DOMContentLoaded",init);
