@@ -1,3 +1,19 @@
+# ULTRON recovery and mathematical data-quality milestone — implementation in review (2026-11-19)
+
+- Active branch: `feat/ultron-recovery-and-math-data-quality`. This work is intended to become one pull request covering recovery fault testing and a reproducible mathematics dataset pipeline.
+- PR #67 was merged at `19ece113483a01c963c28ef84d398890dfa38af7`; its three required CI workflows passed. The live Candidate 5 Supabase interrupted-resume workflow is still a separate post-merge manual test and must be run before claiming live recovery is validated.
+- Recovery implementation now fault-injects a corrupted tensor component and a missing tensor component inside the unique temporary Supabase checkpoint prefix. It requires both faults to be rejected, restores the original temporary component, verifies the valid checkpoint again, and then proceeds to the exact uninterrupted-vs-resumed next-update comparison. Cleanup remains scoped to the unique temporary prefix and is verified in a finally block.
+- The live recovery entrypoint now requires explicit passing flags for corruption rejection, missing-component rejection, repaired-checkpoint acceptance, exact model/optimizer/scheduler/data-stream/curriculum/scaler continuation, and optimizer parameter binding. CI fake-storage coverage is not live Supabase evidence.
+- The mathematical generator now covers 18 topics. Four new topics were added: median and range, simple interest, unit conversion, and the Pythagorean theorem. Each has independent answer and solution-step verification in `ultron_verify.py`. Generator inputs now reject invalid difficulty, seed, count, topic duplicates and invalid attempt limits rather than silently accepting them.
+- Added `ultron_dataset_quality.py` for answer verification, normalized exact duplicate detection, cross-split exact leakage checks, structural-template reporting, near-duplicate detection, topic/difficulty/split counts, and a deterministic dataset digest.
+- Added `scripts/build_math_dataset.py` to build 12,000 training + 1,500 validation + 1,500 test examples (15,000 total), independently verify every example, audit quality, check topic/difficulty coverage, and verify fixed-seed reproducibility on a bounded independent slice. The builder writes JSONL split files and a manifest with SHA-256 hashes.
+- Added manual-only workflow `.github/workflows/math-dataset-build.yml`. After this PR is merged, manually run **ULTRON Build and Audit Mathematics Dataset** from GitHub Actions. It builds the 15,000-example dataset and uploads the versioned files and audit manifest as a 30-day artifact. This is a dataset-build job, not model training.
+- Current status: implementation is in progress; required CI has not yet run on this branch. Do not mark the recovery or dataset gates as passed until CI and the post-merge manual workflows complete successfully.
+- Next: finish regression tests and code review; run required PR checks; fix failures; merge only after checks pass and explicit owner approval. After merge, run the live Candidate 5 Supabase recovery workflow and the dataset-build workflow, inspect their structured reports and artifacts, then report any remaining quality limitations.
+- Safety: no real training has started; no production model weights/configuration were changed; no Supabase schema, RLS, bucket, Edge Function, secret, or persistent checkpoint was modified. No external AI API, pretrained weights, existing model, or externally generated training data is used.
+
+---
+
 ## Candidate 5 live Supabase checkpoint test — implementation in review (2026-11-19)
 
 - Branch: `test/candidate5-live-supabase-checkpoint`.
