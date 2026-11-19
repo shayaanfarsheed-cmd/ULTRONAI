@@ -34,7 +34,7 @@ class EvaluationFoundationTests(unittest.TestCase):
         for item in HELD_OUT_EVALUATION_SET:
             with self.subTest(sample_id=item["sample_id"]):
                 self.assertLessEqual(
-                    len(tokenizer.encode(f"Question: {item['question']}\\nSolution:\\n")),
+                    len(tokenizer.encode(f"Question: {item['question']}\nSolution:\n")),
                     192,
                 )
 
