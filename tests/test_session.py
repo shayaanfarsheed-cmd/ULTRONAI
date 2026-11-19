@@ -488,6 +488,36 @@ class TrainingSessionTests(unittest.TestCase):
         self.assertIsNone(api.status["requested_resume_checkpoint_id"])
         self.assertEqual(api.status["last_checkpoint_id"], checkpoint_id)
 
+    def test_failed_primary_checkpoint_without_secondary_backup_does_not_release_lease(self):
+        class FailingStorage(FakeStorage):
+            def upload(self, bucket, path, content, content_type):
+                raise SupabaseStorageError(503, "storage unavailable")
+
+        api = FakeAPI()
+        remote = RemoteCheckpointStore(FailingStorage(), keep_last=3)
+        config = self._config()
+        config["persistence"]["checkpoint_interval_seconds"] = 0
+        with tempfile.TemporaryDirectory() as folder:
+            result = run_training_session(
+                config,
+                self._servers(),
+                checkpoint_root=folder,
+                api=api,
+                remote_store=remote,
+                platform_id="kaggle",
+                runtime_override={"device": "cpu", "batch_size": 2, "cpu_threads": 1, "mixed_precision": "none"},
+                max_steps_override=2,
+                model_factory=self._model_factory,
+            )
+            local = LocalCheckpointStore(folder).list_valid_checkpoints()
+
+        self.assertEqual(result["state"], "dead")
+        self.assertEqual(result["reason"], "checkpoint_not_durable_at_maximum_steps")
+        self.assertTrue(local, "local checkpoint should remain for manual recovery")
+        self.assertEqual(local[0]["step"], 2)
+        self.assertEqual(api.released, [], "worker must not release its lease with an uncommitted checkpoint")
+        self.assertIsNone(api.status["last_checkpoint_id"], "failed remote upload must not advance the durable pointer")
+
     def test_handoff_request_saves_and_releases_lease(self):
         api = FakeAPI(handoff=True)
         remote = RemoteCheckpointStore(FakeStorage(), keep_last=3)
