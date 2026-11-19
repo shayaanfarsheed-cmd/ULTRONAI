@@ -12,7 +12,7 @@
   <script defer src="./runtime.js"></script>
   <script defer src="./math-agent.js"></script>
   <script defer src="./math-agent-ui.js"></script>
-  <script defer src="./app.js"></script>
+  <script defer src="./app.js?v=20261119-upload-batches-1"></script>
   <script defer src="./training-control.js"></script>
 </head>
 <body data-theme="dark">
@@ -340,7 +340,7 @@
               <input id="dataFolderInput" type="file" webkitdirectory directory multiple>
               <button id="dataUploadButton" class="primary-button" type="submit">Upload selected data</button>
             </form>
-            <p class="fine-print">Folder uploads preserve relative paths. Limits: 20 MiB per file, 500 files and 500 MiB per batch. Keep this page open until upload completes.</p>
+            <p class="fine-print">Folder uploads preserve relative paths. Limits: 20 MiB per file, up to 50,000 files per selection, and 5,000 MiB (5 GiB) total. ULTRON uploads in batches of 500 files; keep this page open until it completes.</p>
             <p id="dataLibraryNotice" class="notice" role="status" hidden></p>
           </article>
           <article class="panel table-panel">

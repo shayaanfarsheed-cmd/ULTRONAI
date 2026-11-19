@@ -1,3 +1,14 @@
+## Latest update — 2026-11-19 (Data Library 500-file upload message fix in progress)
+
+- The dashboard HTML incorrectly described the 500-file internal batch size as a 500-file total upload limit, and could remain stale in browsers using a cached `app.js` asset.
+- The UI now states the actual limits: up to 50,000 selected files, 20 MiB per file, and 5,000 MiB (5 GiB) total. Upload requests are explicitly grouped into sequential batches of at most 500 files, with overall and per-batch progress.
+- The `app.js` script URL receives a version query string so GitHub Pages clients fetch the corrected upload logic instead of reusing an older cached script.
+- Owner verification and private Storage access remain unchanged. Uploads remain storage-only and do not execute files or start training.
+- Regression assertions cover the displayed limits and 500-file batching. CI and deployed GitHub Pages behavior must be checked before calling this fixed for everyone.
+- Next: run the dashboard tests and required workflows, then merge only after review and explicit approval.
+
+---
+
 ## Current provider decision — 2026-11-19
 
 - **GitHub Actions CPU is the sole remote training provider** and the dashboard's only remote Start/Stop target.

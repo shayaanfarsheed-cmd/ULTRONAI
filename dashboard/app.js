@@ -1079,6 +1079,7 @@
   const DATA_LIBRARY_BUCKET = "data-library";
   const DATA_LIBRARY_MAX_BYTES = 20 * 1024 * 1024;
   const DATA_LIBRARY_MAX_FILES = 50000;
+  const DATA_LIBRARY_BATCH_FILES = 500;
 
   function showDataLibraryNotice(message, kind) {
     const box = $("dataLibraryNotice");
@@ -1342,10 +1343,18 @@
     button.disabled = true;
     let uploaded = 0;
     try {
-      for (const entry of selected) {
-        await dataLibraryRequest("object/" + DATA_LIBRARY_BUCKET + "/" + dataObjectPath(entry.path), "POST", entry.file, true);
-        uploaded += 1;
-        showDataLibraryNotice("Uploading " + uploaded + " of " + selected.length + " files…", "info");
+      const batchCount = Math.ceil(selected.length / DATA_LIBRARY_BATCH_FILES);
+      for (let batchStart = 0; batchStart < selected.length; batchStart += DATA_LIBRARY_BATCH_FILES) {
+        const batchNumber = Math.floor(batchStart / DATA_LIBRARY_BATCH_FILES) + 1;
+        const batch = selected.slice(batchStart, batchStart + DATA_LIBRARY_BATCH_FILES);
+        for (const entry of batch) {
+          await dataLibraryRequest("object/" + DATA_LIBRARY_BUCKET + "/" + dataObjectPath(entry.path), "POST", entry.file, true);
+          uploaded += 1;
+          showDataLibraryNotice(
+            "Uploading " + uploaded + " of " + selected.length + " files · batch " + batchNumber + " of " + batchCount + "…",
+            "info"
+          );
+        }
       }
       fileInput.value = "";
       folderInput.value = "";
