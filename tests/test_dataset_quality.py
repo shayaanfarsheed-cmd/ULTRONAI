@@ -64,6 +64,13 @@ class DatasetQualityTests(unittest.TestCase):
         self.assertEqual(report["status"], "failed")
         self.assertEqual(report["invalid_example_count"], 1)
 
+    def test_wrong_deterministic_split_assignment_is_rejected(self):
+        example = generate_example("whole_number_arithmetic", random.Random(46), sample_index=46)
+        wrong_split = "test" if __import__("ultron_data").question_split(example["question"]) == "train" else "train"
+        report = audit_dataset([dict(example, split=wrong_split)], required_splits=(wrong_split,))
+        self.assertEqual(report["status"], "failed")
+        self.assertIn("question_split_mismatch", {row["reason"] for row in report["invalid_examples"]})
+
     def test_structural_fingerprint_groups_numeric_variants(self):
         first = structural_fingerprint("Calculate: 120 + 34")
         second = structural_fingerprint("Calculate: 981 + 765")
