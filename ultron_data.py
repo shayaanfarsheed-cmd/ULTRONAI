@@ -68,7 +68,13 @@ def _make_example(topic: str, question: str, steps: list[str], answer: str, diff
 def generate_example(topic: str, rng: random.Random, difficulty: int = 1, sample_index: int = 0) -> dict[str, Any]:
     if topic not in SUPPORTED_TOPICS:
         raise ValueError(f"Unsupported topic: {topic}")
-    level = max(1, min(3, int(difficulty)))
+    if not isinstance(rng, random.Random):
+        raise ValueError("rng must be an instance of random.Random")
+    if type(difficulty) is not int or difficulty not in (1, 2, 3):
+        raise ValueError("difficulty must be an integer from 1 to 3")
+    if type(sample_index) is not int or sample_index < 0:
+        raise ValueError("sample_index must be a non-negative integer")
+    level = difficulty
     upper = (12, 99, 999)[level - 1]
 
     if topic == "whole_number_arithmetic":
@@ -94,8 +100,9 @@ def generate_example(topic: str, rng: random.Random, difficulty: int = 1, sample
         return _make_example(topic, question, steps, str(result), level, sample_index)
 
     if topic == "fractions":
-        left = Fraction(rng.randint(1, 9), rng.randint(2, 12))
-        right = Fraction(rng.randint(1, 9), rng.randint(2, 12))
+        fraction_scale = (6, 18, 36)[level - 1]
+        left = Fraction(rng.randint(1, fraction_scale), rng.randint(2, fraction_scale))
+        right = Fraction(rng.randint(1, fraction_scale), rng.randint(2, fraction_scale))
         operation = rng.choice(("+", "-", "*", "/"))
         if operation == "/":
             result = left / right
@@ -335,15 +342,25 @@ def generate_dataset(
     topics: Iterable[str] = SUPPORTED_TOPICS,
     maximum_attempts: int | None = None,
 ) -> list[dict[str, Any]]:
-    if count < 1:
-        raise ValueError("Dataset count must be positive")
+    if type(count) is not int or count < 1:
+        raise ValueError("Dataset count must be a positive integer")
+    if type(seed) is not int:
+        raise ValueError("Dataset seed must be an integer")
     split_buckets = {"train": set(range(8)), "validation": {8}, "test": {9}}
     if split not in split_buckets:
         raise ValueError("Split must be train, validation or test")
+    if isinstance(topics, (str, bytes)):
+        raise ValueError("Topics must be an iterable of unique supported topic names")
     topic_list = tuple(topics)
-    if not topic_list or any(topic not in SUPPORTED_TOPICS for topic in topic_list):
-        raise ValueError("Topic list is empty or contains an unsupported topic")
+    if (
+        not topic_list
+        or any(not isinstance(topic, str) or topic not in SUPPORTED_TOPICS for topic in topic_list)
+        or len(set(topic_list)) != len(topic_list)
+    ):
+        raise ValueError("Topic list is empty, duplicated, or contains an unsupported topic")
     attempt_limit = maximum_attempts if maximum_attempts is not None else count * 30 + 300
+    if type(attempt_limit) is not int or attempt_limit < 1:
+        raise ValueError("Maximum attempts must be a positive integer")
     examples: list[dict[str, Any]] = []
     seen: set[str] = set()
 
