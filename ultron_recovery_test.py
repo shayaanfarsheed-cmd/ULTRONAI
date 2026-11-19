@@ -59,6 +59,7 @@ def run_checkpoint_recovery_test(
     test_run_id = f"recovery-test-{uuid.uuid4().hex}"
     remote = RemoteCheckpointStore(storage, bucket=bucket, keep_last=1, maximum_file_bytes=maximum_file_bytes)
     checkpoint_id: str | None = None
+    result: dict[str, Any] | None = None
 
     try:
         tokenizer = CharTokenizer()
@@ -185,7 +186,7 @@ def run_checkpoint_recovery_test(
                     f"data_stream={stream_exact}, curriculum={curriculum_exact}"
                 )
 
-            return {
+            result = {
                 "recovery_test_passed": True,
                 "test_run_id": test_run_id,
                 "checkpoint_id": checkpoint_id,
@@ -204,6 +205,7 @@ def run_checkpoint_recovery_test(
                 "production_run_id_touched": False,
                 "real_training_started": False,
             }
+            return result
     finally:
         if checkpoint_id is not None:
             paths = [
@@ -211,3 +213,12 @@ def run_checkpoint_recovery_test(
                 for name in (*RemoteCheckpointStore.COMPONENTS, "upload_receipt.json")
             ]
             storage.remove(bucket, paths)
+            remaining = storage.list_objects(
+                bucket,
+                f"{owner_id}/{test_run_id}/{checkpoint_id}",
+                limit=100,
+            )
+            if remaining:
+                raise RuntimeError("Temporary recovery-test checkpoint cleanup could not be verified")
+            if result is not None:
+                result["temporary_storage_cleanup_verified"] = True
