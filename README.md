@@ -1,3 +1,14 @@
+## Latest update — 2026-11-19 (Stage 2 held-out evaluation pilot in review)
+
+- Draft PR #38: [Stage 2: add frozen held-out foundation cases](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/38) is open on branch `feature/stage-2-heldout-evaluation`; it is not merged.
+- The first isolated step adds a frozen, hand-authored pilot set with one difficulty-1 example for each of the 14 supported topics, plus tests for independent-verifier validity, stable sample IDs, uniqueness, and isolation in the existing hash-based `test` split.
+- This 14-example pilot is a wiring/safety check, not a statistically meaningful accuracy benchmark. Do not claim model competence from it.
+- No model, training loop, weights, checkpoint, production database, or website behavior was changed. No training was started.
+- Local test execution was blocked because this environment could not resolve GitHub for a repository checkout. Required CI status was not yet available when this note was written; do not merge unless all required checks pass.
+- Next incremental step after fixture tests pass: add a read-only evaluation runner with deterministic scoring and topic/difficulty metrics, then add broader held-out cases and regression coverage. Keep evaluation data out of training and curriculum selection.
+
+---
+
 ## Latest update — 2026-11-19 (PR #36 merged; evaluation is next)
 
 - PR #36 merged successfully at `d2fbcad6839371655e3ffb8d7e65e363d91b634e`.
