@@ -1,3 +1,11 @@
+## Latest update — 2026-11-19 (Browser Math Agent frontend in progress)
+
+- Current work is on branch `feature/browser-math-agent`, based on main `363fc8b2fdcfa9e1ea1e88fdbe303eb0876a45c8`.
+- Adds a static-browser JavaScript math solver and a separate answer-checking path for the same 14 foundation topics supported by the Python agent. It uses exact integer/fraction arithmetic, shows topic rules and worked steps, and rejects unsupported formats.
+- Adds a public Math Agent dashboard page with direct question solving and Start/Stop/Reset controls. The benchmark is capped at 5,000 questions and yields between small batches to keep the UI responsive.
+- This is a deterministic rule-based agent, not the neural model. Benchmarking does not train or update weights. Training remains disabled.
+- Validation and review are pending. Do not merge until the complete CI suite passes. After merge, verify the GitHub Pages deployment and manually check iPad browser layout/interaction.
+
 ## Latest update — 2026-11-19 (ULTRON Math Agent merged)
 
 - PR #40 merged successfully at `f5b366b5ecff7026e8bce9257ac53e3af81778d0`; final reviewed PR head was `ac9ef21f19f6a65afea5ed0bbe551d0d5f54dc67`.
