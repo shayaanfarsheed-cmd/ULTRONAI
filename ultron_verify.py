@@ -409,14 +409,21 @@ def _expected_solution_steps(example: Mapping[str, Any]) -> list[str]:
         ]
 
     if topic == "exponents_and_roots":
-        square = re.fullmatch(r"Calculate: (\d+) \*\* 2", question)
+        power = re.fullmatch(r"Calculate: (\d+) \*\* (\d+)", question)
         root = re.fullmatch(r"Calculate: sqrt\((\d+)\)", question)
-        if square:
-            base = int(square.group(1))
-            result = base * base
+        if power:
+            base, exponent = map(int, power.groups())
+            if not 2 <= exponent <= 8:
+                raise ValueError("Exponent must be between 2 and 8")
+            result = base ** exponent
+            if exponent == 2:
+                return [
+                    f"Step 1: Multiply {base} by itself.",
+                    f"Step 2: {base} ** 2 = {result}.",
+                ]
             return [
-                f"Step 1: Multiply {base} by itself.",
-                f"Step 2: {base} ** 2 = {result}.",
+                f"Step 1: Multiply {base} by itself {exponent} times.",
+                f"Step 2: {base} ** {exponent} = {result}.",
             ]
         if root:
             radicand = int(root.group(1))
