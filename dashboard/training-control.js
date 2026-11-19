@@ -63,6 +63,8 @@
   }
 
   async function refreshStatus() {
+    const startButton = $("trainingStartButton");
+    if (startButton) startButton.disabled = !ownerSession() || $("trainingServerSelect").value !== "github_actions_cpu";
     if (busy) return;
     if (!ownerSession()) {
       setStatus(null);
