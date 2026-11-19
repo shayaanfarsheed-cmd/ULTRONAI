@@ -785,7 +785,9 @@ def run_training_session(
                 if advanced:
                     if curriculum.is_finished:
                         try:
-                            save_checkpoint()
+                            if not save_checkpoint():
+                                lease_lost = True
+                                return finish("dead", "checkpoint_not_durable_at_curriculum_completion")
                         except LeaseLostError:
                             lease_lost = True
                             return finish("dead", "lease_lost_at_curriculum_completion")
@@ -794,7 +796,9 @@ def run_training_session(
 
             if checkpoint_interval <= 0 or monotonic() - last_checkpoint >= checkpoint_interval:
                 try:
-                    save_checkpoint()
+                    if not save_checkpoint():
+                        lease_lost = True
+                        return finish("dead", "checkpoint_not_durable_during_periodic_save")
                 except LeaseLostError:
                     lease_lost = True
                     return finish("dead", "lease_lost_during_checkpoint")
@@ -811,16 +815,20 @@ def run_training_session(
         return finish("finished", "maximum_training_steps")
     except KeyboardInterrupt:
         try:
-            save_checkpoint()
+            if not save_checkpoint():
+                lease_lost = True
+                return finish("dead", "checkpoint_not_durable_after_keyboard_interrupt")
         except Exception:
-            pass
+            lease_lost = True
+            return finish("dead", "checkpoint_save_failed_after_keyboard_interrupt")
         return finish("paused", "keyboard_interrupt")
     except Exception as error:
         if not lease_lost:
             try:
-                save_checkpoint()
+                if not save_checkpoint():
+                    lease_lost = True
             except Exception:
-                pass
+                lease_lost = True
         result = finish("dead", f"training_error:{type(error).__name__}")
         raise TrainingSessionError(json.dumps(result)) from error
     finally:
