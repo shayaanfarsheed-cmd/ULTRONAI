@@ -15,7 +15,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from ultron_data import DATA_GENERATOR_VERSION, SUPPORTED_TOPICS, generate_dataset
 from ultron_dataset_quality import audit_dataset, require_dataset_pass
 
-DEFAULT_COUNTS = {"train": 12_000, "validation": 1_500, "test": 1_500}
+DEFAULT_COUNTS = {"train": 100_000, "validation": 5_000, "test": 5_000}
 DATASET_SCHEMA_VERSION = 1
 
 
@@ -62,12 +62,21 @@ def build_dataset(output_dir: str | Path, seed: int = 20261119, counts: dict[str
     for split, examples in splits.items():
         topic_counts = Counter(item["topic"] for item in examples)
         difficulty_counts = Counter(item["difficulty"] for item in examples)
+        topic_difficulties: dict[str, set[int]] = {}
+        for item in examples:
+            topic_difficulties.setdefault(item["topic"], set()).add(item["difficulty"])
         missing_topics = sorted(set(SUPPORTED_TOPICS).difference(topic_counts))
         missing_difficulties = sorted({1, 2, 3}.difference(difficulty_counts))
-        if missing_topics or missing_difficulties:
+        incomplete_topic_difficulties = {
+            topic: sorted({1, 2, 3}.difference(levels))
+            for topic, levels in topic_difficulties.items()
+            if levels != {1, 2, 3}
+        }
+        if missing_topics or missing_difficulties or incomplete_topic_difficulties:
             raise RuntimeError(
                 f"{split} coverage incomplete: missing_topics={missing_topics}, "
-                f"missing_difficulties={missing_difficulties}"
+                f"missing_difficulties={missing_difficulties}, "
+                f"incomplete_topic_difficulties={incomplete_topic_difficulties}"
             )
         minimum_difficulty_count = max(1, len(examples) // 30)
         if any(difficulty_counts[level] < minimum_difficulty_count for level in (1, 2, 3)):
