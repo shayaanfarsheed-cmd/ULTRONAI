@@ -77,6 +77,22 @@ class DataPipelineTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             generate_example("advanced_calculus", random.Random(1))
 
+    def test_dataset_generator_rejects_invalid_arguments(self):
+        invalid_calls = (
+            lambda: generate_dataset(True, seed=1),
+            lambda: generate_dataset(1, seed=True),
+            lambda: generate_dataset(1, seed=1, split=[]),
+            lambda: generate_dataset(1, seed=1, topics="fractions"),
+            lambda: generate_dataset(1, seed=1, topics=None),
+            lambda: generate_dataset(1, seed=1, topics=("fractions", "fractions")),
+            lambda: generate_dataset(1, seed=1, maximum_attempts=True),
+            lambda: generate_dataset(1, seed=1, maximum_attempts=0),
+        )
+        for call in invalid_calls:
+            with self.subTest(call=call):
+                with self.assertRaises(ValueError):
+                    call()
+
     def test_invalid_difficulty_is_rejected_instead_of_silently_clamped(self):
         for difficulty in (0, 4, True, 1.5):
             with self.subTest(difficulty=difficulty):
