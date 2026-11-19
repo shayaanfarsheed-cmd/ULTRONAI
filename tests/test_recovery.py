@@ -50,6 +50,27 @@ class FakeStorage:
         return []
 
 
+class HierarchicalFakeStorage(FakeStorage):
+    """Model Supabase's immediate-child listing and null-id virtual folders."""
+
+    def list_objects(self, bucket, prefix, limit=1000, offset=0):
+        prefix = prefix.strip("/") + "/"
+        children = {}
+        for (bucket_id, path) in self.objects:
+            if bucket_id != bucket or not path.startswith(prefix):
+                continue
+            remainder = path[len(prefix):]
+            if not remainder:
+                continue
+            first, separator, _tail = remainder.partition("/")
+            if separator:
+                children[first] = {"name": first, "id": None}
+            else:
+                children[first] = {"name": first, "id": "fake-object"}
+        ordered = [children[name] for name in sorted(children)]
+        return ordered[offset:offset + limit]
+
+
 class RecoveryTest(unittest.TestCase):
     def test_isolated_remote_restart_restores_exact_next_training_step(self):
         storage = FakeStorage()
@@ -83,6 +104,13 @@ class RecoveryTest(unittest.TestCase):
         self.assertEqual(result["saved_step"], 2)
         self.assertEqual(result["resumed_step"], 3)
         self.assertTrue(all(result["checks"].values()))
+        self.assertTrue(result["temporary_storage_cleanup_verified"])
+        self.assertEqual(storage.objects, {})
+
+    def test_live_style_nested_virtual_folders_are_recursively_cleaned(self):
+        storage = HierarchicalFakeStorage()
+        result = run_checkpoint_recovery_test(storage, "owner-test")
+        self.assertTrue(result["recovery_test_passed"])
         self.assertTrue(result["temporary_storage_cleanup_verified"])
         self.assertEqual(storage.objects, {})
 
