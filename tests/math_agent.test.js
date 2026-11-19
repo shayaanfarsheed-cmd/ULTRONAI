@@ -16,6 +16,7 @@ test("independent verifier rejects a deliberately wrong answer",()=>{
 test("exact arithmetic avoids floating point for fractions and decimals",()=>{
  assert.equal(agent.solve("fractions","Calculate: (1/3) + (1/6)").answer,"1/2");
  assert.equal(agent.solve("decimals","Calculate: 0.1 + 0.2").answer,"0.3");
+ assert.equal(agent.solve("decimals","Calculate: 0.5 + 0.25").answer,"0.75");
 });
 test("generator returns bounded deterministic question formats",()=>{
  for(const topic of agent.TOPIC_KEYS)assert.equal(agent.generate(topic,3),agent.generate(topic,3));
