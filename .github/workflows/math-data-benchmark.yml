@@ -1,0 +1,40 @@
+name: ULTRON Generated Math Data CPU Benchmark
+
+on:
+  pull_request:
+    paths:
+      - "config.json"
+      - "train.py"
+      - "ultron_data.py"
+      - "ultron_verify.py"
+      - "ultron_model.py"
+      - "ultron_training.py"
+      - "scripts/benchmark_math_data.py"
+      - ".github/workflows/math-data-benchmark.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      OMP_NUM_THREADS: "2"
+      MKL_NUM_THREADS: "2"
+      OPENBLAS_NUM_THREADS: "1"
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - name: Install project dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Run bounded generated-math benchmark
+        run: python scripts/benchmark_math_data.py --examples 1024 --steps 10 --warmup 2
