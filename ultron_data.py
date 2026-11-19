@@ -10,6 +10,9 @@ from typing import Any, Iterable
 from ultron_verify import verify_example
 
 
+DATA_GENERATOR_VERSION = "2.0.0"
+
+
 class InvalidGeneratedExampleError(ValueError):
     """Raised when a generated example fails its independent verification."""
 
