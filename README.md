@@ -1,3 +1,13 @@
+## Latest update — 2026-11-19 (model capacity sweep; not yet selected)
+
+- The current 4,038,478-parameter architecture is a baseline, not an immutable limit. A bounded candidate sweep now measures widths/depths from approximately 4.83M through 56.97M parameters using ULTRON-generated, independently verified maths examples, the same 192-token context, batch size and 2-thread GitHub Actions CPU profile.
+- Each candidate runs in its own isolated GitHub-hosted job so peak RSS is measured independently. The sweep reports measured step throughput, loss finiteness, peak process RSS, and estimated FP32 model/Adam checkpoint payload.
+- Important constraint discovered during review: the current checkpoint format writes a single `optimizer.safetensors` component, and both local and remote checkpoint stores enforce a 45,000,000-byte per-component limit. Adam's two FP32 moment tensors alone need approximately 8 bytes per parameter, so larger candidates cannot be adopted safely until checkpoint sharding is implemented and tested.
+- The sweep is diagnostic only: it does not change the configured production architecture, write checkpoints, call Supabase/Hugging Face, or start training. No new model size is selected until both CPU capacity and checkpoint save/restore limits are validated.
+- Next: review sweep artifacts, implement bounded checkpoint sharding if needed, test full save/restore and interrupted resume at the selected larger architecture, then update the production model config only after those checks pass.
+
+---
+
 ## Latest update — 2026-11-19 (realistic benchmark and interrupted-resume validation; PR in progress)
 
 - Added `scripts/benchmark_math_data.py`, a bounded diagnostic that uses ULTRON's own generated and independently verified examples from the first configured curriculum stage.
