@@ -11,6 +11,7 @@ on:
       - "ultron_training.py"
       - "scripts/benchmark_math_data.py"
       - ".github/workflows/math-data-benchmark.yml"
+  workflow_dispatch:
 permissions:
   contents: read
 
