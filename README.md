@@ -354,12 +354,31 @@ All earlier pairing implementation notes later in this README are historical onl
 - Validate the deletion regression tests and deployed behavior before treating these controls as live.
 
 
-## Training reliability hardening — pending PR
+## Training reliability hardening — PR #47 merged
 
+- PR #47 merged to `main` on 2026-11-19 (merge commit `1f80f1b473d4ecb18fd9feeb13892d3dc5a87a1b`).
 - A training session must not report a safe pause or handoff unless the latest checkpoint is durably committed to primary Supabase Storage or independently verified in the configured secondary backup.
 - If neither durable path succeeds, the worker stops training and deliberately does not release its lease; the lease expires naturally so another worker cannot race ahead from stale progress. The local checkpoint is diagnostic/recovery material only and is not treated as durable across Kaggle runtime resets.
 - Kaggle's local checkpoint directory is under `/kaggle/working/ultron-checkpoints`; it is temporary and must never be mistaken for cross-session persistence. Supabase remains the required primary durable store; Hugging Face is optional secondary backup.
-- The current review branch adds explicit durability checks to no-GPU, session-limit, stop, pause, requested-handoff, and max-step exits, and routes pending retries through the same primary/secondary commit helper.
-- Real training remains disabled pending CI, code review, and explicit owner approval.
+- The regression test covers failure to commit the primary checkpoint when no secondary backup is configured. Real training remains disabled.
 
-- CI initially exposed a test-timing mismatch: the shared test configuration uses a zero-second interval, so the periodic-save guard ran before the max-step guard. The regression test now explicitly sets a 300-second interval so it specifically validates failure at the max-step exit. All three CI workflows must pass on the updated commit before merge.
+
+## Isolated Kaggle checkpoint recovery validation — in progress
+
+- Purpose: prove that a checkpoint uploaded to Supabase Storage can be downloaded into a fresh local runtime and continue with the same next optimizer update as an uninterrupted run.
+- The new `--checkpoint-recovery-test` command uses a unique temporary run prefix under the authenticated owner's existing private `checkpoints` Storage folder. It uploads immutable checkpoint components and a verification receipt, downloads them into a fresh temporary directory, restores model/optimizer/scheduler/RNG/data-stream/curriculum state, and compares the next training update against an uninterrupted reference.
+- This test uses a tiny randomly initialized ULTRON architecture and 2 temporary optimizer steps plus one deterministic continuation step on CPU. It is a persistence/recovery test, not the 4.04M-parameter training programme and not evidence of mathematical competence.
+- It accesses Supabase Storage only. It does not call the `training_api` schema, create or update a `training_status` row, acquire/release a training lease, modify production run pointers, or start real training.
+- After a successful or failed run with a created checkpoint, the command removes only the six known objects under its unique test-run/checkpoint prefix and verifies that the prefix is empty. No existing checkpoint is pruned.
+- Required Kaggle Secrets: `SUPABASE_SECRET_KEY` and `SUPABASE_OWNER_ID`. The project URL is read from `config.json` unless `SUPABASE_URL` is set. Never paste or print secret values.
+- Manual Kaggle command after pulling the branch/PR code: `!python train.py --checkpoint-recovery-test`.
+- The command must pass its local fake-Storage regression test in CI before it is used against the private Supabase bucket. The live Supabase round trip still requires the owner to run the command manually in Kaggle.
+- Real training remains disabled and requires separate explicit approval after this recovery test and further code review.
+
+## Next steps for the next session
+
+1. Review the isolated recovery-test implementation and its tests; verify no production database or training-status writes are possible.
+2. Run all repository CI checks on the recovery-test PR.
+3. After the PR is reviewed and merged, pull the updated repository in the Kaggle notebook and run `!python train.py --checkpoint-recovery-test`.
+4. Confirm the report shows exact step-2 restore and step-3 continuation, all state comparisons pass, and the temporary Storage objects were cleaned up.
+5. Do not start real training until the recovery test passes and the user separately approves it.
