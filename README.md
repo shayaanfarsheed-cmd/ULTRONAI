@@ -1,10 +1,17 @@
-## Latest update — 2026-11-19 (Browser Math Agent frontend in progress)
+## Latest update — 2026-11-19 (Browser Math Agent merged)
 
-- Current work is on branch `feature/browser-math-agent`, based on main `363fc8b2fdcfa9e1ea1e88fdbe303eb0876a45c8`.
-- Adds a static-browser JavaScript math solver and a separate answer-checking path for the same 14 foundation topics supported by the Python agent. It uses exact integer/fraction arithmetic, shows topic rules and worked steps, and rejects unsupported formats.
-- Adds a public Math Agent dashboard page with direct question solving and Start/Stop/Reset controls. The benchmark is capped at 5,000 questions and yields between small batches to keep the UI responsive.
-- This is a deterministic rule-based agent, not the neural model. Benchmarking does not train or update weights. Training remains disabled.
-- Validation and review are pending. Do not merge until the complete CI suite passes. After merge, verify the GitHub Pages deployment and manually check iPad browser layout/interaction.
+- PR #41 merged successfully at `8776a7cd73aee91fa1a98c8c59a1457b94d0196a`; final reviewed PR head was `ef3053bc28d4cd42dd0ee26cc621875c58efcec8`.
+- All three required PR workflows passed on that exact final head:
+  - ULTRON Test Suite — run `44443194723` (success; includes static JavaScript validation and the browser Math Agent Node tests).
+  - ULTRON Training Prototype Validation — run `44443194753` (success).
+  - ULTRON preflight tests — run `44443194806` (success).
+- Adds `dashboard/math-agent.js`, a browser-native deterministic solver for all 14 foundation topics, with exact integer/fraction/decimal arithmetic, inspectable knowledge summaries, and worked steps. The answer checker recomputes results using its own arithmetic helpers rather than calling the solver helpers.
+- Adds the public Math Agent page at `dashboard/`: choose a topic, read the accepted question format, load an example, solve, and independently verify. The benchmark has Start/Stop/Reset controls, a 5,000-question hard cap, small yielding batches, and stops when the page is backgrounded or another dashboard view is selected.
+- Displays overall questions/second, verified solutions/second, accuracy, completed count, and per-topic generated/verified accuracy.
+- Regression tests cover every topic, generated question formats, invalid and oversized input, deliberately wrong answers, and exact fraction/decimal arithmetic. The existing full suite and all three required workflows passed.
+- This is a deterministic rule-based browser agent, not the neural model. It does not use external AI APIs, pretrained weights, uploaded files, or training. It does not update model weights. Neural-model training remains disabled.
+- iPad layout is responsive by design, but a manual Safari/iPad interaction test is still outstanding; automated CI cannot replace a real-device check.
+- Next frontend milestone: review and test the Math Agent in the deployed GitHub Pages site, then continue the remaining frontend gaps. Do not start training until the user explicitly approves it.
 
 ## Latest update — 2026-11-19 (ULTRON Math Agent merged)
 
