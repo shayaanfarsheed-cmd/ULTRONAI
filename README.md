@@ -2,12 +2,15 @@
 
 - Added `scripts/benchmark_math_data.py`, a bounded diagnostic that uses ULTRON's own generated and independently verified examples from the first configured curriculum stage.
 - The benchmark instantiates the configured 4,038,478-parameter model, uses the GitHub Actions CPU runtime profile (2 PyTorch threads, configured CPU batch size), configured context limit (192), AdamW defaults and cosine learning-rate scheduler. It reports actual batch tensor shapes, finite losses, steps/second, median/mean step time, and process peak RSS.
+- First GitHub Actions result (3 measured steps after 1 warmup): 2.98 steps/second, 0.336 s mean step, 0.339 s median, 704.2 MB peak process RSS, and finite mean loss 3.576. The four observed batch shapes were 8×130, 8×139, 8×123, and 8×151 (all below the configured 192-token context cap). This is a short runner-specific sample, not a long-run throughput guarantee.
 - The benchmark is isolated: it does not call Supabase, Hugging Face, the production training-session entry point, or checkpoint storage. Model updates exist only in benchmark process memory.
 - Added a separate GitHub Actions workflow for pull requests touching the model/data/training pipeline and manual bounded runs. It has no production secrets and cannot start a production training session.
 - Added a session regression test that injects a KeyboardInterrupt after one optimizer update, verifies the checkpoint is committed, starts a fresh session/runtime, and verifies training resumes from the saved step and reaches the next step.
-- Existing checkpoint tests already cover atomic local save, integrity verification, fallback to an earlier valid checkpoint, optimizer/scheduler/RNG restoration, remote-storage round-trip with fake storage, interrupted upload/download cleanup, and exact next-update equivalence in the isolated recovery test. These are simulated/fake-storage checks, not proof of live Supabase behavior.
-- No live Supabase Storage writes, production run, or real training session were started. The generated-data benchmark and new interruption regression still require CI execution and review.
-- Next: inspect all PR checks, review benchmark output (including the actual batch shapes and runtime), fix any failures, then run the isolated remote checkpoint recovery command against the configured private bucket only after explicit approval for that live test. Keep production training disabled.
+- Added a full configured-architecture checkpoint test: the 4,038,478-parameter model trains one generated-data batch, saves model/AdamW/scheduler/RNG/data-stream state, restores into fresh objects, and checks exact state equality. This is local temporary storage only.
+- Existing checkpoint tests also cover atomic local save, integrity verification, fallback to an earlier valid checkpoint, optimizer/scheduler/RNG restoration, remote-storage round-trip with fake storage, interrupted upload/download cleanup, and exact next-update equivalence in the isolated recovery test. Fake-storage checks are not proof of live Supabase behavior.
+- The generated-data benchmark passed on GitHub Actions CPU with the measurements above. The new interruption regression passed in the unit-test step. The full configured-model checkpoint test and remaining smoke-test workflows are still running on the latest PR head.
+- No live Supabase Storage writes, production run, or real training session were started.
+- Next: finish CI on the latest PR head; review full-model checkpoint and interruption test results; then decide whether a live isolated private-bucket recovery test is necessary. That test requires explicit approval because it writes temporary objects to live Supabase Storage. Keep production training disabled.
 
 ---
 
