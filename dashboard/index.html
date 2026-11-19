@@ -343,6 +343,7 @@
               <select id="mathTopic" required></select>
               <label for="mathQuestion">Question</label>
               <textarea id="mathQuestion" maxlength="1000" rows="3" required placeholder="Choose a topic, then enter a supported question."></textarea>
+              <p id="mathTopicHint" class="fine-print">Example format will appear when you choose a topic.</p>
               <div class="control-row">
                 <button class="primary-button" type="submit">Solve and verify</button>
                 <button id="mathExampleButton" class="quiet-button" type="button">Load example</button>
@@ -363,6 +364,7 @@
               <div><span>ACCURACY</span><strong id="mathAccuracy">—</strong></div>
               <div><span>COMPLETED</span><strong id="mathCompleted">0</strong></div>
             </div>
+            <div id="mathTopicMetrics" class="math-topic-metrics" aria-live="polite"><p class="empty-state">Per-topic results will appear during a benchmark.</p></div>
             <div class="control-row math-controls">
               <button id="mathStartButton" class="primary-button" type="button">Start benchmark</button>
               <button id="mathStopButton" class="quiet-button" type="button" disabled>Stop</button>
