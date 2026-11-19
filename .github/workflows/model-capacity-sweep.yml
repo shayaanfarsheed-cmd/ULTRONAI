@@ -1,0 +1,68 @@
+name: ULTRON Model Capacity Sweep
+
+on:
+  pull_request:
+    paths:
+      - "config.json"
+      - "ultron_model.py"
+      - "ultron_training.py"
+      - "ultron_data.py"
+      - "ultron_verify.py"
+      - "scripts/benchmark_math_data.py"
+      - "scripts/benchmark_model_capacity.py"
+      - ".github/workflows/model-capacity-sweep.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  capacity:
+    name: "capacity d=${{ matrix.dimension }} L=${{ matrix.layers }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { dimension: 256, layers: 6, heads: 8, label: 4.83m }
+          - { dimension: 320, layers: 8, heads: 10, label: 9.98m }
+          - { dimension: 384, layers: 8, heads: 12, label: 14.33m }
+          - { dimension: 448, layers: 8, heads: 14, label: 19.47m }
+          - { dimension: 512, layers: 8, heads: 16, label: 25.40m }
+          - { dimension: 640, layers: 8, heads: 16, label: 39.61m }
+          - { dimension: 768, layers: 8, heads: 24, label: 56.97m }
+    env:
+      OMP_NUM_THREADS: "2"
+      MKL_NUM_THREADS: "2"
+      OPENBLAS_NUM_THREADS: "1"
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - name: Install project dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Run bounded capacity benchmark
+        run: |
+          python scripts/benchmark_model_capacity.py \
+            --dimension "${{ matrix.dimension }}" \
+            --layers "${{ matrix.layers }}" \
+            --heads "${{ matrix.heads }}" \
+            --examples 256 \
+            --steps 5 \
+            --warmup 2 \
+            --output "capacity-${{ matrix.label }}.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: capacity-${{ matrix.label }}
+          path: capacity-${{ matrix.label }}.json
+          if-no-files-found: ignore
+          retention-days: 7
