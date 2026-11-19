@@ -80,10 +80,15 @@ class EvaluationFoundationTests(unittest.TestCase):
             heads=2,
             dropout=0.0,
         )
+        selected = tuple(
+            item for item in HELD_OUT_EVALUATION_SET
+            if item["topic"] in {"whole_number_arithmetic", "fractions"}
+            and item["difficulty"] in {1, 3}
+        )
         report = evaluate_model(
             model,
             tokenizer,
-            examples=HELD_OUT_EVALUATION_SET[:4],
+            examples=selected,
             maximum_new_tokens=2,
         )
         self.assertIn("whole_number_arithmetic", report["by_topic"])
