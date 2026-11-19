@@ -338,7 +338,7 @@ def run_agent_benchmark(
     count: int,
     seed: int = 20261119,
     topics: tuple[str, ...] = SUPPORTED_TOPICS,
-    maximum_seconds: float = 10.0,
+    maximum_seconds: float = 1.0,
 ) -> dict[str, Any]:
     """Generate, solve, and independently verify a bounded stream of questions."""
     if type(count) is not int or not 1 <= count <= MAX_QUESTIONS_PER_RUN:
@@ -432,9 +432,9 @@ def run_agent_benchmark(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run ULTRON's deterministic math agent benchmark.")
-    parser.add_argument("--count", type=int, default=1000, help="Questions to generate and solve (maximum 50000)")
+    parser.add_argument("--count", type=int, default=MAX_QUESTIONS_PER_RUN, help="Maximum questions available to the one-second benchmark (maximum 50000)")
     parser.add_argument("--seed", type=int, default=20261119)
-    parser.add_argument("--seconds", type=float, default=10.0, help="Maximum runtime in seconds")
+    parser.add_argument("--seconds", type=float, default=1.0, help="Benchmark duration in seconds (default: 1)")
     parser.add_argument("--output", help="Optional JSON report path")
     args = parser.parse_args(argv)
     try:
