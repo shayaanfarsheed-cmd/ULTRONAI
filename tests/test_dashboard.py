@@ -265,10 +265,28 @@ class DashboardStaticTests(unittest.TestCase):
         self.assertIn("safeDataRelativePath(file.name)", javascript)
         self.assertIn("function dataObjectPath(relativePath)", javascript)
         self.assertIn("file.webkitRelativePath || file.name", javascript)
-        self.assertIn("selected.length > 500", javascript)
+        self.assertIn("const pageSize = 500", javascript)
         self.assertIn("500 * 1024 * 1024", javascript)
         self.assertIn("dataObjectPath(entry.path)", javascript)
         self.assertIn("if (!hasVerifiedOwnerSession()) throw new Error(\"Sign in to the verified owner account before uploading.\")", javascript)
+
+
+
+class DataLibraryDeletionTests(unittest.TestCase):
+    def test_data_library_supports_confirmed_owner_only_bulk_and_folder_deletion(self):
+        html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
+        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
+        self.assertIn('id="dataSelectAll"', html)
+        self.assertIn('id="dataDeleteSelectedButton"', html)
+        self.assertIn('data-data-select=', javascript)
+        self.assertIn('async function deleteDataObjects(relativePaths, confirmationMessage)', javascript)
+        self.assertIn('async function deleteDataFolder(folder)', javascript)
+        self.assertIn('async function deleteSelectedDataFiles()', javascript)
+        self.assertIn('objectPaths.slice(offset, offset + 1000)', javascript)
+        self.assertIn('if (!hasVerifiedOwnerSession()) throw new Error("Owner sign-in is required.")', javascript)
+        self.assertIn('if (!window.confirm(confirmationMessage)) return;', javascript)
+        self.assertIn('data-data-delete-folder=', javascript)
+        self.assertIn('prefixes: objectPaths.slice(offset, offset + 1000)', javascript)
 
 if __name__ == "__main__":
     unittest.main()

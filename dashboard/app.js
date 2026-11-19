@@ -1141,12 +1141,25 @@
       container.innerHTML = '<p class="empty-state">No files uploaded yet. Choose a file above to add the first item.</p>';
       return;
     }
-    container.innerHTML = state.dataFiles.map(function (file) {
+    const folders = new Set();
+    state.dataFiles.forEach(function (file) {
+      const parts = safeDataRelativePath(file.name).split("/");
+      for (let index = 1; index < parts.length; index += 1) folders.add(parts.slice(0, index).join("/"));
+    });
+    const folderMarkup = Array.from(folders).sort().map(function (folder) {
+      return '<button class="quiet-button" type="button" data-data-delete-folder="' + escapeHtml(folder) + '">Delete folder: ' + escapeHtml(folder) + '</button>';
+    }).join("");
+    const fileMarkup = state.dataFiles.map(function (file) {
       const name = safeDataRelativePath(file.name);
       const size = Number(file.metadata && file.metadata.size || file.size || 0);
       const updated = file.updated_at || file.created_at || "";
-      return '<article class="data-file-card"><div class="data-file-main"><strong>' + escapeHtml(name) + '</strong><small>' + escapeHtml(formatNumber(size / 1048576, 2)) + ' MB · ' + escapeHtml(formatDateTime(updated)) + '</small></div><div class="data-file-actions"><button class="secondary-button" type="button" data-data-download="' + escapeHtml(name) + '">Download</button><button class="quiet-button" type="button" data-data-delete="' + escapeHtml(name) + '">Delete</button></div></article>';
+      return '<article class="data-file-card"><label class="data-file-select"><input type="checkbox" data-data-select="' + escapeHtml(name) + '" aria-label="Select ' + escapeHtml(name) + '"></label><div class="data-file-main"><strong>' + escapeHtml(name) + '</strong><small>' + escapeHtml(formatNumber(size / 1048576, 2)) + ' MB · ' + escapeHtml(formatDateTime(updated)) + '</small></div><div class="data-file-actions"><button class="secondary-button" type="button" data-data-download="' + escapeHtml(name) + '">Download</button><button class="quiet-button" type="button" data-data-delete="' + escapeHtml(name) + '">Delete</button></div></article>';
     }).join("");
+    container.innerHTML = (folderMarkup ? '<div class="data-folder-actions">' + folderMarkup + '</div>' : '') + fileMarkup;
+    const deleteSelected = $("dataDeleteSelectedButton");
+    if (deleteSelected) deleteSelected.disabled = true;
+    const selectAll = $("dataSelectAll");
+    if (selectAll) selectAll.checked = false;
   }
 
   async function loadDataLibrary() {
@@ -1356,13 +1369,45 @@
     window.setTimeout(function () { URL.revokeObjectURL(url); }, 30000);
   }
 
-  async function deleteDataFile(name) {
+  async function deleteDataObjects(relativePaths, confirmationMessage) {
     if (!hasVerifiedOwnerSession()) throw new Error("Owner sign-in is required.");
+    if (state.dataLibraryBusy) throw new Error("Wait for the current Data Library operation to finish.");
+    const uniquePaths = Array.from(new Set(relativePaths.map(safeDataRelativePath)));
+    if (!uniquePaths.length) throw new Error("No matching files were found.");
+    if (!window.confirm(confirmationMessage)) return;
+    state.dataLibraryBusy = true;
+    try {
+      const objectPaths = uniquePaths.map(function (path) { return state.user.id + "/" + path; });
+      for (let offset = 0; offset < objectPaths.length; offset += 1000) {
+        await dataLibraryRequest("object/" + DATA_LIBRARY_BUCKET, "DELETE", {
+          prefixes: objectPaths.slice(offset, offset + 1000)
+        }, false);
+      }
+      showDataLibraryNotice("Deleted " + uniquePaths.length + " file(s) from the cloud library.", "success");
+      await loadDataLibrary();
+    } finally {
+      state.dataLibraryBusy = false;
+    }
+  }
+
+  async function deleteDataFile(name) {
     const safeName = safeDataRelativePath(name);
-    if (!window.confirm("Delete " + safeName + " from the shared ULTRON data library? This affects every browser.")) return;
-    await dataLibraryRequest("object/" + DATA_LIBRARY_BUCKET, "DELETE", {prefixes: [state.user.id + "/" + safeName]}, false);
-    showDataLibraryNotice("Deleted " + safeName + " from the cloud library.", "success");
-    await loadDataLibrary();
+    return deleteDataObjects([safeName], "Permanently delete " + safeName + " from the shared ULTRON data library? This affects every browser.");
+  }
+
+  async function deleteDataFolder(folder) {
+    if (!hasVerifiedOwnerSession()) throw new Error("Owner sign-in is required.");
+    const safeFolder = safeDataRelativePath(folder);
+    const paths = state.dataFiles.map(function (file) { return safeDataRelativePath(file.name); })
+      .filter(function (name) { return name.startsWith(safeFolder + "/"); });
+    if (!paths.length) throw new Error("This folder is empty or no longer exists.");
+    return deleteDataObjects(paths, "Permanently delete folder " + safeFolder + " and all " + paths.length + " file(s) inside it? This affects every browser.");
+  }
+
+  async function deleteSelectedDataFiles() {
+    const selected = Array.from(document.querySelectorAll("[data-data-select]:checked"))
+      .map(function (input) { return input.getAttribute("data-data-select"); });
+    return deleteDataObjects(selected, "Permanently delete " + selected.length + " selected file(s) from the shared ULTRON data library? This affects every browser.");
   }
 
   function applyTheme(theme) {
@@ -1426,11 +1471,32 @@
       askUltron($("askQuestionInput").value).catch(function (error) { $("askResults").textContent = error.message; });
     });
     $("dataFileList").addEventListener("click", function (event) {
-      const button = event.target.closest("[data-data-download], [data-data-delete]");
+      const button = event.target.closest("[data-data-download], [data-data-delete], [data-data-delete-folder]");
       if (!button) return;
-      const name = button.getAttribute("data-data-download") || button.getAttribute("data-data-delete");
-      const action = button.hasAttribute("data-data-download") ? downloadDataFile : deleteDataFile;
+      const name = button.getAttribute("data-data-download") || button.getAttribute("data-data-delete") || button.getAttribute("data-data-delete-folder");
+      const action = button.hasAttribute("data-data-download") ? downloadDataFile :
+        (button.hasAttribute("data-data-delete-folder") ? deleteDataFolder : deleteDataFile);
       action(name).catch(function (error) { showDataLibraryNotice(error.message, "error"); });
+    });
+    $("dataFileList").addEventListener("change", function (event) {
+      if (!event.target.matches("[data-data-select]")) return;
+      const selectedCount = document.querySelectorAll("[data-data-select]:checked").length;
+      const deleteButton = $("dataDeleteSelectedButton");
+      if (deleteButton) {
+        deleteButton.disabled = selectedCount === 0;
+        deleteButton.textContent = "Delete selected (" + selectedCount + ")";
+      }
+      const all = $("dataSelectAll");
+      if (all) all.checked = state.dataFiles.length > 0 && selectedCount === state.dataFiles.length;
+    });
+    $("dataSelectAll").addEventListener("change", function (event) {
+      document.querySelectorAll("[data-data-select]").forEach(function (input) { input.checked = event.target.checked; });
+      const count = document.querySelectorAll("[data-data-select]:checked").length;
+      $("dataDeleteSelectedButton").disabled = count === 0;
+      $("dataDeleteSelectedButton").textContent = "Delete selected (" + count + ")";
+    });
+    $("dataDeleteSelectedButton").addEventListener("click", function () {
+      deleteSelectedDataFiles().catch(function (error) { showDataLibraryNotice(error.message, "error"); });
     });
     $("checkpointList").addEventListener("click", function (event) {
       const button = event.target.closest("[data-checkpoint-verify], [data-checkpoint-download]");

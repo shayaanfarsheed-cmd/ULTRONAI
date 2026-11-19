@@ -543,3 +543,12 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible) { outline: none; }
 
 .data-upload-form { grid-template-columns: minmax(0, 1fr); }
 .data-upload-form input[type="file"] { min-width: 0; max-width: 100%; }
+
+
+/* Data Library selection and folder deletion controls */
+.data-library-toolbar,.data-folder-actions{display:flex;flex-wrap:wrap;align-items:center;gap:.65rem;margin:.75rem 0}
+.data-library-toolbar label,.data-file-select{display:flex;align-items:center;gap:.5rem;color:var(--muted-text)}
+.data-file-card{display:flex;align-items:center;gap:.75rem}
+.data-file-main{min-width:0;flex:1}
+.data-file-actions{display:flex;flex-wrap:wrap;gap:.5rem}
+@media(max-width:640px){.data-file-card{align-items:flex-start;flex-wrap:wrap}.data-file-actions{width:100%;padding-left:2rem}}
