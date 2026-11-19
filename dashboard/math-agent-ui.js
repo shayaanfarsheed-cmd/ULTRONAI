@@ -23,6 +23,21 @@
     $("mathStopButton").addEventListener("click",stop);$("mathResetButton").addEventListener("click",reset);
     document.addEventListener("visibilitychange",()=>{if(document.hidden&&running)stop();});
     document.querySelectorAll("[data-view]").forEach(button=>button.addEventListener("click",()=>{if(button.getAttribute("data-view")!=="math"&&running)stop();}));
+    $("mathHeldoutButton").addEventListener("click",async()=>{
+      const button=$("mathHeldoutButton"),box=$("mathHeldoutResult");
+      button.disabled=true;box.textContent="Loading the frozen held-out test set…";
+      try {
+        const response=await fetch("../evaluation/heldout_foundation_v1.json",{cache:"no-store",credentials:"same-origin"});
+        if(!response.ok)throw new Error("Held-out dataset could not be loaded (HTTP "+response.status+").");
+        const report=agent.evaluateHeldout(await response.json());
+        box.replaceChildren();
+        const summary=document.createElement("strong");summary.textContent=report.passed+" / "+report.total+" passed · "+(report.accuracy*100).toFixed(1)+"% accuracy";
+        const note=document.createElement("p");note.textContent="Frozen dataset: "+report.datasetId+". This score is separate from the generated speed benchmark and is never sent to training.";
+        const list=document.createElement("ul");report.cases.forEach(item=>{const li=document.createElement("li");li.textContent=(item.passed?"PASS":"FAIL")+" · "+item.topic+" · expected "+item.expected+" · got "+item.actual;list.appendChild(li);});
+        box.append(summary,note,list);
+      } catch(error) { box.textContent=error.message||"Held-out evaluation failed."; }
+      finally { button.disabled=false; }
+    });
     $("mathStopButton").disabled=true;metrics();
   }
   document.addEventListener("DOMContentLoaded",init);
