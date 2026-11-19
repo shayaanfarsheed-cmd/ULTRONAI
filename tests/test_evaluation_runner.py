@@ -67,11 +67,15 @@ class ReadOnlyEvaluationRunnerTests(unittest.TestCase):
         with self.assertRaises(EvaluationInputError):
             evaluate_predictions(altered, {})
 
-    def test_unfrozen_or_non_test_examples_are_rejected(self):
+    def test_modified_or_subset_evaluation_examples_are_rejected(self):
         altered = copy.deepcopy(self.dataset)
         altered["examples"][0]["split"] = "train"
         with self.assertRaises(EvaluationInputError):
             evaluate_predictions(altered, {})
+        subset = copy.deepcopy(self.dataset)
+        subset["examples"] = subset["examples"][:1]
+        with self.assertRaises(EvaluationInputError):
+            evaluate_predictions(subset, {})
 
     def test_dataset_loader_enforces_frozen_test_split(self):
         self.assertEqual(self.dataset["dataset_id"], DATASET_ID)
