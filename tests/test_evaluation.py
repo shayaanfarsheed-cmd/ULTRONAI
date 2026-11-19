@@ -9,6 +9,7 @@ from ultron_evaluation import (
     validate_evaluation_set,
 )
 from ultron_model import CharTokenizer, ULTRONTransformer
+from ultron_data import generate_dataset
 from ultron_training import MathBatchStream
 
 
@@ -18,9 +19,24 @@ class EvaluationFoundationTests(unittest.TestCase):
         topics = {item["topic"] for item in HELD_OUT_EVALUATION_SET}
         difficulties = {item["difficulty"] for item in HELD_OUT_EVALUATION_SET}
         self.assertEqual(len(topics), 14)
-        self.assertEqual(difficulties, {1, 3})
-        self.assertEqual(len(HELD_OUT_EVALUATION_SET), 28)
+        self.assertEqual(difficulties, {1, 2, 3})
+        self.assertEqual(len(HELD_OUT_EVALUATION_SET), 42)
         self.assertTrue(all(item["evaluation_only"] for item in HELD_OUT_EVALUATION_SET))
+
+    def test_fixed_questions_do_not_overlap_current_synthetic_training_samples(self):
+        generated = generate_dataset(60, seed=20261119, split="train")
+        generated_questions = {item["question"] for item in generated}
+        held_out_questions = {item["question"] for item in HELD_OUT_EVALUATION_SET}
+        self.assertFalse(generated_questions & held_out_questions)
+
+    def test_tokenizer_can_encode_every_held_out_prompt(self):
+        tokenizer = CharTokenizer()
+        for item in HELD_OUT_EVALUATION_SET:
+            with self.subTest(sample_id=item["sample_id"]):
+                self.assertLessEqual(
+                    len(tokenizer.encode(f"Question: {item['question']}\\nSolution:\\n")),
+                    192,
+                )
 
     def test_evaluation_fingerprint_is_stable(self):
         self.assertEqual(
