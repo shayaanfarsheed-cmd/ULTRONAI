@@ -63,6 +63,7 @@
   "runtime": {
     "platform_detection": true,
     "supported_platforms": [
+      "kaggle",
       "google_colab",
       "lightning_ai",
       "github_actions",
@@ -220,7 +221,8 @@
       "github_actions_cpu"
     ],
     "manual_only_platforms": [
-      "google_colab"
+      "google_colab",
+      "kaggle"
     ],
     "do_not_start_when_quota_or_cost_is_uncertain": true,
     "failed_start_timeout_seconds": 1200,
