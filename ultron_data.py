@@ -83,8 +83,8 @@ def generate_example(topic: str, rng: random.Random, difficulty: int = 1, sample
     if topic == "whole_number_arithmetic":
         operation = rng.choice(("+", "-", "*", "/"))
         if operation == "/":
-            divisor = rng.randint(2, max(3, min(20, upper)))
-            quotient = rng.randint(2, max(3, min(20, upper)))
+            divisor = rng.randint(2, max(3, min(200, upper)))
+            quotient = rng.randint(2, max(3, min(200, upper)))
             left, right = divisor * quotient, divisor
             result = quotient
         else:
@@ -96,7 +96,7 @@ def generate_example(topic: str, rng: random.Random, difficulty: int = 1, sample
                     left, right = right, left
                 result = left - right
             else:
-                left, right = rng.randint(2, min(30, upper)), rng.randint(2, min(30, upper))
+                left, right = rng.randint(2, min(200, upper)), rng.randint(2, min(200, upper))
                 result = left * right
         question = f"Calculate: {left} {operation} {right}"
         steps = [f"Step 1: {left} {operation} {right} = {result}."]
@@ -218,12 +218,12 @@ def generate_example(topic: str, rng: random.Random, difficulty: int = 1, sample
 
     if topic == "exponents_and_roots":
         if rng.choice((True, False)):
-            base = rng.randint(2, min(20, upper))
+            base = rng.randint(2, min(200, upper))
             result = base * base
             question = f"Calculate: {base} ** 2"
             steps = [f"Step 1: Multiply {base} by itself.", f"Step 2: {base} ** 2 = {result}."]
         else:
-            root = rng.randint(2, min(20, upper))
+            root = rng.randint(2, min(200, upper))
             result = root
             question = f"Calculate: sqrt({root * root})"
             steps = [f"Step 1: Find the exact square root.", f"Step 2: sqrt({root * root}) = {result}."]
@@ -250,7 +250,7 @@ def generate_example(topic: str, rng: random.Random, difficulty: int = 1, sample
         return _make_example(topic, question, steps, answer, level, sample_index)
 
     if topic == "basic_probability":
-        total = rng.randint(2, max(3, min(upper, 30)))
+        total = rng.randint(2, max(3, min(upper, 200)))
         favorable = rng.randint(1, total)
         result = Fraction(favorable, total)
         answer = _format_fraction(result)
