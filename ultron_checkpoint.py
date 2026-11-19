@@ -301,7 +301,7 @@ class LocalCheckpointStore:
             file_entries[name] = {"size_bytes": size, "sha256": _sha256(path)}
 
         manifest = {
-            "schema_version": 1,
+            "schema_version": 2,
             "checkpoint_id": checkpoint_id,
             "step": step,
             "lease_holder": state["lease_holder"],
