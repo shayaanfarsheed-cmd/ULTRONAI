@@ -7,8 +7,8 @@ This stage establishes a reproducible baseline for the randomly initialized ULTR
 ## Fixed evaluation set
 
 - File: `ultron_evaluation.py`.
-- 28 hand-authored mathematics questions across all 14 supported topics.
-- Each topic has a difficulty-1 and difficulty-3 question.
+- 42 hand-authored mathematics questions across all 14 supported topics.
+- Each topic has one question at difficulty 1, 2 and 3.
 - Questions use wording distinct from the synthetic generator's emitted templates.
 - Expected answers are fixed in source control; they are not generated at evaluation time.
 - The evaluation set has a stable SHA-256 fingerprint so reports can identify the exact test version.
