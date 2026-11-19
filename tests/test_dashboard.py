@@ -37,6 +37,9 @@ class DashboardStaticTests(unittest.TestCase):
         self.assertIn("MAX 5,000 QUESTIONS", html)
         self.assertIn("does not update model weights", html)
         self.assertIn("function verify(topic, question, answer)", agent)
+        self.assertIn("function evaluateHeldout(dataset)", agent)
+        self.assertIn("id=\"mathHeldoutButton\"", html)
+        self.assertIn("id=\"mathHeldoutResult\"", html)
         self.assertIn("BigInt", agent)
 
     def test_dashboard_keyboard_and_mobile_accessibility_hooks(self):
