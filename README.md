@@ -1,3 +1,14 @@
+## Latest update — 2026-11-19 (Supabase smoke-test URL fallback)
+
+- The live checkpoint smoke test failed because the GitHub Actions runner received an empty `SUPABASE_URL`, even though `config.json` already declares the project's public URL.
+- The manual workflow now uses the repository variable `vars.SUPABASE_URL` when set, otherwise it falls back to the project URL already recorded in `config.json`: `https://euhmejpaswmdpsutbtse.supabase.co`. This URL is not a secret.
+- `SUPABASE_SECRET_KEY` and `SUPABASE_OWNER_ID` remain required repository secrets. The verifier must continue to fail closed if either is missing. Secret values must never be pasted into chat, committed, or exposed to browser code.
+- This change only fixes workflow configuration; it does not prove the storage round trip. Run the manual workflow after this PR is merged and inspect upload, hash verification, download, restore, and cleanup.
+- Repository audit also found documentation drift: older README sections describe superseded access-control and validation states. Reconcile the README after the storage fix is verified. Dataset leakage prevention, a broad frozen evaluation benchmark, and formal proof-engine capability must not be described as complete without dedicated tests/evidence.
+- No real training has started. Keep Candidate 5 and production training blocked until live storage, candidate checkpoint restore, and interrupted-resume gates pass.
+
+---
+
 ## Latest update — 2026-11-19 (checkpoint storage smoke test failure diagnosis)
 
 - Manual workflow run `44537738778` failed in its verification step before making any Supabase request. The direct cause was `ModuleNotFoundError: No module named 'ultron_checkpoint'` because executing `scripts/verify_supabase_checkpoint_storage.py` places the `scripts/` directory, not the repository root, on Python's import path.
