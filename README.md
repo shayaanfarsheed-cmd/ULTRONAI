@@ -1,3 +1,12 @@
+## Latest update — 2026-11-19 (live checkpoint storage smoke workflow added)
+
+- PR #61 now includes a manual-only GitHub Actions workflow, `.github/workflows/checkpoint-storage-smoke.yml`, and `scripts/verify_supabase_checkpoint_storage.py`. It uses the existing `SUPABASE_URL` repository variable and `SUPABASE_SECRET_KEY` / `SUPABASE_OWNER_ID` secrets, writes one tiny synthetic checkpoint beneath a unique run-specific prefix in the existing private `checkpoints` bucket, verifies remote hashes, downloads it, restores model and AdamW moments, and deletes only objects beneath that exact temporary prefix in a `finally` cleanup.
+- This workflow does not start training or alter bucket settings, schema, RLS, secrets, or persistent model checkpoints. It is `workflow_dispatch` only and becomes available after its workflow file is merged to `main`.
+- Run it from GitHub Actions as **ULTRON Checkpoint Storage Smoke Test** after PR #61 is merged; confirm the final log says both the round-trip and cleanup passed. If the required repository secrets/variable are absent, the workflow fails closed before upload.
+- PR #61 CI is still pending on the latest head. No production model change and no real training have occurred.
+
+---
+
 ## Latest update — 2026-11-19 (Candidate 5 checkpoint sharding implementation in review)
 
 - Branch `feat/checkpoint-sharding-candidate5` adds model and optimizer safetensors sharding, with a conservative per-shard byte budget below the configured 45,000,000-byte Storage cap. The manifest records every shard and its size/hash; restore recombines tensors and keeps compatibility with legacy single-file checkpoints.
