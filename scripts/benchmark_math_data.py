@@ -128,10 +128,10 @@ def run_benchmark(
             precision="none",
             gradient_clip_norm=float(training.get("gradient_clip_norm", 1.0)),
         )
-        elapsed = time.perf_counter() - started
         if not torch.isfinite(torch.tensor(loss)):
             raise RuntimeError("Benchmark produced a non-finite loss")
         scheduler.step()
+        elapsed = time.perf_counter() - started
         if index >= warmup:
             durations.append(elapsed)
             losses.append(loss)
