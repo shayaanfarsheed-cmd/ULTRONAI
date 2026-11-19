@@ -266,7 +266,8 @@ class DashboardStaticTests(unittest.TestCase):
         self.assertIn("function dataObjectPath(relativePath)", javascript)
         self.assertIn("file.webkitRelativePath || file.name", javascript)
         self.assertIn("const pageSize = 500", javascript)
-        self.assertIn("500 * 1024 * 1024", javascript)
+        self.assertIn("5000 * 1024 * 1024", javascript)
+        self.assertIn("5,000 MiB (5 GiB)", javascript)
         self.assertIn("dataObjectPath(entry.path)", javascript)
         self.assertIn("if (!hasVerifiedOwnerSession()) throw new Error(\"Sign in to the verified owner account before uploading.\")", javascript)
 
