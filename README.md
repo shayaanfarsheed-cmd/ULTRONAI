@@ -1,3 +1,16 @@
+## Latest update — 2026-11-19 (ULTRON Math Agent implementation)
+
+- Work is on branch `feature/math-solving-agent`; PR validation is pending.
+- Adds `ultron_agent.py`, a bounded deterministic math-solving agent for all 14 currently supported foundation topics.
+- The agent receives only the generated topic and question. It deliberately discards the generator's answer and solution steps before solving, then submits its own answer and worked steps to the separate verifier.
+- Includes an inspectable topic knowledge base with a concept, core rule/formula, and solving method. Each returned sample solution includes this short mathematical summary and the actual working.
+- Adds a bounded one-second throughput benchmark by default (maximum 50,000 questions, configurable duration) reporting generated questions/second, independently verified correct solutions/second, accuracy, failures, and per-topic metrics. CLI: `python ultron_agent.py`; use `--count 50000 --seconds 1` to measure the one-second ceiling. It retains at most 20 sample solutions in the report.
+- The initial solver supports the generator's exact foundation question templates. Unsupported formats are rejected rather than guessed. The engine is deterministic/rule-based, not the randomly initialized neural model; it does not learn or update weights.
+- Regression tests cover every supported topic, exact fraction/decimal arithmetic, malformed input rejection, throughput metrics, determinism, and no-training guarantees.
+- No website, database, production configuration, model weights, or training behavior changed. No training was started.
+- Required before merge: all three required PR workflows (ULTRON Test Suite, ULTRON preflight tests, and ULTRON Training Prototype Validation) must pass on the exact final PR head. Review the complete diff and fix any failures before merging.
+- Next step after validation: connect the agent to a user-facing ULTRON solve/benchmark interface as a separate frontend-first change; keep the neural model distinct until it has been trained and independently evaluated.
+
 ## Latest update — 2026-11-19 (Stage 2 read-only evaluation runner merged)
 
 - PR #39 merged successfully at `b5bcd25f1130276cdf614161be46b2cf5cd355ce`; final PR head was `6d21e32d3d2e75e7e27da97e0e7fff8f726cb0c3`.
