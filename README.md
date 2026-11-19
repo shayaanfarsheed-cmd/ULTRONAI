@@ -1,3 +1,15 @@
+## Candidate 5 checkpoint and recovery validation — in progress (2026-11-19)
+
+- Started branch `test/candidate5-checkpoint-recovery` after the Supabase storage smoke-test repair.
+- Extended the isolated remote recovery harness to accept an explicit architecture while preserving the existing small fast test default.
+- Added a Candidate 5 regression using the target architecture: width 512, 8 layers, 16 heads, feed-forward multiplier 4, context 192, expected 25,398,350 parameters.
+- The regression exercises a two-step update, sharded local checkpoint creation, remote fake-storage upload/manifest verification/download, fresh model+AdamW+scheduler restore, one resumed update, exact comparison against uninterrupted execution, and temporary-object cleanup.
+- This CI regression is a deterministic fake-storage test; it is not evidence that a 300+ MB Candidate 5 checkpoint fits the live Supabase bucket quota or that the real provider can upload/download all shards.
+- No production model configuration was changed. No real training was started.
+- Next: run all required CI checks. If they pass, add/execute a separately isolated live Supabase Candidate 5 round-trip with quota preflight and run-specific cleanup before considering production promotion.
+
+---
+
 ## Latest update — 2026-11-19 (Supabase smoke-test URL fallback)
 
 - The live checkpoint smoke test failed because the GitHub Actions runner received an empty `SUPABASE_URL`, even though `config.json` already declares the project's public URL.
