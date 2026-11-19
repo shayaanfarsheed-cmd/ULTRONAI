@@ -192,7 +192,7 @@
       "question": "Median and range of: 8, 10, 12, 14, 16",
       "steps": [
         "Step 1: Sort the five values: 8, 10, 12, 14, 16.",
-        "Step 2: The middle value is 12; the range is 16 - 8 = 8.",
+        "Step 2: The middle value is 12, and the range is 16 - 8 = 8.",
         "Step 3: median=12, range=8."
       ],
       "answer": "median=12, range=8",
