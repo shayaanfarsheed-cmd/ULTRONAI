@@ -43,6 +43,7 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual(result["device"], "cpu")
         self.assertEqual(result["mixed_precision"], "none")
         self.assertEqual(result["dataloader_workers"], 0)
+        self.assertEqual(result["cpu_threads"], 2)
 
     def test_gpu_profile_uses_bfloat16_when_supported(self):
         result = resolve_runtime_settings(CONFIG, "google_colab", FakeTorch())

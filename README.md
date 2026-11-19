@@ -307,6 +307,17 @@ All earlier pairing implementation notes later in this README are historical onl
 - Next action: complete a no-cost integration-validation plan without destructive tests against production. Only then prepare a separate reviewed PR to enable the dashboard control.
 
 
+## Adaptive learning and GitHub Actions optimization — PR in progress (2026-11-19)
+
+- Added adaptive topic-weighted practice: held-out per-topic accuracy updates the training stream's sampling priorities. Weak topics receive more practice while mastered topics remain in the epoch, avoiding permanent forgetting.
+- Sampling uses a weighted permutation without replacement, so examples are not duplicated within an epoch. Topic scores and the data order are included in the existing checkpointed batch-stream state so recovery preserves the learning strategy.
+- GitHub Actions CPU runtime is tuned to two PyTorch CPU threads for the standard hosted runner; pip dependency caching is enabled.
+- Fixed the stale guided-switch regression expectation: when the current worker is Colab, the next guided handoff correctly targets GitHub Actions CPU; Colab remains a manual-only runtime.
+- New regression tests cover weak-topic prioritization, no duplicate samples, invalid metric rejection, and exact sampler-state recovery.
+- These mechanisms are learning heuristics, not evidence of human consciousness or human-equivalent reasoning. They improve practice allocation and retention checks; held-out evaluation remains the mastery gate.
+- Real training has not been started. This PR is stacked on PR #52 and is not merged. Run the full test suite and all required CI workflows before merging.
+- Next: inspect CI logs on the latest PR head, fix every failure, review the sampler/checkpoint integration, then verify the dashboard's training controls remain owner-gated. Do not start a real training run during validation.
+
 ## Current project status — 2026-11-18 (supersedes earlier pairing plans)
 
 - **Device pairing is permanently retired for this design.** Do not re-enable pairing, device agents, device registries, remote command channels, or remote start/stop/pause/resume controls. The retired `device-control` endpoint fails closed with HTTP 410; historical private database objects are retained inert for auditability.

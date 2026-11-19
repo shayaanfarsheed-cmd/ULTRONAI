@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import random
 import re
 from collections import defaultdict
@@ -38,6 +39,7 @@ class EncodedMathDataset(Dataset):
         if not examples:
             raise ValueError("Training dataset cannot be empty")
         self.examples = [encode_example(example, tokenizer, context_length) for example in examples]
+        self.topics = [str(example.get("topic", "unknown")) for example in examples]
 
     def __len__(self) -> int:
         return len(self.examples)
@@ -76,19 +78,59 @@ class MathBatchStream:
         self.batch_size = batch_size
         self.shuffle = shuffle
         self.rng = random.Random(seed)
-        self.order = list(range(len(self.dataset)))
+        self.topic_accuracy: dict[str, float] = {}
+        self.order = self._build_weighted_order(range(len(self.dataset)))
         self.epoch = 0
         self.position = 0
-        if self.shuffle:
-            self.rng.shuffle(self.order)
+
+    def _topic_weight(self, topic: str) -> float:
+        accuracy = self.topic_accuracy.get(topic)
+        if accuracy is None:
+            return 1.0
+        # Weak topics receive more practice; mastered topics remain in rotation.
+        return 0.25 + 1.75 * (1.0 - accuracy)
+
+    def _build_weighted_order(self, indices: Sequence[int]) -> list[int]:
+        selected = list(indices)
+        if not self.shuffle or len(selected) < 2:
+            return selected
+        # Efraimidis-Spirakis weighted permutation: no duplicate samples per epoch.
+        priorities = []
+        for index in selected:
+            weight = self._topic_weight(self.dataset.topics[index])
+            key = -math.log(max(self.rng.random(), 1e-12)) / weight
+            priorities.append((key, index))
+        priorities.sort()
+        return [index for _, index in priorities]
+
+    def set_topic_performance(self, metrics: Mapping[str, Any], smoothing: float = 0.5) -> None:
+        if not 0.0 < smoothing <= 1.0:
+            raise ValueError("smoothing must be greater than 0 and at most 1")
+        updated = dict(self.topic_accuracy)
+        for topic, metric in metrics.items():
+            if isinstance(metric, Mapping):
+                value = metric.get("accuracy")
+            else:
+                value = metric
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                raise ValueError(f"Invalid accuracy for topic {topic!r}")
+            accuracy = float(value)
+            if not math.isfinite(accuracy) or not 0.0 <= accuracy <= 1.0:
+                raise ValueError(f"Accuracy for topic {topic!r} must be between 0 and 1")
+            previous = updated.get(str(topic))
+            updated[str(topic)] = accuracy if previous is None else (
+                smoothing * accuracy + (1.0 - smoothing) * previous
+            )
+        self.topic_accuracy = updated
+        consumed = self.order[:self.position]
+        remaining = self._build_weighted_order(self.order[self.position:])
+        self.order = consumed + remaining
 
     def next_batch(self, pad_token_id: int = 0) -> dict[str, torch.Tensor]:
         if self.position >= len(self.order):
             self.epoch += 1
             self.position = 0
-            self.order = list(range(len(self.dataset)))
-            if self.shuffle:
-                self.rng.shuffle(self.order)
+            self.order = self._build_weighted_order(range(len(self.dataset)))
         selected = self.order[self.position:self.position + self.batch_size]
         self.position += len(selected)
         return collate_math_batch([self.dataset[index] for index in selected], pad_token_id)
@@ -101,6 +143,7 @@ class MathBatchStream:
             "batch_size": self.batch_size,
             "shuffle": self.shuffle,
             "rng_state": self.rng.getstate(),
+            "topic_accuracy": dict(self.topic_accuracy),
         }
 
     def load_state_dict(self, state: Mapping[str, Any]) -> None:
@@ -113,9 +156,21 @@ class MathBatchStream:
         epoch = int(state["epoch"])
         if position < 0 or position > len(order) or epoch < 0:
             raise ValueError("Saved data stream position is invalid")
+        raw_accuracy = state.get("topic_accuracy", {})
+        if not isinstance(raw_accuracy, Mapping):
+            raise ValueError("Saved topic accuracy must be an object")
+        topic_accuracy: dict[str, float] = {}
+        for topic, value in raw_accuracy.items():
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                raise ValueError("Saved topic accuracy contains a non-numeric value")
+            score = float(value)
+            if not math.isfinite(score) or not 0.0 <= score <= 1.0:
+                raise ValueError("Saved topic accuracy must be between 0 and 1")
+            topic_accuracy[str(topic)] = score
         self.epoch = epoch
         self.position = position
         self.order = order
+        self.topic_accuracy = topic_accuracy
         self.rng.setstate(_to_tuple(state["rng_state"]))
 
 

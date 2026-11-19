@@ -91,7 +91,7 @@ def resolve_runtime_settings(
 
     profiles = {
         "google_colab": {"gpu_batch_size": 32, "cpu_batch_size": 8, "workers": 2, "cpu_threads": 4},
-        "github_actions": {"gpu_batch_size": 8, "cpu_batch_size": 8, "workers": 0, "cpu_threads": 4},
+        "github_actions": {"gpu_batch_size": 8, "cpu_batch_size": 8, "workers": 0, "cpu_threads": 2},
         "other": {"gpu_batch_size": 8, "cpu_batch_size": 4, "workers": 0, "cpu_threads": 2},
     }
     profile = profiles[platform_id]
