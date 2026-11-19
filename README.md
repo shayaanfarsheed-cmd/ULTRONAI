@@ -1,9 +1,11 @@
-## Latest update — 2026-11-19 (5 GiB Data Library batch cap)
+## Latest update — 2026-11-19 (verified self-learning dry-run)
 
-- PR #33's intended 5,000 MiB (5 GiB) total upload-batch cap is being rebased onto the latest `main` after PR #34's bulk/folder deletion merge.
-- The regression test now checks the actual 500-item listing page size (`const pageSize = 500`) instead of the obsolete `selected.length > 500` assertion.
-- Limits remain 50,000 files per upload and 20 MiB per file. Uploads remain owner-only and storage-only; no file is executed and no training starts.
-- Validate all required CI workflows on the updated pull request before merging. README must be kept current at each milestone.
+- PR #35 merged at `d8dcdd72b95c94538985132cb055cf227b69eb26`; its three required CI workflows passed and the GitHub Pages build/deployment workflow completed successfully.
+- Data Library limits on `main`: 50,000 files per upload, 20 MiB per file, 5,000 MiB (5 GiB) total per batch, and 12 path levels. Uploads remain owner-only and storage-only.
+- The existing from-scratch generator covers 14 supported maths topics and the independent verifier checks generated examples. New `ultron_self_learning.py` connects them in a bounded, deterministic generation-and-verification dry run.
+- The dry run reports accepted/rejected candidates and topic/difficulty counts, uses the existing deterministic 80/10/10 question-hash split, and excludes rejected candidates from accepted examples.
+- This stage does not write datasets to disk, modify model weights, invoke the trainer, or start training. A successful dry run is not evidence that the model has learned.
+- New regression coverage: `tests/test_self_learning.py`. Validate the new PR before merging; update this README at each milestone.
 
 ---
 
