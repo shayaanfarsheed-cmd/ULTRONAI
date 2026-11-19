@@ -579,3 +579,24 @@ All earlier pairing implementation notes later in this README are historical onl
 - The first live run did not complete cleanup verification successfully. Treat its temporary prefix as potentially containing leftover test objects; the repair will be verified by CI and a fresh live smoke-test run.
 - No production checkpoints were changed and no training was started.
 - Next: pass PR checks, merge only after explicit approval, rerun the live smoke test, then verify cleanup and Candidate 5 save/restore plus interrupted-resume before considering training.
+
+
+## Candidate 5 live interrupted-recovery validation — PR #67
+
+- Added a manual-only GitHub Actions workflow: `.github/workflows/candidate5-live-recovery.yml`.
+- The workflow runs the existing isolated recovery harness against the private Supabase `checkpoints` bucket using Candidate 5 (25,398,350 parameters), CPU precision `none`, and a bounded diagnostic sequence: two initial updates, checkpoint upload, a fresh-runtime restore, then one resumed update.
+- It compares the resumed result against an uninterrupted reference: model weights, AdamW state, scheduler, data-stream position/RNG, curriculum, gradient scaler, and optimizer-to-model parameter binding.
+- The test uses a unique temporary owner/run/checkpoint prefix. It does not write training status, touch production run IDs, acquire a production lease, or start a real training session.
+- Recovery cleanup now recursively enumerates Supabase virtual folders, deletes only actual objects below the unique checkpoint prefix in batches, and verifies that the prefix is empty. Regression coverage models Supabase's immediate-child listing and null-ID virtual folders.
+- The workflow requires the existing repository variable `SUPABASE_URL` (or the configured project URL fallback) and repository secrets `SUPABASE_SECRET_KEY` and `SUPABASE_OWNER_ID`. Never print or paste these credentials.
+- The workflow is manual-only and is not invoked by pull-request CI. PR checks validate code and fake-storage behavior; the live workflow must be triggered manually after the PR is reviewed and merged.
+- **No Kaggle or Composio integration is used. No real training has started.**
+- A successful result validates this bounded recovery path against live Supabase; it does not establish training quality, long-run reliability, total remaining storage quota, or readiness for production training.
+
+### Next steps
+
+1. Pass all required pull-request checks and review the recovery/cleanup diff.
+2. Merge only after the owner explicitly approves this PR.
+3. Manually run `ULTRON Candidate 5 Live Interrupted Recovery` from GitHub Actions.
+4. Inspect the structured report and verify every recovery assertion plus temporary-object cleanup.
+5. Continue with math-data quality, duplicate/leakage controls, and held-out evaluation. Keep real training disabled until the full readiness checklist passes and the owner explicitly authorizes a first run.
