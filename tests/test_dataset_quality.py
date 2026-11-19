@@ -1,3 +1,4 @@
+import hashlib
 import random
 import unittest
 
@@ -83,6 +84,38 @@ class DatasetQualityTests(unittest.TestCase):
         first = structural_fingerprint("Calculate: 120 + 34")
         second = structural_fingerprint("Calculate: 981 + 765")
         self.assertEqual(first, second)
+
+    def test_cross_split_near_duplicate_is_blocked(self):
+        question_a = "Calculate: 123 + 456"
+        split_a = question_split(question_a)
+        question_b = next(
+            f"Calculate: 123 + {value}"
+            for value in range(457, 1000)
+            if question_split(f"Calculate: 123 + {value}") != split_a
+        )
+
+        def make_example(question, answer):
+            sample_id = hashlib.sha256(f"whole_number_arithmetic|{question}".encode()).hexdigest()[:16]
+            expression = question.split(":", 1)[1].strip()
+            return {
+                "sample_id": sample_id,
+                "sample_index": 1,
+                "topic": "whole_number_arithmetic",
+                "difficulty": 2,
+                "question": question,
+                "steps": [f"Step 1: {expression} = {answer}."],
+                "answer": str(answer),
+                "split": question_split(question),
+            }
+
+        rows = [make_example(question_a, 579), make_example(question_b, int(question_b.rsplit(" ", 1)[1]) + 123)]
+        report = audit_dataset(
+            rows,
+            required_splits=("train", "validation", "test"),
+            near_duplicate_threshold=0.8,
+        )
+        self.assertEqual(report["status"], "failed")
+        self.assertEqual(report["near_duplicate_leakage_count"], 1)
 
     def test_fuzzy_near_duplicate_detector_finds_small_edit(self):
         examples = [
