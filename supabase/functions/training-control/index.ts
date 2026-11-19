@@ -44,7 +44,7 @@ async function githubRequest(path: string, method = "GET", body?: unknown) {
     throw new Error("GitHub request failed (" + result.status + "): " +
       String(detail.message || "unknown error").slice(0, 180));
   }
-  return result.status === 204 ? null : await result.json();
+  return result.status === 204 || result.status === 202 ? null : await result.json();
 }
 
 async function listRuns() {
