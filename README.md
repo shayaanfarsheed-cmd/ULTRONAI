@@ -1,6 +1,6 @@
 ## Latest update — 2026-11-19 (Frozen Math Agent evaluation merged)
 
-- PR #42 merged at `172685831fedea21de2edc1982099fbcd83fdd0a`; main now points to this commit.
+- PR #42 merged at `172685831fedea21de2edc1982099fbcd83fdd0a`. The later README-only correction PR #43 merged at `803acb0bff49401a11673c04fd80d3ba827df623`.
 - All three merge-triggered checks passed on the exact main commit: ULTRON Test Suite (run `44443811629`), ULTRON preflight tests (run `44443811610`), and GitHub Pages build/deployment (run `44443810802`). The PR checks also passed before merge.
 - The Math Agent now has a separate browser action that scores the frozen `ultron-heldout-foundation-v1` test split. It computes each answer before comparing the expected label and requires the independent verifier to agree.
 - Automated regression coverage confirms all 14 pilot cases pass and rejects altered labels, duplicate IDs, non-test samples, and unfrozen data. Fourteen examples are a wiring/pilot check, not statistically meaningful evidence of broad mathematical ability.
