@@ -6,9 +6,14 @@ import os
 import platform
 import resource
 import statistics
+import sys
 import time
 from pathlib import Path
 from typing import Any
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 import torch
 
@@ -16,9 +21,6 @@ from train import resolve_runtime_settings
 from ultron_data import generate_dataset
 from ultron_model import CharTokenizer, ULTRONTransformer
 from ultron_training import MathBatchStream, train_one_batch
-
-
-ROOT = Path(__file__).resolve().parents[1]
 
 
 def load_config(path: Path) -> dict[str, Any]:
