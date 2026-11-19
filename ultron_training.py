@@ -42,7 +42,7 @@ class EncodedMathDataset(Dataset):
             or example.get("split") in {"held_out", "test", "evaluation"}
             for example in examples
         ):
-            raise ValueError("Held-out evaluation examples cannot be used for training")
+            raise ValueError("held-out evaluation examples cannot be used for training")
         self.examples = [encode_example(example, tokenizer, context_length) for example in examples]
 
     def __len__(self) -> int:
