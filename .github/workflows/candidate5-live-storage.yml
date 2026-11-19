@@ -1,0 +1,42 @@
+name: ULTRON Candidate 5 Live Supabase Checkpoint
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ultron-candidate5-live-storage
+  cancel-in-progress: false
+
+jobs:
+  candidate5-storage-round-trip:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      OMP_NUM_THREADS: "2"
+      MKL_NUM_THREADS: "2"
+      PYTHONUNBUFFERED: "1"
+      SUPABASE_URL: ${{ vars.SUPABASE_URL || 'https://euhmejpaswmdpsutbtse.supabase.co' }}
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      SUPABASE_OWNER_ID: ${{ secrets.SUPABASE_OWNER_ID }}
+    steps:
+      - name: Check out ULTRON
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Validate Candidate 5 live checkpoint round trip
+        run: python scripts/verify_candidate5_supabase_checkpoint.py
