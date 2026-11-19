@@ -370,7 +370,7 @@ def generate_dataset(
     for index in range(attempt_limit):
         topic_index = index % len(topic_list)
         topic = topic_list[topic_index]
-        difficulty = 1 + (index % 3)
+        difficulty = 1 + ((index // len(topic_list)) % 3)
         rng = random.Random(seed + index * 1000003 + topic_index * 7919)
         example = generate_example(topic, rng, difficulty, index)
         question_key = example["question"]
