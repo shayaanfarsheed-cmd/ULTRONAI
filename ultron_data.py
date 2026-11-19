@@ -275,7 +275,7 @@ def generate_example(topic: str, rng: random.Random, difficulty: int = 1, sample
         question = f"Median and range of: {rendered}"
         steps = [
             f"Step 1: Sort the five values: {rendered}.",
-            f"Step 2: The middle value is {median}; the range is {values[-1]} - {values[0]} = {spread}.",
+            f"Step 2: The middle value is {median}, and the range is {values[-1]} - {values[0]} = {spread}.",
             f"Step 3: {answer}.",
         ]
         return _make_example(topic, question, steps, answer, level, sample_index)
