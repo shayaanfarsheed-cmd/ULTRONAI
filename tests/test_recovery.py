@@ -58,6 +58,8 @@ class RecoveryTest(unittest.TestCase):
         self.assertEqual(result["saved_step"], 2)
         self.assertEqual(result["resumed_step"], 3)
         self.assertTrue(all(result["checks"].values()))
+        self.assertTrue(result["checks"]["source_optimizer_bound_to_model_on_target_device"])
+        self.assertTrue(result["checks"]["resumed_optimizer_bound_to_model_on_target_device"])
         self.assertFalse(result["training_status_database_written"])
         self.assertFalse(result["real_training_started"])
         self.assertEqual(storage.objects, {})
