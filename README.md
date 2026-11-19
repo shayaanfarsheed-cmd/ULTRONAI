@@ -430,3 +430,9 @@ All earlier pairing implementation notes later in this README are historical onl
 - Next: inspect the full diff, run CI and security regression checks, then complete the deployment checklist only after code review. Do not start training during validation.
 
 
+
+## CPU benchmark workflow — 2026-11-19
+
+- Added a separate manually triggered `ULTRON CPU Benchmark` workflow. It never invokes the production training entry point and needs no Supabase, Hugging Face, or owner secrets.
+- It compares PyTorch CPU thread counts (1/2) and AdamW foreach (off/on) using a bounded synthetic batch, reporting steps/second and peak RSS.
+- Results are diagnostic only: synthetic throughput is not a claim about full training speed. Runs are limited to 1–20 measured steps per configuration.
