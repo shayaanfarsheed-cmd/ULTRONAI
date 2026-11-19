@@ -2,3 +2,6 @@ project_id = "euhmejpaswmdpsutbtse"
 
 [functions.device-control]
 verify_jwt = false
+
+[functions.training-control]
+verify_jwt = true
