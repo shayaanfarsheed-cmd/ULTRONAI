@@ -111,7 +111,7 @@ class DatasetQualityTests(unittest.TestCase):
         rows = [make_example(question_a, 579), make_example(question_b, int(question_b.rsplit(" ", 1)[1]) + 123)]
         report = audit_dataset(
             rows,
-            required_splits=("train", "validation", "test"),
+            required_splits=tuple(sorted({split_a, question_split(question_b)})),
             near_duplicate_threshold=0.8,
         )
         self.assertEqual(report["status"], "failed")
