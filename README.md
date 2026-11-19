@@ -9,6 +9,19 @@
 
 ---
 
+## GitHub Actions CPU performance tuning — 2026-11-19 (PR in progress)
+
+- CPU training remains on GitHub-hosted Ubuntu runners; no paid runner or GPU is enabled.
+- The workflow reports visible logical CPU count and PyTorch thread settings so tuning is based on actual runner hardware.
+- CPU training configures PyTorch intra-op threads from the runtime profile and limits inter-op parallelism to one thread to reduce oversubscription.
+- AdamW uses PyTorch's foreach implementation on CPU by default, with a training.adamw_foreach configuration override. This is a candidate optimization, not a claimed speedup; compare steps/second and peak memory on the same runner before keeping it.
+- Pip installation is ordered so dependencies are installed after the pip upgrade, and the CPU-only PyTorch wheel index remains explicit.
+- No model architecture, tokenizer, dataset, learning-rate schedule, checkpoint format, or training objective is changed.
+- Validation must include the complete test suite, training smoke test, checkpoint save/restore, and a bounded non-production CPU throughput benchmark. No real training run is permitted during this optimization.
+- Next: measure baseline versus tuned CPU steps/second and memory on GitHub Actions; retain only changes that improve throughput without harming numerical stability or recovery.
+
+---
+
 ## Current provider decision — 2026-11-19
 
 - **GitHub Actions CPU is the sole remote training provider** and the dashboard's only remote Start/Stop target.
