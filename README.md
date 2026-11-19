@@ -1,3 +1,13 @@
+## Latest update — 2026-11-19 (checkpoint storage smoke test failure diagnosis)
+
+- Manual workflow run `44537738778` failed in its verification step before making any Supabase request. The direct cause was `ModuleNotFoundError: No module named 'ultron_checkpoint'` because executing `scripts/verify_supabase_checkpoint_storage.py` places the `scripts/` directory, not the repository root, on Python's import path.
+- Branch `fix/checkpoint-smoke-import-path` adds the repository root to `sys.path` before importing ULTRON modules. This makes direct script execution reliable in GitHub Actions and local diagnostics.
+- The same run's log showed `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, and `SUPABASE_OWNER_ID` were empty in the runner environment. Once the import issue is fixed, the workflow will intentionally stop with a missing-configuration error until the repository variable/ secrets are configured. Do not paste secret values into chat.
+- Node.js 20 messages for `actions/checkout@v4` and `actions/setup-python@v5` are deprecation warnings, not the cause of this failure.
+- No Supabase upload, download, deletion, or real training occurred in failed run `44537738778`. The storage round-trip remains unvalidated. Next: review/test the import-path fix, merge only after checks pass and owner approval, configure any missing GitHub Actions values, then rerun the smoke test and verify cleanup.
+
+---
+
 ## Latest validation — 2026-11-19 (PR #61 checkpoint sharding)
 
 - Latest validated code head before this README-only update: `e32d6fa93960112de3f4c09604378e87ae251c19`.
