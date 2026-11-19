@@ -13,7 +13,8 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from ultron_data import DATA_GENERATOR_VERSION, SUPPORTED_TOPICS, generate_dataset
-from ultron_dataset_quality import audit_dataset, require_dataset_pass
+from ultron_dataset_quality import audit_dataset, normalize_question, require_dataset_pass
+from ultron_evaluation import load_heldout_dataset
 
 DEFAULT_COUNTS = {"train": 100_000, "validation": 5_000, "test": 5_000}
 DATASET_SCHEMA_VERSION = 1
@@ -31,6 +32,31 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def merge_frozen_holdout(
+    generated_test: list[dict[str, Any]],
+    frozen_examples: list[dict[str, Any]],
+    total_count: int,
+) -> list[dict[str, Any]]:
+    if type(total_count) is not int or total_count < len(frozen_examples):
+        raise ValueError("Test split size must include every frozen evaluation example")
+    reserved_questions = {normalize_question(item["question"]) for item in frozen_examples}
+    merged = [dict(item) for item in frozen_examples]
+    seen_questions = set(reserved_questions)
+    for example in generated_test:
+        normalized = normalize_question(example["question"])
+        if normalized in seen_questions:
+            continue
+        seen_questions.add(normalized)
+        merged.append(dict(example))
+        if len(merged) == total_count:
+            break
+    if len(merged) != total_count:
+        raise RuntimeError(
+            f"Could only assemble {len(merged)} of {total_count} test examples after reserving frozen evaluation data"
+        )
+    return merged
+
+
 def build_dataset(output_dir: str | Path, seed: int = 20261119, counts: dict[str, int] | None = None) -> dict[str, Any]:
     selected_counts = dict(DEFAULT_COUNTS if counts is None else counts)
     if set(selected_counts) != {"train", "validation", "test"}:
@@ -40,14 +66,30 @@ def build_dataset(output_dir: str | Path, seed: int = 20261119, counts: dict[str
     if type(seed) is not int:
         raise ValueError("seed must be an integer")
 
+    frozen_evaluation = load_heldout_dataset()
+    frozen_examples = [dict(example) for example in frozen_evaluation["examples"]]
+    if len(frozen_examples) > selected_counts["test"]:
+        raise ValueError("Configured test split is smaller than the frozen evaluation fixture")
+
     splits: dict[str, list[dict[str, Any]]] = {}
-    for split in ("train", "validation", "test"):
+    for split in ("train", "validation"):
         splits[split] = generate_dataset(
             selected_counts[split],
             seed=seed,
             split=split,
             topics=SUPPORTED_TOPICS,
         )
+    generated_test = generate_dataset(
+        selected_counts["test"] + len(frozen_examples),
+        seed=seed,
+        split="test",
+        topics=SUPPORTED_TOPICS,
+    )
+    splits["test"] = merge_frozen_holdout(
+        generated_test,
+        frozen_examples,
+        selected_counts["test"],
+    )
 
     combined = [example for split in ("train", "validation", "test") for example in splits[split]]
     quality = audit_dataset(
@@ -119,6 +161,11 @@ def build_dataset(output_dir: str | Path, seed: int = 20261119, counts: dict[str
         "seed": seed,
         "topics": list(SUPPORTED_TOPICS),
         "split_counts": selected_counts,
+        "frozen_evaluation": {
+            "dataset_id": frozen_evaluation["dataset_id"],
+            "examples_included": len(frozen_examples),
+            "reserved_from_training": True,
+        },
         "total_examples": len(combined),
         "files": file_records,
         "quality_report": quality,
