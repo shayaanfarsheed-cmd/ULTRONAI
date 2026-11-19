@@ -37,6 +37,12 @@ class EncodedMathDataset(Dataset):
     def __init__(self, examples: Sequence[Mapping[str, Any]], tokenizer: Any, context_length: int) -> None:
         if not examples:
             raise ValueError("Training dataset cannot be empty")
+        if any(
+            example.get("evaluation_only") is True
+            or example.get("split") in {"held_out", "test", "evaluation"}
+            for example in examples
+        ):
+            raise ValueError("Held-out evaluation examples cannot be used for training")
         self.examples = [encode_example(example, tokenizer, context_length) for example in examples]
 
     def __len__(self) -> int:
