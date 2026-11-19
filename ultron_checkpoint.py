@@ -86,6 +86,56 @@ def _decode_value(value: Any, tensors: Mapping[str, torch.Tensor]) -> Any:
     return value
 
 
+
+def _write_tensor_shards(
+    tensors: Mapping[str, torch.Tensor], folder: Path, stem: str, maximum_file_bytes: int
+) -> list[str]:
+    """Write safetensors shards with conservative headroom for file metadata."""
+    if maximum_file_bytes <= 1_048_576:
+        raise CheckpointError("Checkpoint component limit is too small for safe tensor sharding")
+    budget = maximum_file_bytes - 1_048_576
+    items = list(tensors.items())
+    if not items:
+        items = [("empty", torch.zeros(1, dtype=torch.uint8))]
+    groups: list[dict[str, torch.Tensor]] = []
+    current: dict[str, torch.Tensor] = {}
+    current_bytes = 0
+    for name, tensor in items:
+        value = tensor.detach().cpu().contiguous()
+        size = value.numel() * value.element_size()
+        if size > budget:
+            raise CheckpointError(f"Tensor {name} exceeds the safe checkpoint shard size")
+        if current and current_bytes + size > budget:
+            groups.append(current)
+            current = {}
+            current_bytes = 0
+        current[name] = value
+        current_bytes += size
+    if current:
+        groups.append(current)
+    names = []
+    total = len(groups)
+    for index, group in enumerate(groups, 1):
+        name = f"{stem}-{index:05d}-of-{total:05d}.safetensors"
+        path = folder / name
+        save_file(group, path, metadata={"format": f"ULTRON {stem} shard"})
+        if path.stat().st_size > maximum_file_bytes:
+            raise CheckpointError(f"Checkpoint shard exceeds size limit: {name}")
+        names.append(name)
+    return names
+
+
+def _load_tensor_shards(folder: Path, names: list[str], map_location: str = "cpu") -> dict[str, torch.Tensor]:
+    tensors: dict[str, torch.Tensor] = {}
+    for name in names:
+        shard = load_file(folder / name, device=map_location)
+        overlap = tensors.keys() & shard.keys()
+        if overlap:
+            raise CheckpointError("Checkpoint tensor shard contains duplicate tensor keys")
+        tensors.update(shard)
+    return tensors
+
+
 def _to_tuple(value: Any) -> Any:
     if isinstance(value, list):
         return tuple(_to_tuple(item) for item in value)
@@ -211,24 +261,23 @@ class LocalCheckpointStore:
             name: tensor.detach().cpu().contiguous()
             for name, tensor in model.state_dict().items()
         }
-        save_file(model_tensors, temporary / "model.safetensors", metadata={"format": "ULTRON model state"})
+        model_shards = _write_tensor_shards(model_tensors, temporary, "model", self.maximum_file_bytes)
 
         optimizer_tensors: dict[str, torch.Tensor] = {}
         optimizer_encoded = _encode_value(optimizer.state_dict(), optimizer_tensors, "optimizer")
         scheduler_encoded = None
         if scheduler is not None:
             scheduler_encoded = _encode_value(scheduler.state_dict(), optimizer_tensors, "scheduler")
-        if optimizer_tensors:
-            save_file(optimizer_tensors, temporary / "optimizer.safetensors", metadata={"format": "ULTRON optimizer state"})
-        else:
-            save_file({"empty": torch.zeros(1, dtype=torch.uint8)}, temporary / "optimizer.safetensors", metadata={"format": "ULTRON optimizer state"})
+        optimizer_shards = _write_tensor_shards(optimizer_tensors, temporary, "optimizer", self.maximum_file_bytes)
 
         rng_tensors, rng_metadata = self._capture_rng()
         save_file(rng_tensors, temporary / "rng.safetensors", metadata={"format": "ULTRON RNG state"})
 
         metadata = {
-            "schema_version": 1,
+            "schema_version": 2,
             "checkpoint_id": checkpoint_id,
+            "model_shards": model_shards,
+            "optimizer_shards": optimizer_shards,
             "created_at": datetime.now(timezone.utc).isoformat(),
             "state": dict(state),
             "model_architecture": getattr(model, "architecture", lambda: {})(),
@@ -242,7 +291,8 @@ class LocalCheckpointStore:
             fault_hook("after_artifacts", temporary)
 
         file_entries: dict[str, dict[str, Any]] = {}
-        for name in ("model.safetensors", "optimizer.safetensors", "rng.safetensors", "state.json"):
+        artifact_names = [*model_shards, *optimizer_shards, "rng.safetensors", "state.json"]
+        for name in artifact_names:
             path = temporary / name
             _fsync_file(path)
             size = path.stat().st_size
@@ -295,10 +345,13 @@ class LocalCheckpointStore:
         try:
             manifest_path = folder / "manifest.json"
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-            required_files = {"model.safetensors", "optimizer.safetensors", "rng.safetensors", "state.json"}
-            if manifest.get("checkpoint_id") != expected_id or not isinstance(manifest.get("files"), dict):
+            files = manifest.get("files")
+            if manifest.get("checkpoint_id") != expected_id or not isinstance(files, dict):
                 return False, None
-            if not required_files.issubset(manifest["files"]):
+            names = set(files)
+            legacy = {"model.safetensors", "optimizer.safetensors"}.issubset(names)
+            sharded = any(name.startswith("model-") and name.endswith(".safetensors") for name in names) and any(name.startswith("optimizer-") and name.endswith(".safetensors") for name in names)
+            if not (legacy or sharded) or not {"rng.safetensors", "state.json"}.issubset(names):
                 return False, None
             for name, entry in manifest["files"].items():
                 if Path(name).name != name:
@@ -376,8 +429,14 @@ class LocalCheckpointStore:
                 self.prune()
                 return manifest
             raise CheckpointError("Refusing to overwrite an existing invalid checkpoint")
-        required = {"model.safetensors", "optimizer.safetensors", "rng.safetensors", "state.json", "manifest.json"}
-        if not required.issubset(files):
+        if "manifest.json" not in files:
+            raise CheckpointError("Imported checkpoint is missing its manifest")
+        try:
+            imported_manifest = json.loads(files["manifest.json"].decode("utf-8"))
+            required = set(imported_manifest.get("files", {})) | {"manifest.json"}
+        except Exception as error:
+            raise CheckpointError("Imported checkpoint manifest is invalid") from error
+        if not required.issubset(files) or not {"rng.safetensors", "state.json"}.issubset(required):
             raise CheckpointError("Imported checkpoint is missing required files")
         temporary = self.root / f"{checkpoint_id}.import.tmp"
         temporary.mkdir(parents=False, exist_ok=False)
@@ -439,11 +498,14 @@ class LocalCheckpointStore:
                 continue
             folder = self._checkpoint_path(checkpoint_id)
             try:
-                model_state = load_file(folder / "model.safetensors", device=str(map_location))
+                file_names = list(manifest["files"])
+                model_names = [name for name in file_names if name == "model.safetensors" or (name.startswith("model-") and name.endswith(".safetensors"))]
+                optimizer_names = [name for name in file_names if name == "optimizer.safetensors" or (name.startswith("optimizer-") and name.endswith(".safetensors"))]
+                model_state = _load_tensor_shards(folder, sorted(model_names), str(map_location))
                 model.load_state_dict(model_state, strict=True)
 
                 metadata = json.loads((folder / "state.json").read_text(encoding="utf-8"))
-                optimizer_tensors = load_file(folder / "optimizer.safetensors", device="cpu")
+                optimizer_tensors = _load_tensor_shards(folder, sorted(optimizer_names), "cpu")
                 if optimizer is not None:
                     optimizer_state = _decode_value(metadata["optimizer_state"], optimizer_tensors)
                     optimizer.load_state_dict(optimizer_state)
