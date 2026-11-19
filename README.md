@@ -9,6 +9,19 @@
 
 ---
 
+## GitHub Actions CPU performance tuning — 2026-11-19 (PR in progress)
+
+- CPU training remains on GitHub-hosted Ubuntu runners; no paid runner or GPU is enabled.
+- The workflow reports visible logical CPU count and PyTorch thread settings so tuning is based on actual runner hardware.
+- CPU training configures PyTorch intra-op threads from the runtime profile and limits inter-op parallelism to one thread to reduce oversubscription.
+- AdamW uses PyTorch's foreach implementation on CPU by default, with a training.adamw_foreach configuration override. This is a candidate optimization, not a claimed speedup; compare steps/second and peak memory on the same runner before keeping it.
+- Pip installation is ordered so dependencies are installed after the pip upgrade, and the CPU-only PyTorch wheel index remains explicit.
+- No model architecture, tokenizer, dataset, learning-rate schedule, checkpoint format, or training objective is changed.
+- Validation must include the complete test suite, training smoke test, checkpoint save/restore, and a bounded non-production CPU throughput benchmark. No real training run is permitted during this optimization.
+- Next: measure baseline versus tuned CPU steps/second and memory on GitHub Actions; retain only changes that improve throughput without harming numerical stability or recovery.
+
+---
+
 ## Current provider decision — 2026-11-19
 
 - **GitHub Actions CPU is the sole remote training provider** and the dashboard's only remote Start/Stop target.
@@ -417,3 +430,9 @@ All earlier pairing implementation notes later in this README are historical onl
 - Next: inspect the full diff, run CI and security regression checks, then complete the deployment checklist only after code review. Do not start training during validation.
 
 
+
+## CPU benchmark workflow — 2026-11-19
+
+- Added a separate manually triggered `ULTRON CPU Benchmark` workflow. It never invokes the production training entry point and needs no Supabase, Hugging Face, or owner secrets.
+- It compares PyTorch CPU thread counts (1/2) and AdamW foreach (off/on) using a bounded synthetic batch, reporting steps/second and peak RSS.
+- Results are diagnostic only: synthetic throughput is not a claim about full training speed. Runs are limited to 1–20 measured steps per configuration.

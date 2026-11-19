@@ -241,8 +241,14 @@ def run_training_session(
     except Exception:
         pass
     batch_size = int(runtime["batch_size"])
-    cpu_threads = int(runtime.get("cpu_threads", 1))
-    torch.set_num_threads(max(1, cpu_threads))
+    cpu_threads = max(1, int(runtime.get("cpu_threads", 1)))
+    # Configure both parallelism levels before the first training operation.
+    # Inter-op can only be set once per process, so tolerate an initialized runtime.
+    torch.set_num_threads(cpu_threads)
+    try:
+        torch.set_num_interop_threads(1)
+    except RuntimeError:
+        pass
 
     seed = int(config.get("training", {}).get("seed", 20261117))
     random.seed(seed)
@@ -261,6 +267,8 @@ def run_training_session(
         model.parameters(),
         lr=float(training_settings.get("learning_rate", 0.0003)),
         weight_decay=float(training_settings.get("weight_decay", 0.1)),
+        # Foreach batches small optimizer operations; can be disabled in config.
+        foreach=training_settings.get("adamw_foreach", device == "cpu"),
     )
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
         optimizer,
