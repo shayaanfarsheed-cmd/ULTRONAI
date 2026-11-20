@@ -368,13 +368,17 @@ class DataLibraryDeletionTests(unittest.TestCase):
         self.assertIn("physical iPad/phone", latest)
         self.assertIn("owner-only **Refresh status**", latest)
 
-    def test_dashboard_browser_smoke_is_run_in_chromium_ci(self):
+    def test_dashboard_browser_smoke_runs_in_chromium_and_webkit_ci(self):
         workflow = (ROOT / ".github/workflows/dashboard-browser-smoke.yml").read_text()
         script = (ROOT / "tests/dashboard_browser_smoke.py").read_text()
         self.assertIn("playwright==1.65.1", workflow)
-        self.assertIn("python -m playwright install --with-deps chromium", workflow)
+        self.assertIn("browser: [chromium, webkit]", workflow)
+        self.assertIn("python -m playwright install --with-deps ${{ matrix.browser }}", workflow)
+        self.assertIn("ULTRON_BROWSER: ${{ matrix.browser }}", workflow)
         self.assertIn("python tests/dashboard_browser_smoke.py", workflow)
         self.assertIn("VIEWPORTS = (", script)
+        self.assertIn('{"chromium", "webkit"}', script)
+        self.assertIn("getattr(playwright, browser_name)", script)
         self.assertIn('(320, 800)', script)
         self.assertIn('(1366, 900)', script)
         self.assertIn("getBoundingClientRect().height", script)
