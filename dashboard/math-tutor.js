@@ -111,7 +111,7 @@
       };
       return {
         status: "incorrect_work_submitted",
-        message: "The answer is not correct. Your working has been recorded only in this active session; this version does not yet classify individual error patterns.",
+        message: "The answer is not correct. I can see that you supplied working, but this release does not yet classify individual error patterns.",
         expected,
         misconception: null,
         diagnosisLimit: "No misconception label is assigned until a validated step-by-step work parser exists."
