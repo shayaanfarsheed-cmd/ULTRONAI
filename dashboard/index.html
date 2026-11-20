@@ -74,8 +74,8 @@
           <div class="section-intro">
             <div>
               <div class="eyebrow">OWNER-ONLY TRAINING OPERATIONS</div>
-              <h2>Launch ULTRON from this device</h2>
-              <p class="muted-text">Choose a compute provider, then explicitly confirm a real training launch. The owner account is checked again by the secure server before any action.</p>
+              <h2>Check remote compute from this device</h2>
+              <p class="muted-text">Choose GitHub Actions CPU and explicitly confirm a safe compute diagnostic. The owner account is checked again by the secure server before any action.</p>
             </div>
             <span class="status-pill">OWNER ONLY</span>
           </div>
@@ -90,7 +90,7 @@
               </select>
               <p id="trainingServerHelp" class="fine-print">GitHub Actions CPU is ULTRON’s only remote training provider. Colab remains manual-only.</p>
               <div class="training-control-actions">
-                <button id="trainingStartButton" class="primary-button" type="button" disabled>Start real training</button>
+                <button id="trainingStartButton" class="primary-button" type="button" disabled>Run compute diagnostic</button>
                 <button id="trainingStopButton" class="secondary-button" type="button" disabled>Stop active workflow</button>
               </div>
             </article>
@@ -107,15 +107,15 @@
           </div>
           <article class="panel section-panel training-control-note">
             <div class="eyebrow">SAFETY / EXECUTION LIMITS</div>
-            <h2>What Start does</h2>
+            <h2>What the diagnostic does</h2>
             <ul>
               
               
-              <li>GitHub Actions CPU runs the training worker; the iPad is the remote owner console.</li>
+              <li>GitHub Actions CPU measures the hosted runner; the iPad is the remote owner console.</li>
               <li>Colab remains manual-only and is not controlled by the remote Start/Stop buttons.</li>
-              <li>Stop cancels the active GitHub Actions workflow. Only checkpoints already committed to durable storage are guaranteed to survive cancellation.</li>
+              <li>Stop cancels the diagnostic workflow. The diagnostic never creates or changes checkpoints.</li>
             </ul>
-            <p class="fine-print">GitHub Actions hosted CPU runner limits apply. The RAM preference slider elsewhere in this dashboard does not cap cloud-runner memory.</p>
+            <p class="fine-print">GitHub Actions hosted CPU runner limits apply. The RAM preference slider elsewhere in this dashboard does not cap cloud-runner memory. This diagnostic does not start model training.</p>
           </article>
         </section>
 
