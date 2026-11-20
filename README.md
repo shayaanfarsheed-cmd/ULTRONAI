@@ -1,5 +1,22 @@
 # ULTRON — current project status (2026-11-20)
 
+## Latest verified status — PR #82 merged; runtime owner-status race test added
+
+- PR [#81](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/81) merged to `main` at `6866ddb91d8380bea2050c685d8fca589bfd0496`.
+- PR [#82](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/82) merged to `main` at `a2dbf433ad23d8d781f2c8f6a69fa802ab6c014d`; all three required checks passed.
+- The dashboard now has a Node runtime regression test that delays an owner-only workflow status response, simulates sign-out, then verifies the late response cannot restore private workflow details or a private run link in Guest Mode.
+- The production Supabase `training-control` Edge Function remains **ACTIVE, version 5**, with `verify_jwt=true`; its deployed source was previously fetched and matched GitHub `main`.
+- GitHub Pages deployment for the PR #82 merge is being verified. The hosted dashboard URL could not be fetched by the external page reader during this check, so do not treat that as a live browser smoke-test pass.
+- No diagnostic was launched, no model training was started, and no weights or persistent checkpoints were changed.
+
+## Immediate next steps
+
+1. Finish the narrow-screen dashboard navigation adjustment and run all required checks.
+2. Verify the GitHub Pages deployment after the PR #82 merge.
+3. Complete the responsive, accessibility, browser-console, and owner-only live status checks.
+4. Continue the security matrix: invalid/expired JWT, non-owner denial, public dispatch denial, and secret non-disclosure.
+5. Keep real training disabled until the full readiness matrix passes and the owner separately authorizes a tiny overfit experiment.
+
 ## Latest verified status — PR #81 merged; owner-status race regression strengthened
 
 - PR [#81](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/81) merged to `main` at `6866ddb91d8380bea2050c685d8fca589bfd0496`; all three required checks passed on the final commit.
