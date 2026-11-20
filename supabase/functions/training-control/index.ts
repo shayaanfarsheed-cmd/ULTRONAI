@@ -52,7 +52,8 @@ Deno.serve(async (req: Request) => {
   if (!token || !apiKey) return safeError("A signed-in owner session is required.", 401, origin);
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const ownerId = Deno.env.get("ULTRON_OWNER_USER_ID");
-  if (!supabaseUrl || !ownerId) return safeError("Owner verification is not configured. Launch controls are disabled.", 503, origin);
+  if (!supabaseUrl) return safeError("Supabase Auth verification is not configured. Confirm the built-in SUPABASE_URL Edge Function environment setting.", 503, origin);
+  if (!ownerId) return safeError("Owner verification is not configured. Add ULTRON_OWNER_USER_ID to Supabase Edge Function secrets; do not place its value in the website or a chat.", 503, origin);
   try {
     const authResponse = await fetch(supabaseUrl.replace(/\/$/, "") + "/auth/v1/user", { headers: { "apikey": apiKey, "Authorization": authHeader } });
     const user = await authResponse.json().catch(() => ({}));
