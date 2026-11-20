@@ -323,6 +323,25 @@ code { color: var(--red); font-size: .92em; }
 }
 
 .ram-panel { border-color: var(--line-strong); }
+.ram-panel { min-width: 0; max-width: 100%; }
+.ram-panel .section-heading {
+  min-width: 0;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.ram-panel .section-heading > * { min-width: 0; }
+.ram-panel .small-pill {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+.ram-panel .ram-value-row {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.ram-panel .ram-value-row > * { min-width: 0; }
+.ram-panel .ram-slider { min-width: 0; max-width: 100%; }
 .ram-control { margin: 20px 0 14px; padding: 16px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface-2); }
 .ram-value-row, .ram-scale { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .ram-value-row label { color: var(--soft); font-size: 12px; font-weight: 800; }
