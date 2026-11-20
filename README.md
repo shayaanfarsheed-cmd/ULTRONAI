@@ -1,26 +1,26 @@
 # ULTRON — current project status (2026-11-20)
 
-## Latest verified status — PR #93 merged; real-browser dashboard tests added
+## Latest verified status — PR #94 merged; Chromium browser smoke is green
 
 - PR [#92](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/92) merged at `50ba963a3c47a6815b09a067a0d8bdefde03d9fe`; Deno type-check, unit tests, training-prototype validation, post-merge preflight, test suite and Pages deployment all passed.
-- PR [#93](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/93) merged at `f1d5a3043c63ec59054e8b735e325a38d1938261`; all three required checks and post-merge preflight, test suite and Pages deployment passed.
+- PR [#93](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/93) merged at `f1d5a3043c63ec59054e8b735e325a38d1938261`; all required checks and post-merge checks passed.
+- PR [#94](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/94) merged at `9e0db29b9a186529fcc7da6de14daa53c47551e7`; all four required checks passed: unit tests, preflight, training-prototype validation and Chromium browser smoke. The GitHub Pages deployment also succeeded.
+- The Playwright 1.65.1 browser smoke test verified Guest Mode, all 11 navigation views, optional owner sign-in dialog open/cancel, RAM preference persistence, theme toggle, 44px mobile touch targets, and no horizontal overflow at 320, 360, 390, 768, 1024 and 1366px. It detected no JavaScript page errors, console errors or unexpected external requests.
 - Supabase `training-control` is **ACTIVE, version 6**, with `verify_jwt=true`. Its deployed `index.ts` was fetched and compared byte-for-byte with GitHub `main`; the source matches exactly.
 - Request parsing rejects JSON null, arrays, primitives, missing/non-string actions, and non-string server IDs with safe HTTP 400 responses before action routing. The 4 KiB request limit remains enforced.
 - Preflight installs pinned Deno 2.9.8 and runs `deno check supabase/functions/training-control/index.ts`.
-- PR #94 adds a Chromium browser smoke workflow using pinned Playwright 1.65.1. A corrected run passed: Guest Mode, all 11 navigation views, owner dialog open/cancel, RAM preference persistence, theme toggle, 44px touch targets, six viewport widths from 320px to 1366px, no page/console errors, and no unexpected external requests. The latest complete CI rerun is in progress.
 - Device access is browser-based remote control for iPadOS, iOS, Android, desktop and tablets. Compute runs on the selected remote provider; device pairing and local model runtime are not used.
 - The Settings RAM slider is a browser-local preference. It is not sent to a remote training process and does not cap hosted-runner RAM or GPU VRAM.
 - GitHub Actions remote controls remain limited to safe CPU diagnostics. Google Colab remains manual-only. Actual model training has not started.
-- Owner-only **Refresh status** still needs to succeed in the signed-in owner's browser to verify the configured GitHub token's actual API permissions.
+- Still pending: a manual visual test on a physical iPad/phone, and owner-only **Refresh status** from the signed-in owner's browser to verify GitHub API permissions.
 - No diagnostic was launched, no model training was started, and no weights or persistent checkpoints were changed.
 
 ## Immediate next steps
 
-1. Complete the latest full CI run for the Chromium smoke workflow and merge only after all checks pass.
-2. Perform a manual visual smoke test on a real iPad and phone; browser emulation does not replace physical-device verification.
-3. Run owner-only **Refresh status** in the signed-in owner's browser to verify GitHub Actions API permissions.
-4. Complete live production security checks for invalid/expired JWTs, non-owner denial, public dispatch denial and secret non-disclosure.
-5. Finish model, dataset, evaluation, checkpoint recovery and training-resource readiness audits. Keep actual training disabled until the owner separately authorizes a tiny overfit experiment.
+1. Perform a manual visual smoke test on a real iPad and phone; browser emulation does not replace physical-device verification.
+2. Run owner-only **Refresh status** in the signed-in owner's browser to verify GitHub Actions API permissions.
+3. Complete live production security checks for invalid/expired JWTs, non-owner denial, public dispatch denial and secret non-disclosure.
+4. Finish model, dataset, evaluation, checkpoint recovery and training-resource readiness audits. Keep actual training disabled until the owner separately authorizes a tiny overfit experiment.
 
 ## Latest verified status — PR #83 merged; responsive navigation improved
 
