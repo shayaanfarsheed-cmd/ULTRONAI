@@ -11,7 +11,8 @@
 - The pre-merge **Training Prototype Validation** also passed: configuration, unit/recovery tests, and bounded data/checkpoint/optimizer smoke tests.
 - The dashboard contains 11 views: Overview, How ULTRON learns, Data library, Ask ULTRON, Math Agent, Activity, Training control, Device access, Servers, Checkpoints and Settings. Guest browsing is public; private owner operations remain separately gated.
 - The Settings RAM slider is a **browser-local preference**. It does not control hosted-runner RAM or GPU VRAM. Device access is browser-based; device pairing/local training agents are not used.
-- Supabase `training-control` remains **ACTIVE, version 6**, with `verify_jwt=true`; deployed source was previously compared byte-for-byte with GitHub `main`.
+- Supabase `training-control` remains **ACTIVE, version 6**, with `verify_jwt=true`; its deployed source matches exactly with GitHub `main` (previously compared byte-for-byte).
+- The preflight includes the pinned Deno 2.9.8 Deno type-check for `supabase/functions/training-control/index.ts`.
 - Remote launch remains limited to the owner-confirmed GitHub Actions CPU diagnostic. Google Colab remains manual-only. **Actual model training has not started.**
 - Remaining manual gates: open the deployed dashboard on a physical iPad/phone, use owner-only **Refresh status** from the signed-in owner's browser to verify GitHub API permissions, and complete live production security checks for invalid/expired JWTs, non-owner denial, public dispatch denial and secret non-disclosure.
 - No diagnostic was launched, no model training was started, and no weights or persistent checkpoints were modified during this work.
