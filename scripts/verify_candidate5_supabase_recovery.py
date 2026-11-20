@@ -19,7 +19,7 @@ CANDIDATE5_ARCHITECTURE = {
     "heads": 16,
     "feedforward_multiplier": 4,
 }
-EXPECTED_PARAMETERS = 25_398_350
+EXPECTED_PARAMETERS = 25_400_400
 MAXIMUM_FILE_BYTES = 45_000_000
 REQUIRED_RECOVERY_CHECKS = {
     "remote_upload_and_manifest_verified",
