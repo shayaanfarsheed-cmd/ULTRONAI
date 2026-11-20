@@ -34,18 +34,16 @@
 - Added a regression test to prevent this mismatch from returning.
 - This is a UI copy and test change only. No production function, secrets, database, checkpoints, model weights, or training state changed.
 
-## Latest verified milestone — production Edge Function deployment
+## Latest verified milestone — PR #78 deployed (2026-11-20)
 
-- Supabase project: `ultron-memory` (`euhmejpaswmdpsutbtse`), status `ACTIVE_HEALTHY`.
-- Deployed `training-control` Edge Function, version 1, status `ACTIVE`, with platform JWT verification enabled (`verify_jwt = true`).
-- Deployed source matches `supabase/functions/training-control/index.ts` from `main` at deployment time.
-- The function is restricted to the GitHub Pages origin and validates the caller's Supabase user against server-side `ULTRON_OWNER_USER_ID`. It requires a server-side `ULTRON_GITHUB_TOKEN` for GitHub operations.
-- **Start dispatches only `ultron-cpu-diagnostic` / `cpu-diagnostic.yml`**, never `cpu-training.yml`. Status and stop are scoped to the CPU diagnostic workflow. Colab remains manual-only.
-- Supabase's function inventory confirms `training-control` is active with JWT verification enabled. The production endpoint's unauthenticated HTTP response and owner/non-owner action tests have not yet been exercised from this environment; outbound DNS/network access was unavailable. Do not treat the end-to-end authorization test as complete.
-- Runtime configuration must include `ULTRON_OWNER_USER_ID` and `ULTRON_GITHUB_TOKEN`. The handler fails closed if owner configuration is missing, and GitHub operations fail if the token is missing. Do not expose or commit either secret.
-- Do not press dashboard Start until the owner identity and GitHub token are configured securely and the complete unauthorized/owner test matrix passes.
-- Supabase Security Advisor currently reports leaked-password protection disabled (warning) and three legacy pairing tables with RLS enabled but no policies (informational). The tables are retired and policy-less RLS denies access; do not add permissive policies. Auth leaked-password protection should be enabled after confirming the supported Auth setting.
-- No schema, RLS, Storage policy, database data, model weights, checkpoints, or training state was changed during deployment.
+- PR [#78](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/78) merged to `main` at `f75f5d276b3a108de57d5ebb5226d86975163af7`; all three required PR checks passed.
+- Supabase project `ultron-memory` (`euhmejpaswmdpsutbtse`) reports `ACTIVE_HEALTHY`. The `training-control` Edge Function is `ACTIVE`, version **3**, with platform JWT verification enabled (`verify_jwt = true`).
+- The deployed version 3 source was fetched and matched against `supabase/functions/training-control/index.ts` on `main`.
+- The function keeps the GitHub Pages origin restriction, validates the signed-in Supabase user against server-side `ULTRON_OWNER_USER_ID`, and dispatches only `ultron-cpu-diagnostic.yml`. It never dispatches the training workflow. Colab remains manual-only.
+- Version 3 separates missing `SUPABASE_URL` and missing `ULTRON_OWNER_USER_ID` diagnostics. Both paths fail closed and never disclose a secret or owner ID.
+- Dashboard `dashboard/training-control.js` contains the owner-only **Check connection** action. It reports only whether owner verification and the GitHub token are configured; it does not reveal either secret.
+- **Still unverified:** the owner-only health request has not been retested after the version 3 deployment from the owner's signed-in browser session. Secret values are not readable through connected tools, so their presence cannot be independently verified here. Do not start a diagnostic until health and GitHub Status both succeed.
+- No training was started; no model weights or persistent checkpoints were modified.
 
 ## Phase 2 compute diagnostic results
 
@@ -56,11 +54,11 @@
 
 ## Immediate next steps
 
-1. Configure/verify the two required Edge Function secrets without exposing their values.
-2. Exercise missing/invalid JWT, non-owner denial, owner status/start/stop, origin rejection, and ensure Start dispatches only the diagnostic workflow.
-3. Confirm a diagnostic can be cancelled and verify no training/checkpoint writes occur.
-4. Review and enable Auth leaked-password protection using the supported project Auth configuration.
-5. Keep real training disabled until all readiness gates pass and the owner separately authorizes the tiny overfit diagnostic.
+1. In Supabase Dashboard → Edge Functions → Secrets, verify `ULTRON_OWNER_USER_ID` exists and matches the owner's Supabase Auth user UUID. Never paste its value into chat or the website.
+2. Open the GitHub Pages dashboard, sign in with the owner account, and click **Check connection**. Confirm `owner_verification_configured: true`; the same result reports only whether `ULTRON_GITHUB_TOKEN` is present.
+3. If the GitHub token is reported present, click **Refresh status** and verify the GitHub API/repository permissions. If either check fails, inspect the safe error and Edge Function logs; do not bypass owner checks.
+4. Only after both checks pass, separately decide whether to run the CPU-only diagnostic. It is not model training and must not touch weights or checkpoints.
+5. Keep real training disabled until the full authorization/readiness matrix passes and the owner separately authorizes a tiny overfit training test.
 
 ---
 
