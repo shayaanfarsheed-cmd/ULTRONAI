@@ -11,6 +11,15 @@
 
 **Current phase:** Phase 2 compute diagnostics completed; production-safe remote-control function deployed for diagnostic-only operations. No real training is authorized or started.
 
+## Dashboard access and control boundaries
+
+- The dashboard is publicly browsable without creating an account or signing in.
+- Optional owner sign-in is reserved for privileged diagnostic controls; it is not required for ordinary dashboard viewing.
+- Public self-registration, device pairing, remote device commands, and account-specific training history are not part of the current product.
+- The production control endpoint must independently verify the owner identity; browser-side checks are only a user-interface convenience.
+- The only remotely dispatchable workflow is the CPU compute diagnostic. It does not train the model or touch checkpoints.
+- This documents the current boundary; it does not change authentication, production secrets, database policies, or Edge Function behavior.
+
 ## Dashboard wording correction — diagnostic stop behavior
 
 - Corrected the Stop confirmation: it now accurately says it cancels the CPU diagnostic and does not create, modify, or delete checkpoints.
