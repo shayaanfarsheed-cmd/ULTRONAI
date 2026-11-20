@@ -1,28 +1,26 @@
 # ULTRON — current project status (2026-11-20)
 
-## Latest verified status — PR #95 merged; Chromium browser smoke release recorded
+## Latest verified status — PR #96 WebKit mobile overflow repair in progress
 
-- PR [#94](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/94) merged at `9e0db29b9a186529fcc7da6de14daa53c47551e7`; all four required checks passed: unit tests, preflight, training-prototype validation and Chromium browser smoke. GitHub Pages deployment succeeded.
-- PR [#95](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/95) merged at `c59195d260fa02b38ebbf0d97459d063ec05db53`; all four PR checks and post-merge test suite, preflight, Chromium smoke and Pages deployment passed.
-- The Playwright 1.65.1 Chromium smoke test verifies Guest Mode, all 11 navigation views, optional owner sign-in dialog open/cancel, RAM preference persistence, theme toggle, 44px mobile touch targets, six responsive widths (320–1366px), no JavaScript page/console errors and no unexpected external requests.
-- PR #96 adds a WebKit browser run to the same matrix to increase coverage of the browser engine used by iPad Safari. It does not replace a physical iPad test.
-- Supabase `training-control` is **ACTIVE, version 6**, with `verify_jwt=true`. Its deployed `index.ts` was fetched and compared byte-for-byte with GitHub `main`; the source matches exactly.
-- Request parsing rejects JSON null, arrays, primitives, missing/non-string actions, and non-string server IDs with safe HTTP 400 responses before action routing. The 4 KiB request limit remains enforced.
-- Preflight includes the Deno type-check: it installs pinned Deno 2.9.8 and runs `deno check supabase/functions/training-control/index.ts`.
-- Device access is browser-based remote control for iPadOS, iOS, Android, desktop and tablets. Compute runs on the selected remote provider; device pairing and local model runtime are not used.
+- PR [#95](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/95) is merged at `c59195d260fa02b38ebbf0d97459d063ec05db53`; its required CI checks and GitHub Pages deployment passed.
+- PR [#96](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/96) adds Playwright WebKit coverage alongside Chromium for the browser engine used by iPad Safari. Chromium passed; the first WebKit run exposed a genuine Settings overflow at 320px.
+- Root cause: the RAM panel heading's non-wrapping status pill and the RAM value row's flex sizing imposed a minimum content width that expanded the panel to 387px on a 320px viewport.
+- The repair makes the RAM panel and its flex children shrinkable, allows the heading/status pill and value row to wrap, and adds explicit WebKit/Chromium geometry assertions for the RAM panel and slider at every responsive viewport.
+- The browser smoke suite still checks Guest Mode, all 11 navigation views, RAM preference persistence/disclosure, optional owner sign-in dialog, theme toggle, 44px touch targets, six viewport widths, browser/console errors and unexpected external requests.
 - The Settings RAM slider is a browser-local preference. It is not sent to a remote training process and does not cap hosted-runner RAM or GPU VRAM.
+- Supabase `training-control` is **ACTIVE, version 6**, with `verify_jwt=true`. Its deployed source was previously compared byte-for-byte with GitHub `main`.
 - GitHub Actions remote controls remain limited to safe CPU diagnostics. Google Colab remains manual-only. Actual model training has not started.
-- Still pending: manual visual verification on a physical iPad/phone and owner-only **Refresh status** from the signed-in owner's browser to verify GitHub API permissions.
+- Still pending: all PR #96 checks passing, physical iPad/phone visual verification, and owner-only **Refresh status** from the signed-in owner's browser to verify GitHub API permissions.
 - No diagnostic was launched, no model training was started, and no weights or persistent checkpoints were changed.
 
 ## Immediate next steps
 
-1. Complete PR #96's Chromium and WebKit smoke checks.
-2. Perform a manual visual smoke test on a real iPad and phone; browser emulation does not replace physical-device verification.
-3. Run owner-only **Refresh status** in the signed-in owner's browser to verify GitHub Actions API permissions.
-4. Complete live production security checks for invalid/expired JWTs, non-owner denial, public dispatch denial and secret non-disclosure.
-5. Finish model, dataset, evaluation, checkpoint recovery and training-resource readiness audits. Keep actual training disabled until the owner separately authorizes a tiny overfit experiment.
-
+1. Run Chromium and WebKit browser smoke after the mobile layout repair; investigate and fix any remaining failure rather than relaxing assertions.
+2. Review the final PR #96 diff and merge only when every required check passes.
+3. Perform a manual visual smoke test on a real iPad and phone; browser emulation does not replace physical-device verification.
+4. Run owner-only **Refresh status** in the signed-in owner's browser to verify GitHub API permissions.
+5. Complete live production security checks for invalid/expired JWTs, non-owner denial, public dispatch denial and secret non-disclosure.
+6. Finish model, dataset, evaluation, checkpoint recovery and training-resource readiness audits. Keep actual training disabled until the owner separately authorizes a tiny overfit experiment.
 ## Latest verified status — PR #83 merged; responsive navigation improved
 
 - PR [#81](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/81) merged to `main` at `6866ddb91d8380bea2050c685d8fca589bfd0496`.
