@@ -21,7 +21,7 @@ These are engineering goals, not claims that ULTRON will have human-like conscio
 
 ## 2. Current baseline (do not overstate it)
 
-- `ultron_model.py` is a randomly initialized decoder-only transformer with 4,038,478 parameters, a 78-character tokenizer and a 192-token context.
+- `ultron_model.py` is a randomly initialized decoder-only transformer with 4,039,504 parameters, an 80-character tokenizer and a 192-token context.
 - `ultron_agent.py` is a deterministic, rule-based solver for 14 foundation topics. It is not the transformer and does not update its weights.
 - The browser Math Agent is also deterministic and supports restricted question formats.
 - `ultron_verify.py` independently checks supported generated/solved examples; `ultron_evaluation.py` scores explicit predictions against the frozen 18-example held-out foundation fixture. The scorer is read-only and is not yet wired to full transformer inference.
