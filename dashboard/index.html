@@ -8,10 +8,13 @@
   <title>ULTRON Training Control</title>
   <link rel="stylesheet" href="./styles.css">
   <link rel="stylesheet" href="./training-control.css">
+  <link rel="stylesheet" href="./math-tutor.css">
   <script src="./config.js"></script>
   <script defer src="./runtime.js"></script>
   <script defer src="./math-agent.js"></script>
   <script defer src="./math-reasoning.js"></script>
+  <script defer src="./math-tutor.js"></script>
+  <script defer src="./math-tutor-ui.js"></script>
   <script defer src="./math-conversation.js"></script>
   <script defer src="./math-conversation-ui.js"></script>
   <script defer src="./math-agent-ui.js"></script>
@@ -441,6 +444,34 @@
             </div>
             <p class="fine-print">Benchmark work is capped at 5,000 questions and runs only while this page is active. Closing or backgrounding the browser may suspend it. Results measure this rule-based solver, not neural-model training.</p>
             <div class="math-heldout-controls"><button id="mathHeldoutButton" class="secondary-button" type="button">Run frozen accuracy test</button><div id="mathHeldoutResult" class="math-heldout-result" role="status" aria-live="polite">The held-out evaluation uses a separate, frozen 18-question test set.</div></div>
+          </article>
+          <article id="mathTutorPanel" class="panel section-panel math-tutor-panel">
+            <div class="section-heading"><div><div class="eyebrow">STAGE 3 / DIAGNOSIS AND TEACHING</div><h2>Guided practice</h2></div><span class="small-pill">SESSION ONLY</span></div>
+            <p class="muted-text">ULTRON selects a foundation question using prerequisite readiness, recent mistakes and review timing. Hints are progressive and grounded in its verified deterministic solution. Mastery resets when this page session is reset.</p>
+            <div class="tutor-practice-grid">
+              <div class="tutor-question-card">
+                <div id="tutorTopic" class="eyebrow">No active question</div>
+                <p id="tutorQuestion" class="tutor-question">Choose New question to begin.</p>
+                <form id="tutorAnswerForm" class="tutor-answer-form">
+                  <label for="tutorAnswer">Your answer</label>
+                  <input id="tutorAnswer" type="text" maxlength="120" autocomplete="off" placeholder="Enter your answer" required>
+                  <button class="primary-button" type="submit">Check answer</button>
+                </form>
+                <p id="tutorFeedback" class="tutor-feedback" role="status">Your answer is checked independently.</p>
+                <div class="tutor-actions">
+                  <button id="tutorNextButton" class="secondary-button" type="button">New question</button>
+                  <button id="tutorHintButton" class="quiet-button" type="button">Show next hint</button>
+                  <button id="tutorResetButton" class="quiet-button" type="button">Reset session</button>
+                </div>
+                <p id="tutorHint" class="tutor-hint" aria-live="polite">Hints are available one step at a time.</p>
+              </div>
+              <div class="tutor-progress-card">
+                <div class="eyebrow">SESSION MASTERY / 18 TOPICS</div>
+                <div id="tutorMastery" class="tutor-mastery-list"></div>
+                <p id="tutorSessionStatus" class="fine-print">Session turn 0 · no reviews due · memory only</p>
+              </div>
+            </div>
+            <p class="fine-print">Mistake diagnosis is deliberately conservative: a wrong final answer alone is not enough to identify a misconception. This release requests working but does not yet classify step-level error patterns. Difficulty is fixed at foundation level; adaptation selects topics, not difficulty. No questions, answers or mastery records are written to storage or training data.</p>
           </article>
           <article class="panel section-panel">
             <div class="eyebrow">IMPORTANT MODEL STATUS</div>
