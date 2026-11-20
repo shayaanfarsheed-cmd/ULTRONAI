@@ -143,6 +143,25 @@ class TrainingControlSecurityContractTests(unittest.TestCase):
         self.assertIn('"Access-Control-Allow-Methods": "POST, OPTIONS"', source)
         self.assertNotIn('"Access-Control-Allow-Origin": "*"', source)
 
+    def test_training_control_rejects_non_object_and_malformed_request_bodies(self):
+        source = (ROOT / "supabase/functions/training-control/index.ts").read_text()
+        size_guard = source.index("byteLength > MAX_BODY_BYTES")
+        parse_request = source.index("parsed = JSON.parse(rawBody)")
+        object_guard = source.index('if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))')
+        action_guard = source.index('if (typeof requestBody.action !== "string")')
+        server_guard = source.index('if (requestBody.server_id !== undefined && typeof requestBody.server_id !== "string")')
+        health_route = source.index('if (action === "health")')
+        self.assertLess(size_guard, parse_request)
+        self.assertLess(parse_request, object_guard)
+        self.assertLess(object_guard, action_guard)
+        self.assertLess(action_guard, server_guard)
+        self.assertLess(server_guard, health_route)
+        self.assertIn('return safeError("Invalid JSON request.", 400, origin);', source)
+        self.assertIn('return safeError("Unsupported action.", 400, origin);', source)
+        self.assertIn('return safeError("Invalid server target.", 400, origin);', source)
+        self.assertNotIn("body.action", source)
+        self.assertNotIn("body.server_id", source)
+
     def test_github_token_secret_is_absent_from_all_dashboard_assets(self):
         for path in (
             ROOT / "dashboard" / "index.html",
