@@ -801,3 +801,14 @@ The tokenizer vocabulary is now 80 characters after adding the semicolon and exp
 - Added regression tests for owner-gated health diagnostics, secret-value non-disclosure, missing-token classification, and safe upstream errors.
 - This code change does not create, rotate, or verify either production secret. The health action must be called by the signed-in owner after deployment. Do not enable Start until the health check confirms the token is configured and GitHub Status succeeds.
 - No training was started; no model weights or checkpoints were touched.
+
+
+## Training-control deployment and owner diagnostics (2026-11-20)
+
+- PR #76 merged to `main` at `2fa68944ed90b338540a74437411920ac0b0263c` after all three required CI workflows passed.
+- Deployed the merged `supabase/functions/training-control/index.ts` to Supabase project `euhmejpaswmdpsutbtse` as Edge Function version 2. The function inventory confirms status `ACTIVE` and `verify_jwt = true`.
+- Version 2 adds an owner-authenticated, read-only `health` action. It reports only whether owner verification and the GitHub token are configured; it never returns secret values or calls GitHub.
+- Missing `ULTRON_GITHUB_TOKEN` is classified as HTTP 503. Other upstream GitHub/network failures remain generic HTTP 502 responses, with diagnostic detail written to Edge Function logs.
+- Deployment is verified, but the owner-only live health/status request has not yet been exercised in a browser session from this environment. The production secrets' presence and GitHub token permissions remain unverified. Do not press Start until the health check and GitHub Status both succeed.
+- A follow-up dashboard change adds a **Check connection** control so the owner can run the health action without using developer tools. It must pass CI and be deployed to GitHub Pages before that button is available.
+- No training was started; no weights or checkpoints were touched.
