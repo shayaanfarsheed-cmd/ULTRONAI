@@ -790,3 +790,14 @@ All earlier pairing implementation notes later in this README are historical onl
 ## PR #68 review correction — Candidate 5 parameter count (2026-11-20)
 
 The tokenizer vocabulary is now 80 characters after adding the semicolon and exponent caret required by generated mathematics examples. Candidate 5 therefore has **25,400,400 parameters** (dimension 512, 8 layers, 16 heads, feed-forward multiplier 4). The live Supabase interrupted-recovery script previously retained the pre-tokenizer-expansion expectation of 25,398,350, which would have caused the workflow to reject the correct model. Updated `scripts/verify_candidate5_supabase_recovery.py` to expect 25,400,400. This is a validation-only correction: it does not alter the architecture, weights, checkpoints, or training state. PR #68 remains unmerged pending fresh CI and review. No real training has started.
+
+
+## Training-control 502 diagnostics hardening (2026-11-20)
+
+- Investigated repeated authenticated `training-control` HTTP 502 responses. Supabase logs confirm the requests reached Edge Function version 1 with a valid authenticated session; the available request logs do not include the handler response body or enough runtime detail to prove whether the GitHub token is missing, invalid, or blocked by GitHub permissions.
+- Added an owner-authenticated, read-only `health` action that reports only whether owner verification and the GitHub token are configured. It never returns secret values and never calls GitHub or dispatches a workflow.
+- Missing `ULTRON_GITHUB_TOKEN` now returns HTTP 503 with a clear configuration message instead of being caught and mislabeled as HTTP 502.
+- Unexpected GitHub/network failures now return a generic client-safe 502 while writing the error detail to Edge Function logs; upstream response details are no longer echoed to the browser.
+- Added regression tests for owner-gated health diagnostics, secret-value non-disclosure, missing-token classification, and safe upstream errors.
+- This code change does not create, rotate, or verify either production secret. The health action must be called by the signed-in owner after deployment. Do not enable Start until the health check confirms the token is configured and GitHub Status succeeds.
+- No training was started; no model weights or checkpoints were touched.
