@@ -57,12 +57,27 @@
       if (history.length > maxTurns * 2) history = history.slice(-maxTurns * 2);
     }
 
+    function containsPhrase(text, phrase) {
+      const target = phrase.toLowerCase();
+      let offset = 0;
+      while (offset < text.length) {
+        const index = text.indexOf(target, offset);
+        if (index < 0) return false;
+        const before = index === 0 || !/[a-z]/i.test(text[index - 1]);
+        const afterIndex = index + target.length;
+        const after = afterIndex === text.length || !/[a-z]/i.test(text[afterIndex]);
+        if (before && after) return true;
+        offset = index + 1;
+      }
+      return false;
+    }
+
     function detectTopic(input) {
       const lower = input.toLowerCase();
       for (const key of Object.keys(TOPIC_ALIASES)) {
         if (!agent.TOPICS[key]) continue;
         const aliases = [key.replace(/_/g, " "), agent.TOPICS[key].label].concat(TOPIC_ALIASES[key]);
-        if (aliases.some(alias => lower.includes(alias.toLowerCase()))) return key;
+        if (aliases.some(alias => containsPhrase(lower, alias))) return key;
       }
       return null;
     }
