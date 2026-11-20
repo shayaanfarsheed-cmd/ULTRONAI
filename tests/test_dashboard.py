@@ -72,6 +72,11 @@ class DashboardStaticTests(unittest.TestCase):
         self.assertIn("env(safe-area-inset-right)", styles)
         self.assertIn("@media (pointer: coarse)", styles)
         self.assertIn("min-height: 44px", styles)
+        self.assertIn("grid-template-columns: repeat(3, minmax(0, 1fr))", styles)
+        self.assertIn("@media (max-width: 360px)", styles)
+        self.assertIn("grid-template-columns: repeat(2, minmax(0, 1fr))", styles)
+        self.assertIn("flex-direction: row", styles)
+
 
     def test_all_static_javascript_id_references_exist(self):
         html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
