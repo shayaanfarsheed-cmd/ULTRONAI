@@ -16,6 +16,10 @@
     basic_geometry: {label:"Basic geometry",concept:"Rectangle geometry",rule:"Area = length × width; perimeter = 2 × (length + width).",method:"Identify area or perimeter, then substitute the dimensions."},
     basic_statistics: {label:"Basic statistics",concept:"Mean (average)",rule:"Mean = sum of all values divided by the number of values.",method:"Add the values, divide by the count, and simplify exactly."},
     basic_probability: {label:"Basic probability",concept:"Basic probability",rule:"Probability = favourable outcomes / total equally likely outcomes.",method:"Form the favourable-to-total fraction and reduce it."}
+    ,median_and_range: {label:"Median and range",concept:"Median and range",rule:"Sort the values; median is the middle and range is maximum minus minimum.",method:"Sort five values, select the third, subtract the smallest from the largest."}
+    ,simple_interest: {label:"Simple interest",concept:"Simple interest",rule:"I = principal × rate × time / 100.",method:"Multiply principal, percentage rate and years, then divide by 100."}
+    ,unit_conversion: {label:"Metric unit conversion",concept:"Metric unit conversion",rule:"Use exact metric scale factors.",method:"Multiply by the supported conversion factor."}
+    ,pythagorean_theorem: {label:"Pythagorean theorem",concept:"Pythagorean theorem",rule:"For a right triangle c² = a² + b².",method:"Add squared legs and take the exact integer square root."}
   };
   const TOPIC_KEYS = Object.keys(TOPICS);
   const fail = message => { throw new Error(message); };
@@ -80,6 +84,24 @@
     } else if(topic==="basic_probability") {
       m=/^Probability: (\d+) favorable, (\d+) total$/.exec(q);if(!m)fail("Use: Probability: 2 favorable, 6 total");
       const a=BigInt(m[1]),b=BigInt(m[2]);if(b<=0n||a>b)fail("Favourable outcomes must be between zero and the positive total.");answer=ftext(fraction(a,b));steps=["Probability = favourable outcomes ÷ total outcomes.",""+a+"/"+b+" simplifies to "+answer+"."];
+    } else if(topic==="median_and_range") {
+      m=/^Median and range of: ([0-9, ]+)$/.exec(q);if(!m)fail("Use five comma-separated whole numbers.");
+      const values=m[1].split(",").map(s=>s.trim()).map(s=>{if(!/^\d+$/.test(s))fail("Invalid value");return BigInt(s);}).sort((a,b)=>a<b?-1:a>b?1:0);
+      if(values.length!==5)fail("Median and range requires five values.");
+      const median=values[2],spread=values[4]-values[0];answer="median="+median+"; range="+spread;
+      steps=["Sort the five values: "+values.join(", ")+".","The middle value is "+median+", and the range is "+values[4]+" - "+values[0]+" = "+spread+".","Step 3: "+answer+"."];
+    } else if(topic==="simple_interest") {
+      m=/^Simple interest: principal (\d+), rate (\d+)%, time (\d+) years$/.exec(q);if(!m)fail("Invalid simple-interest question.");
+      const principal=BigInt(m[1]),rate=BigInt(m[2]),years=BigInt(m[3]);answer=ftext(fraction(principal*rate*years,100n));
+      steps=["Use I = P * r * t / 100.","I = "+principal+" * "+rate+" * "+years+" / 100 = "+answer+"."];
+    } else if(topic==="unit_conversion") {
+      m=/^Convert: (\d+) (m|cm|kg) to (cm|mm|g)$/.exec(q);if(!m)fail("Invalid unit-conversion question.");
+      const factors={"m:cm":100n,"cm:mm":10n,"kg:g":1000n},factor=factors[m[2]+":"+m[3]];if(!factor)fail("Unsupported unit conversion.");
+      const amount=BigInt(m[1]);answer=String(amount*factor);steps=["1 "+m[2]+" = "+factor+" "+m[3]+".",m[1]+" * "+factor+" = "+answer+" "+m[3]+"."];
+    } else if(topic==="pythagorean_theorem") {
+      m=/^Hypotenuse of right triangle: legs (\d+), (\d+)$/.exec(q);if(!m)fail("Invalid Pythagorean question.");
+      const a=BigInt(m[1]),b=BigInt(m[2]),square=a*a+b*b;let root=0n;while((root+1n)*(root+1n)<=square)root++;if(root*root!==square)fail("Triangle legs do not produce an integer hypotenuse.");
+      answer=String(root);steps=["Use c * c = a * a + b * b = "+a+"^2 + "+b+"^2.","c = sqrt("+square+") = "+root+"."];
     } else fail("No solver for this topic.");
     return {topic,question:q,answer,steps,knowledge:{concept:TOPICS[topic].concept,rule:TOPICS[topic].rule,method:TOPICS[topic].method},verified:false};
   }
@@ -115,6 +137,10 @@
       } else if(topic==="basic_geometry") {m=/^(Area|Perimeter) of rectangle: length (\d+), width (\d+)$/.exec(q);if(!m)return false;const l=BigInt(m[2]),w=BigInt(m[3]);expected=String(m[1]==="Area"?l*w:2n*(l+w));
       } else if(topic==="basic_statistics") {m=/^Mean of: ([0-9, ]+)$/.exec(q);if(!m)return false;const a=m[1].split(",").map(s=>s.trim());if(a.some(s=>! /^\d+$/.test(s)))return false;expected=checkText(checkFraction(a.reduce((t,v)=>t+BigInt(v),0n),BigInt(a.length)));
       } else if(topic==="basic_probability") {m=/^Probability: (\d+) favorable, (\d+) total$/.exec(q);if(!m)return false;const a=BigInt(m[1]),b=BigInt(m[2]);if(b<=0n||a>b)return false;expected=checkText(checkFraction(a,b));
+      } else if(topic==="median_and_range") {m=/^Median and range of: ([0-9, ]+)$/.exec(q);if(!m)return false;const a=m[1].split(",").map(s=>s.trim());if(a.length!==5||a.some(s=>!/^\d+$/.test(s)))return false;const v=a.map(BigInt).sort((x,y)=>x<y?-1:x>y?1:0);expected="median="+v[2]+"; range="+(v[4]-v[0]);
+      } else if(topic==="simple_interest") {m=/^Simple interest: principal (\d+), rate (\d+)%, time (\d+) years$/.exec(q);if(!m)return false;expected=checkText(checkFraction(BigInt(m[1])*BigInt(m[2])*BigInt(m[3]),100n));
+      } else if(topic==="unit_conversion") {m=/^Convert: (\d+) (m|cm|kg) to (cm|mm|g)$/.exec(q);if(!m)return false;const factors={"m:cm":100n,"cm:mm":10n,"kg:g":1000n},factor=factors[m[2]+":"+m[3]];if(!factor)return false;expected=String(BigInt(m[1])*factor);
+      } else if(topic==="pythagorean_theorem") {m=/^Hypotenuse of right triangle: legs (\d+), (\d+)$/.exec(q);if(!m)return false;const n=BigInt(m[1])**2n+BigInt(m[2])**2n;let r=0n;while((r+1n)*(r+1n)<=n)r++;if(r*r!==n)return false;expected=String(r);
       } else return false;
       return String(answer).trim()===expected;
     } catch (_) { return false; }
@@ -136,6 +162,10 @@
       case "basic_geometry": return "Area of rectangle: length "+n+", width "+b;
       case "basic_statistics": return "Mean of: "+n+", "+b+", "+(n+b);
       case "basic_probability": return "Probability: "+(b%Math.max(1,n))+" favorable, "+n+" total";
+      case "median_and_range": return "Median and range of: "+[n,b,n+b,n+2,b+1].join(", ");
+      case "simple_interest": return "Simple interest: principal "+n+", rate 5%, time 2 years";
+      case "unit_conversion": return "Convert: "+n+" m to cm";
+      case "pythagorean_theorem": return "Hypotenuse of right triangle: legs 3, 4";
       default: fail("Unsupported topic");
     }
   }
