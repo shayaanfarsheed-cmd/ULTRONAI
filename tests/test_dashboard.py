@@ -366,7 +366,7 @@ class DataLibraryDeletionTests(unittest.TestCase):
         self.assertIn("9e0db29b9a186529fcc7da6de14daa53c47551e7", latest)
         self.assertIn("all four required checks passed", latest)
         self.assertIn("physical iPad/phone", latest)
-        self.assertIn("Owner-only **Refresh status**", latest)
+        self.assertIn("owner-only **Refresh status**", latest)
 
     def test_dashboard_browser_smoke_is_run_in_chromium_ci(self):
         workflow = (ROOT / ".github/workflows/dashboard-browser-smoke.yml").read_text()
