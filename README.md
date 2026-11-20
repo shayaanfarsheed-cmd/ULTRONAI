@@ -23,15 +23,16 @@ The legacy PR backlog was reviewed against `main` at `346b36a940f5f662c07bc3b07e
 - PR [#99](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/99) merged to `main` at `d087a9bc564556709ee7b457124997da236bef5e`. The combined reasoning/evaluation architecture is now part of `main`.
 
 
-## Conversational mathematics shell — implementation in progress
+## Conversational mathematics shell — PR #100 merged
 
 - The next implementation stage adds a browser-local conversational layer over the existing deterministic math solver. It does not claim that the untrained transformer powers these answers.
 - The conversation manager routes simple arithmetic, recognizes explicitly named foundation topics, asks a clarification when it cannot identify a supported question, and retains at most 20 user/assistant turns in memory.
 - Each supported solution is passed through the existing independent verifier. Unverified answers are labelled; unsupported formats receive a format example rather than a fabricated solution.
 - Conversation context is memory-only: it is not written to localStorage, Supabase, the Data Library, checkpoints or training datasets. Reset clears the session. No automatic chat ingestion or training is implemented.
 - Browser UI uses DOM text nodes rather than injecting user content as HTML. The existing single-question solver and bounded benchmark remain available separately.
-- The added WebKit run exposed 320px horizontal overflow from Math-view status labels; the labels now wrap at narrow widths and dashboard grid children have min-width constraints. Chromium and WebKit smoke must both pass on the final commit.
-- Regression tests cover arithmetic routing, all 18 registered topics, clarification, bounded history, reset, invalid/oversized input, independent verification and immutable history snapshots. The Test Suite workflow now runs the Node.js browser-module tests and syntax checks, rather than leaving the JavaScript test files outside CI.
+- A WebKit run exposed 320px horizontal overflow from Math-view status labels; the labels now wrap at narrow widths and dashboard grid children have min-width constraints. Chromium and WebKit browser smoke both pass on the final PR commit.
+- Regression tests cover arithmetic routing, all 18 registered topics, supported/unsupported decimal operations, clarification, bounded history, reset, invalid/oversized input, independent verification and immutable history snapshots. The Test Suite workflow now runs the Node.js browser-module tests and syntax checks, rather than leaving the JavaScript test files outside CI.
+- PR [#100](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/100) merged to `main` at `719247ec50f308227a85a8f102f7da8e74f0f377`. Test Suite, preflight, Training Prototype Validation, Chromium and WebKit checks all passed on the reviewed PR head (`808fe2ab56ee1c55c7b5aea60a6e0eb3272d4346`).
 - This is Stage 1 only. It is not general natural-language mathematical parsing, formal proof checking, neural inference, or durable learner memory. Those require later independently tested stages.
 - No model weights, datasets, checkpoints, Supabase configuration, production secrets or training state are modified.
 
