@@ -359,12 +359,14 @@ class DataLibraryDeletionTests(unittest.TestCase):
         self.assertIn('data-data-delete-folder=', javascript)
         self.assertIn('prefixes: objectPaths.slice(offset, offset + 1000)', javascript)
 
-    def test_readme_records_pr_95_browser_smoke_release_and_manual_gates(self):
+    def test_readme_records_pr_96_merge_deployment_and_manual_gates(self):
         readme = (ROOT / "README.md").read_text()
         latest = readme.split("## Latest verified status", 1)[1].split("\n## ", 1)[0]
-        self.assertIn("PR [#95]", latest)
-        self.assertIn("c59195d260fa02b38ebbf0d97459d063ec05db53", latest)
-        self.assertIn("all four required checks passed", latest)
+        self.assertIn("PR [#96]", latest)
+        self.assertIn("397199389a1c829ff3107cff5560a2c27516fd9a", latest)
+        self.assertIn("236 unit tests", latest)
+        self.assertIn("Chromium and WebKit", latest)
+        self.assertIn("GitHub Pages build and deployment succeeded", latest)
         self.assertIn("physical iPad/phone", latest)
         self.assertIn("owner-only **Refresh status**", latest)
 
