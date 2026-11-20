@@ -21,6 +21,7 @@
     simple_interest: ["percentages"],
     unit_conversion: ["whole_number_arithmetic"]
   });
+  Object.keys(PREREQUISITES).forEach(topic => Object.freeze(PREREQUISITES[topic]));
   const REVIEW_INTERVALS = Object.freeze([1, 2, 4, 8, 16]);
   const owns = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
   const copy = value => JSON.parse(JSON.stringify(value));
