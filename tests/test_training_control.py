@@ -84,7 +84,7 @@ class TrainingControlSecurityContractTests(unittest.TestCase):
     def test_health_diagnostic_is_owner_gated_and_never_returns_secret_values(self):
         source = (ROOT / "supabase/functions/training-control/index.ts").read_text()
         owner_check = source.index("if (user.id !== ownerId)")
-        health_route = source.index('if (body.action === "health")')
+        health_route = source.index('if (action === "health")')
         health_end = source.index("// Report missing integration configuration", health_route)
         health_block = source[health_route:health_end]
         self.assertLess(owner_check, health_route)
@@ -117,9 +117,9 @@ class TrainingControlSecurityContractTests(unittest.TestCase):
         auth_lookup = source.index('const authResponse = await fetch')
         invalid_session_guard = source.index('if (!authResponse.ok || !user.id)')
         non_owner_guard = source.index('if (user.id !== ownerId)')
-        health_route = source.index('if (body.action === "health")')
-        status_route = source.index('if (body.action === "status")')
-        start_route = source.index('if (body.action === "start")')
+        health_route = source.index('if (action === "health")')
+        status_route = source.index('if (action === "status")')
+        start_route = source.index('if (action === "start")')
         self.assertLess(credential_guard, auth_lookup)
         self.assertLess(auth_lookup, invalid_session_guard)
         self.assertLess(invalid_session_guard, non_owner_guard)
@@ -142,6 +142,25 @@ class TrainingControlSecurityContractTests(unittest.TestCase):
         self.assertIn('return safeError("Method not allowed.", 405, origin);', source)
         self.assertIn('"Access-Control-Allow-Methods": "POST, OPTIONS"', source)
         self.assertNotIn('"Access-Control-Allow-Origin": "*"', source)
+
+    def test_training_control_rejects_non_object_and_malformed_request_bodies(self):
+        source = (ROOT / "supabase/functions/training-control/index.ts").read_text()
+        size_guard = source.index("byteLength > MAX_BODY_BYTES")
+        parse_request = source.index("parsed = JSON.parse(rawBody)")
+        object_guard = source.index('if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))')
+        action_guard = source.index('if (typeof requestBody.action !== "string")')
+        server_guard = source.index('if (requestBody.server_id !== undefined && typeof requestBody.server_id !== "string")')
+        health_route = source.index('if (action === "health")')
+        self.assertLess(size_guard, parse_request)
+        self.assertLess(parse_request, object_guard)
+        self.assertLess(object_guard, action_guard)
+        self.assertLess(action_guard, server_guard)
+        self.assertLess(server_guard, health_route)
+        self.assertIn('return safeError("Invalid JSON request.", 400, origin);', source)
+        self.assertIn('return safeError("Unsupported action.", 400, origin);', source)
+        self.assertIn('return safeError("Invalid server target.", 400, origin);', source)
+        self.assertNotIn("body.action", source)
+        self.assertNotIn("body.server_id", source)
 
     def test_github_token_secret_is_absent_from_all_dashboard_assets(self):
         for path in (

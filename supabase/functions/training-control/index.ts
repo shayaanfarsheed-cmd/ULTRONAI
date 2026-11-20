@@ -63,11 +63,21 @@ Deno.serve(async (req: Request) => {
     if (user.id !== ownerId) return safeError("Owner access is required for training operations.", 403, origin);
     const rawBody = await req.text();
     if (new TextEncoder().encode(rawBody).byteLength > MAX_BODY_BYTES) return safeError("Request is too large.", 413, origin);
-    let body: { action?: string; server_id?: string };
-    try { body = JSON.parse(rawBody); } catch { return safeError("Invalid JSON request.", 400, origin); }
+    let parsed: unknown;
+    try { parsed = JSON.parse(rawBody); } catch { return safeError("Invalid JSON request.", 400, origin); }
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return safeError("Invalid JSON request.", 400, origin);
+    }
+    const requestBody = parsed as { action?: unknown; server_id?: unknown };
+    if (typeof requestBody.action !== "string") return safeError("Unsupported action.", 400, origin);
+    if (requestBody.server_id !== undefined && typeof requestBody.server_id !== "string") {
+      return safeError("Invalid server target.", 400, origin);
+    }
+    const action = requestBody.action;
+    const serverId = requestBody.server_id as string | undefined;
 
     // This read-only diagnostic is owner-gated and never contacts GitHub or reveals secret values.
-    if (body.action === "health") {
+    if (action === "health") {
       return response({ ok: true, checks: {
         owner_verification_configured: true,
         github_token_configured: Boolean(Deno.env.get("ULTRON_GITHUB_TOKEN")),
@@ -80,14 +90,14 @@ Deno.serve(async (req: Request) => {
       return safeError("GitHub integration is not configured. Add the server-side ULTRON_GITHUB_TOKEN secret.", 503, origin);
     }
 
-    if (body.action === "status") {
-      const id = body.server_id || CPU_SERVER_ID;
+    if (action === "status") {
+      const id = serverId || CPU_SERVER_ID;
       if (id !== CPU_SERVER_ID) return safeError("Unsupported server status target.", 400, origin);
       const runs = await listRuns(CPU_WORKFLOW_PATH);
       return response({ ok: true, run: summarizeRun(runs[0], "ULTRON CPU Diagnostic") }, 200, origin);
     }
-    if (body.action === "start") {
-      const id = body.server_id || CPU_SERVER_ID;
+    if (action === "start") {
+      const id = serverId || CPU_SERVER_ID;
       const workflowPath = id === CPU_SERVER_ID ? CPU_WORKFLOW_PATH : "";
       if (!workflowPath) return safeError("That provider does not have a remote launch adapter.", 409, origin);
       const cpuRuns = await listRuns(CPU_WORKFLOW_PATH);
@@ -96,8 +106,8 @@ Deno.serve(async (req: Request) => {
       await dispatchWorkflow(workflowPath);
       return response({ ok: true, accepted: true, message: "GitHub Actions accepted the safe CPU diagnostic request. It measures runner resources and installs CPU PyTorch; it does not start training or touch checkpoints." }, 202, origin);
     }
-    if (body.action === "stop") {
-      const id = body.server_id || CPU_SERVER_ID;
+    if (action === "stop") {
+      const id = serverId || CPU_SERVER_ID;
       if (id !== CPU_SERVER_ID) return safeError("Unsupported stop target.", 400, origin);
       const runs = await listRuns(CPU_WORKFLOW_PATH);
       const active = runs.find(run => run.status === "queued" || run.status === "in_progress");
