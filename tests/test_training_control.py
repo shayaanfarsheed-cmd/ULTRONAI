@@ -146,7 +146,7 @@ class TrainingControlSecurityContractTests(unittest.TestCase):
     def test_readme_records_live_training_control_version_six(self):
         readme = (ROOT / "README.md").read_text()
         latest = readme.split("## Latest verified status", 1)[1].split("\n## ", 1)[0]
-        self.assertIn("PR [#93]", latest)
+        self.assertIn("PR [#95]", latest)
         self.assertIn("version 6", latest)
         self.assertIn("verify_jwt=true", latest)
         self.assertIn("source matches exactly", latest)
@@ -171,11 +171,11 @@ class TrainingControlSecurityContractTests(unittest.TestCase):
         self.assertNotIn("body.action", source)
         self.assertNotIn("body.server_id", source)
 
-    def test_readme_records_pr_92_and_current_owner_browser_gate(self):
+    def test_readme_records_pr_95_and_current_owner_browser_gate(self):
         readme = (ROOT / "README.md").read_text()
         latest = readme.split("## Latest verified status", 1)[1].split("\n## ", 1)[0]
-        self.assertIn("PR [#92]", latest)
-        self.assertIn("50ba963a3c47a6815b09a067a0d8bdefde03d9fe", latest)
+        self.assertIn("PR [#95]", latest)
+        self.assertIn("c59195d260fa02b38ebbf0d97459d063ec05db53", latest)
         self.assertIn("Deno type-check", latest)
         self.assertIn("owner-only **Refresh status** from the signed-in owner's browser", latest)
         self.assertIn("Keep actual training disabled", readme)
