@@ -8,7 +8,7 @@
 - PR #96 adds a WebKit browser run to the same matrix to increase coverage of the browser engine used by iPad Safari. It does not replace a physical iPad test.
 - Supabase `training-control` is **ACTIVE, version 6**, with `verify_jwt=true`. Its deployed `index.ts` was fetched and compared byte-for-byte with GitHub `main`; the source matches exactly.
 - Request parsing rejects JSON null, arrays, primitives, missing/non-string actions, and non-string server IDs with safe HTTP 400 responses before action routing. The 4 KiB request limit remains enforced.
-- Preflight installs pinned Deno 2.9.8 and runs `deno check supabase/functions/training-control/index.ts`.
+- Preflight includes the Deno type-check: it installs pinned Deno 2.9.8 and runs `deno check supabase/functions/training-control/index.ts`.
 - Device access is browser-based remote control for iPadOS, iOS, Android, desktop and tablets. Compute runs on the selected remote provider; device pairing and local model runtime are not used.
 - The Settings RAM slider is a browser-local preference. It is not sent to a remote training process and does not cap hosted-runner RAM or GPU VRAM.
 - GitHub Actions remote controls remain limited to safe CPU diagnostics. Google Colab remains manual-only. Actual model training has not started.
