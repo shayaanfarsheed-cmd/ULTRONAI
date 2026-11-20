@@ -1,5 +1,14 @@
 # ULTRON — current project status (2026-11-20)
 
+## Combined reasoning and evaluation architecture — PR in progress
+
+- PR #54's conversational reasoning, formal axioms/proofs, structured problem pipeline, verifier-first response contract, teaching, memory and staged delivery design is being retained in `docs/CONVERSATIONAL_REASONING_ARCHITECTURE.md`.
+- PR #37's held-out evaluation goals are integrated into that architecture, but its older 42-question fixture and duplicate model-evaluation CLI are intentionally not copied.
+- Current `main` already has a frozen 18-example / 18-topic held-out fixture (`evaluation/heldout_foundation_v1.json`), independent dataset validation, and a read-only explicit-prediction scorer (`ultron_evaluation.py`). The missing integration is a separately versioned model-inference adapter feeding predictions to that scorer; the scorer must remain read-only.
+- This is architecture/evaluation planning only. No training, inference job, weight/checkpoint update, dataset mutation, production configuration change or Supabase deployment is authorized or performed.
+- Combined work is being developed on a fresh branch from the current `main`; the old PR branches are not merged.
+
+
 ## Latest verified status — PR #96 merged and deployed
 
 - PR [#96](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/96) merged to `main` at `397199389a1c829ff3107cff5560a2c27516fd9a`.
