@@ -1,5 +1,24 @@
 # ULTRON — current project status (2026-11-20)
 
+## Legacy pull-request reconciliation — 2026-11-20
+
+The legacy PR backlog was reviewed against `main` at `346b36a940f5f662c07bc3b07e741c731be625a4`.
+
+- **Closed as obsolete/superseded:** PR #4 (device-control/pairing contract; pairing and remote-device control are no longer part of the product), PR #25 (local CLI dummy worker; not the iPad-first website-controlled workflow and no verified RAM enforcement), PR #29 (stale README-only correction), PR #26 (older architecture note), PR #37 and PR #54 (their useful content has been selectively integrated into PR #99).
+- The older PR #37's 42-question fixture and duplicate model-evaluation CLI were not copied. Current `main` has a newer frozen 18-example fixture and read-only scorer; PR #99 documents how to connect model inference to it without mixing scoring and training.
+- No legacy branch was merged. No training, compute diagnostic, model-weight update, checkpoint mutation, Supabase deployment or production configuration change was performed.
+- Future code changes must start from current `main`, port only still-valid functionality, add regression tests, update this README, and require fresh CI plus exact-diff review before merge.
+
+
+## Combined reasoning and evaluation architecture — PR in progress
+
+- PR #54's conversational reasoning, formal axioms/proofs, structured problem pipeline, verifier-first response contract, teaching, memory and staged delivery design is being retained in `docs/CONVERSATIONAL_REASONING_ARCHITECTURE.md`.
+- PR #37's held-out evaluation goals are integrated into that architecture, but its older 42-question fixture and duplicate model-evaluation CLI are intentionally not copied.
+- Current `main` already has a frozen 18-example / 18-topic held-out fixture (`evaluation/heldout_foundation_v1.json`), independent dataset validation, and a read-only explicit-prediction scorer (`ultron_evaluation.py`). The missing integration is a separately versioned model-inference adapter feeding predictions to that scorer; the scorer must remain read-only.
+- This is architecture/evaluation planning only. No training, inference job, weight/checkpoint update, dataset mutation, production configuration change or Supabase deployment is authorized or performed.
+- Combined work is being developed on a fresh branch from the current `main`; the old PR branches are not merged.
+
+
 ## Latest verified status — PR #96 merged and deployed
 
 - PR [#96](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/96) merged to `main` at `397199389a1c829ff3107cff5560a2c27516fd9a`.
