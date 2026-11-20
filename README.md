@@ -1,21 +1,28 @@
 # ULTRON — current project status (2026-11-20)
 
-## Latest verified status — PR #92 merged; Deno type-check enabled
+## Latest verified status — PR #93 merged; real-browser dashboard tests added
 
-- PR [#90](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/90) merged at `453667bfe79076d06c02c5172cebf30a471fdceb`; all required checks and post-merge test, preflight and Pages deployment passed.
-- PR [#91](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/91) merged at `27bcb24cb9b321b4fc355bf9535b35c01682cb89`; all required checks and post-merge checks passed.
 - PR [#92](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/92) merged at `50ba963a3c47a6815b09a067a0d8bdefde03d9fe`; Deno type-check, unit tests, training-prototype validation, post-merge preflight, test suite and Pages deployment all passed.
+- PR [#93](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/93) merged at `f1d5a3043c63ec59054e8b735e325a38d1938261`; all three required checks and post-merge preflight, test suite and Pages deployment passed.
 - Supabase `training-control` is **ACTIVE, version 6**, with `verify_jwt=true`. Its deployed `index.ts` was fetched and compared byte-for-byte with GitHub `main`; the source matches exactly.
 - Request parsing rejects JSON null, arrays, primitives, missing/non-string actions, and non-string server IDs with safe HTTP 400 responses before action routing. The 4 KiB request limit remains enforced.
-- Preflight now installs pinned Deno 2.9.8 and runs `deno check supabase/functions/training-control/index.ts`, catching Edge Function TypeScript errors before merge.
+- Preflight installs pinned Deno 2.9.8 and runs `deno check supabase/functions/training-control/index.ts`.
+- PR #94 adds a Chromium browser smoke workflow using pinned Playwright 1.65.1. It exercises Guest Mode, all 11 navigation views, owner dialog open/cancel, RAM preference persistence, theme toggle, 44px touch targets, six viewport widths from 320px to 1366px, console/page errors and unexpected external requests. Its first CI run is pending.
 - Device access is browser-based remote control for iPadOS, iOS, Android, desktop and tablets. Compute runs on the selected remote provider; device pairing and local model runtime are not used.
 - The Settings RAM slider is a browser-local preference. It is not sent to a remote training process and does not cap hosted-runner RAM or GPU VRAM.
 - GitHub Actions remote controls remain limited to safe CPU diagnostics. Google Colab remains manual-only. Actual model training has not started.
-- The GitHub Pages deployment workflow passed. The hosted dashboard still needs a real visual smoke test in a browser; an external page reader could not fetch it.
 - Owner-only **Refresh status** still needs to succeed in the signed-in owner's browser to verify the configured GitHub token's actual API permissions.
 - No diagnostic was launched, no model training was started, and no weights or persistent checkpoints were changed.
 
 ## Immediate next steps
+
+1. Complete and merge the automated Chromium smoke test only after its full CI run passes.
+2. Perform a manual visual smoke test on a real iPad and phone; browser emulation does not replace physical-device verification.
+3. Run owner-only **Refresh status** in the signed-in owner's browser to verify GitHub Actions API permissions.
+4. Complete live production security checks for invalid/expired JWTs, non-owner denial, public dispatch denial and secret non-disclosure.
+5. Finish model, dataset, evaluation, checkpoint recovery and training-resource readiness audits. Keep actual training disabled until the owner separately authorizes a tiny overfit experiment.
+
+
 
 1. Run the owner-only **Refresh status** from the signed-in owner's browser to verify actual GitHub Actions API permissions.
 2. Perform a real visual smoke test of the deployed dashboard on iPad, phone and desktop; check navigation, header fit, RAM preference, console errors and owner sign-in/out transitions.
