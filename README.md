@@ -1,3 +1,11 @@
+## Exponent tokenizer compatibility repair — PR #68 (2026-11-20)
+
+- The next CI run exposed that generated exponent examples contain the caret character `^`, which was also missing from the character tokenizer.
+- Added `^` alongside the previously added semicolon; vocabulary size is now 80.
+- Updated expected parameter counts: baseline 4,039,504; Candidate 5 25,400,400.
+- This is another model-shape change. Checkpoints made with earlier vocabularies are shape-incompatible and must be rejected, not silently loaded.
+- Re-run all CI checks on the latest PR head. No training has started.
+
 ## Tokenizer vocabulary compatibility repair — PR #68 (2026-11-20)
 
 - CI exposed that the canonical median-and-range answer uses a semicolon, but the character tokenizer alphabet did not include it. This caused generated examples to fail tokenization before training.
