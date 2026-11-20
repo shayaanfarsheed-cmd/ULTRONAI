@@ -33,6 +33,10 @@
     if (/\d+\s*\/\s*\d+/.test(expression)) {
       const fractionMatch = /^\(?([+-]?\d+\s*\/\s*\d+)\)?\s*([+*/-])\s*\(?([+-]?\d+\s*\/\s*\d+)\)?$/.exec(expression);
       if (fractionMatch) return { topic: "fractions", question: "Calculate: (" + fractionMatch[1].replace(/\s/g, "") + ") " + fractionMatch[2] + " (" + fractionMatch[3].replace(/\s/g, "") + ")" };
+      if (/^[+-]?\d+\s*\/\s*[+-]?\d+$/.test(expression)) {
+        const signedDivision = /(^|\s)-\d/.test(expression);
+        return { topic: signedDivision ? "integers" : "whole_number_arithmetic", question: "Calculate: " + expression };
+      }
       return null;
     }
     const signed = /(^|\s)-\d/.test(expression);
@@ -57,7 +61,8 @@
       const lower = input.toLowerCase();
       for (const key of Object.keys(TOPIC_ALIASES)) {
         if (!agent.TOPICS[key]) continue;
-        if (TOPIC_ALIASES[key].some(alias => new RegExp("(^|[^a-z])" + alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "([^a-z]|$)", "i").test(lower))) return key;
+        const aliases = [key.replace(/_/g, " "), agent.TOPICS[key].label].concat(TOPIC_ALIASES[key]);
+        if (aliases.some(alias => lower.includes(alias.toLowerCase()))) return key;
       }
       return null;
     }
@@ -95,13 +100,12 @@
       }
 
       const arithmetic = normalizeArithmetic(input);
-      let topic = detectTopic(input) || (arithmetic && arithmetic.topic) || lastTopic;
+      const prefix = /^([^:]{1,80}):\s*/.exec(input);
+      const prefixedTopic = prefix ? detectTopic(prefix[1]) : null;
+      const detectedTopic = detectTopic(input);
+      let topic = prefixedTopic || detectedTopic || (arithmetic && arithmetic.topic) || lastTopic;
       let question = arithmetic ? arithmetic.question : input;
-      const explicit = detectTopic(input);
-      if (explicit) {
-        const label = TOPIC_ALIASES[explicit].slice().sort((a, b) => b.length - a.length).find(alias => input.toLowerCase().includes(alias));
-        if (label) question = input.replace(new RegExp("^\\s*" + label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*[:,-]?\\s*", "i"), "").trim();
-      }
+      if (prefixedTopic) question = input.slice(prefix[0].length).trim();
       if (!topic) {
         const response = clarification("Which maths topic is this about? For example: fractions, decimals, percentages, linear equations or geometry. You can also ask a simple arithmetic expression such as “What is 12 + 5?”");
         append({ role: "assistant", ...response, timestamp: Date.now() });
