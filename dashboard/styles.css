@@ -322,8 +322,7 @@ code { color: var(--red); font-size: .92em; }
   .footer-line { flex-direction: column; }
 }
 
-.ram-panel { border-color: var(--line-strong); }
-.ram-panel { min-width: 0; max-width: 100%; }
+.ram-panel { border-color: var(--line-strong); min-width: 0; max-width: 100%; }
 .ram-panel .section-heading {
   min-width: 0;
   align-items: flex-start;
