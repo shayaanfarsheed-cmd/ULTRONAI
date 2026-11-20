@@ -969,7 +969,7 @@ Branch: `feature/diagnosis-and-adaptive-teaching`, based on main commit `c14228c
 
 Implemented in this branch:
 - Added `dashboard/math-tutor.js`: a session-only tutor with an 18-topic prerequisite graph, prerequisite readiness, weakest-topic selection, review-due prioritization, progressive hints from deterministic solver knowledge, independent final-answer checking, conservative mistake diagnosis, attempt/mastery/streak tracking and spaced review intervals of 1, 2, 4, 8 and 16 session turns.
-- Mistake diagnosis explicitly refuses to infer a misconception from a wrong final answer alone. Even when working is submitted, this first release does not classify step-level error patterns.
+- Mistake diagnosis explicitly refuses to infer a misconception from a wrong final answer alone. The tutor accepts optional written working, but this first release does not classify step-level error patterns and does not assign a misconception label.
 - Adaptive practice selects topics only. Difficulty remains fixed at the existing foundation level; it is not represented as adaptive difficulty.
 - Mastery and review state are held in memory only. No questions, answers, mastery history or learner profile are written to localStorage, Supabase, account history or training data.
 - Added a searchable Axiom Bank in `dashboard/axiom-bank.js` with formal-system scope, domain, formal statement, explanation, teaching note and research references. Initial coverage includes Peano natural-number axioms, field axioms, ordered-field axioms, real completeness, Euclid's five postulates, Kolmogorov probability axioms and ZFC set theory (including schemas and Choice).
