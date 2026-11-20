@@ -2,7 +2,7 @@
 
 ## Overall ULTRON completion estimate — 2026-11-20
 
-**Estimated whole-project completion: 26%.** This is a milestone-based engineering estimate, not a line-count or feature-count metric. It includes the website, security, data pipeline, model, evaluation, compute/recovery, testing and release readiness. The estimate is deliberately conservative: the dashboard and substantial foundations exist, conversational mathematics has completed Stages 1 and 2, but physical-device verification and live security checks remain open; diagnosis/teaching and later reasoning stages remain; the neural model has not been trained; production training readiness is not established. The increase from 25% to 26% reflects the independently tested and merged conversational shell plus structured reasoning kernel. Increase this figure only when substantial work is implemented and independently validated. Report this estimate in every progress update and revise it when evidence changes.
+**Estimated whole-project completion: 29%.** This is a milestone-based engineering estimate, not a line-count or feature-count metric. It includes the website, security, data pipeline, model, evaluation, compute/recovery, testing and release readiness. The estimate is deliberately conservative: conversational mathematics and the Stage 3 tutoring/Axiom Bank baseline are merged and independently tested, but physical-device verification, live security checks, a machine-checked proof kernel, deeper diagnosis, remaining dashboard integration and later reasoning stages remain open; the neural model has not been trained; production training readiness is not established. The increase from 26% to 29% reflects the merged 18-topic tutor and researched 37-entry axiom catalog, with all required PR and main-branch checks passing. Increase this figure only when substantial work is implemented and independently validated. Report this estimate in every progress update and revise it when evidence changes.
 
 ## Legacy pull-request reconciliation — 2026-11-20
 
@@ -963,17 +963,17 @@ The tokenizer vocabulary is now 80 characters after adding the semicolon and exp
 - Do not weaken owner checks, place credentials in dashboard JavaScript, or start a compute workflow while configuration remains unverified. No model training or checkpoint changes occurred.
 
 
-## Stage 3 — Diagnosis, teaching and researched Axiom Bank (in progress)
+## Stage 3 — Diagnosis, teaching and researched Axiom Bank (baseline complete)
 
-Branch: `feature/diagnosis-and-adaptive-teaching`, based on main commit `c14228c66f3ddbe2d6a3091259d8e21cc9eb7706`.
+Merged PR: [#102](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/102), merge commit `c4b0ad688a7150ff07137c28b82b3460d3cdc22d`.
 
 Implemented in this branch:
 - Added `dashboard/math-tutor.js`: a session-only tutor with an 18-topic prerequisite graph, prerequisite readiness, weakest-topic selection, review-due prioritization, progressive hints from deterministic solver knowledge, independent final-answer checking, conservative mistake diagnosis, attempt/mastery/streak tracking and spaced review intervals of 1, 2, 4, 8 and 16 session turns.
 - Mistake diagnosis explicitly refuses to infer a misconception from a wrong final answer alone. The tutor accepts optional written working, but this first release does not classify step-level error patterns and does not assign a misconception label.
 - Adaptive practice selects topics only. Difficulty remains fixed at the existing foundation level; it is not represented as adaptive difficulty.
 - Mastery and review state are held in memory only. No questions, answers, mastery history or learner profile are written to localStorage, Supabase, account history or training data.
-- Added a searchable 37-entry Axiom Bank in `dashboard/axiom-bank.js` with formal-system scope, domain, formal statement, explanation, teaching note and research references. Initial coverage includes Peano natural-number axioms, field axioms, ordered-field axioms, real completeness, Euclid's five postulates, Kolmogorov probability axioms and ZFC set theory (including schemas and Choice).
-- Added `docs/AXIOM_BANK_RESEARCH.md` describing sources, scope and limitations. The bank distinguishes axioms from definitions and theorems; it does not claim that the current rule-based solver derives its answers from formal axioms.
+- Added a searchable 37-entry Axiom Bank in `dashboard/axiom-bank.js` with formal-system scope, domain, formal statement, explanation, teaching note and research references. Initial coverage includes Peano natural-number axioms, field axioms, ordered-field axioms, real completeness, Euclid's five postulates, Kolmogorov probability axioms and ZFC set theory (including schemas and Choice). The catalog distinguishes primitive structure, individual axioms and axiom schemas.
+- Added `docs/AXIOM_BANK_RESEARCH.md` describing sources, scope and limitations. The bank distinguishes primitive structures, axioms, schemas, definitions and theorems; it does not claim that the current rule-based solver derives its answers from formal axioms.
 - Added the dashboard tutor and axiom-bank panels, responsive styles, search/details UI, Node tests and CI syntax checks. The tutor also surfaces up to three directly tagged axioms for each selected topic, with an explicit no-association state when none is catalogued.
 
 Research sources used include University of Florida and Toho University Peano notes; UIC, Portland State and LibreTexts real-number/ordered-field notes; University of Glasgow and Euclid's Elements geometry references; Cambridge University Press and Boston University probability notes; and the Stanford Encyclopedia of Philosophy and TU Darmstadt ZFC notes. The detailed source URLs and findings are recorded in `docs/AXIOM_BANK_RESEARCH.md`.
@@ -984,4 +984,8 @@ Important boundaries:
 - The existing structured reasoning kernel independently verifies final answers and deterministic replay; it does not formally prove intermediate natural-language steps.
 - No model training, model-weight changes, dataset changes, checkpoint writes, Supabase deployment or external AI API use occurred.
 
-Next: run all Node/Python tests and Chromium/WebKit browser smoke tests; fix every failure; review the complete diff; open a PR; merge only if all required checks pass. Then continue with Stage 4 integration and proof-kernel planning. Keep the overall project completion estimate conservative; do not increase it until the complete Stage 3 implementation passes independent validation.
+Validation after merge: Python and Node test suites passed; preflight passed; training-prototype validation passed; Chromium and WebKit browser smoke tests passed; GitHub Pages build and deployment passed. The branch PR checks and main-branch checks were independently green. No model training was launched.
+
+Stage 3 boundary: this is the safe baseline. Written work is accepted but not parsed into misconception classes yet; adaptive sequencing chooses topics, while difficulty remains fixed at foundation level. The axiom catalog is a researched educational reference linked into tutor practice, not a formal proof engine and not neural-model training data.
+
+Next — Stage 4: design and implement a small auditable proof kernel. Define typed terms/formulas, explicit formal-system contexts, inference rules, proof objects, axiom/theorem references, and a checker that rejects invalid derivations. Add step-level work parsing only where the proof checker can validate it. Preserve the separation between Peano arithmetic, field/order/completeness, Euclidean geometry, probability and ZFC. Add negative tests for scope mixing, invalid substitutions, unsupported inference steps and forged proof traces. No actual model training until separately authorized.
