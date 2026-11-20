@@ -111,6 +111,47 @@ class TrainingControlSecurityContractTests(unittest.TestCase):
         self.assertIn("statusSequence += 1;", script)
         self.assertIn('message(error.message, "error");', refresh)
 
+    def test_invalid_expired_and_non_owner_sessions_fail_before_control_actions(self):
+        source = (ROOT / "supabase/functions/training-control/index.ts").read_text()
+        credential_guard = source.index('if (!token || !apiKey)')
+        auth_lookup = source.index('const authResponse = await fetch')
+        invalid_session_guard = source.index('if (!authResponse.ok || !user.id)')
+        non_owner_guard = source.index('if (user.id !== ownerId)')
+        health_route = source.index('if (body.action === "health")')
+        status_route = source.index('if (body.action === "status")')
+        start_route = source.index('if (body.action === "start")')
+        self.assertLess(credential_guard, auth_lookup)
+        self.assertLess(auth_lookup, invalid_session_guard)
+        self.assertLess(invalid_session_guard, non_owner_guard)
+        self.assertLess(non_owner_guard, health_route)
+        self.assertLess(health_route, status_route)
+        self.assertLess(status_route, start_route)
+        self.assertIn('return safeError("Your owner session is invalid or expired.", 401, origin);', source)
+        self.assertIn('return safeError("Owner access is required for training operations.", 403, origin);', source)
+
+    def test_control_function_rejects_untrusted_origins_and_methods(self):
+        source = (ROOT / "supabase/functions/training-control/index.ts").read_text()
+        origin_guard = source.index('if (origin !== ALLOWED_ORIGIN)')
+        options_guard = source.index('if (req.method === "OPTIONS")')
+        method_guard = source.index('if (req.method !== "POST")')
+        credential_guard = source.index('if (!token || !apiKey)')
+        self.assertLess(origin_guard, options_guard)
+        self.assertLess(options_guard, method_guard)
+        self.assertLess(method_guard, credential_guard)
+        self.assertIn('return safeError("Origin not allowed.", 403, ALLOWED_ORIGIN);', source)
+        self.assertIn('return safeError("Method not allowed.", 405, origin);', source)
+        self.assertIn('"Access-Control-Allow-Methods": "POST, OPTIONS"', source)
+        self.assertNotIn('"Access-Control-Allow-Origin": "*"', source)
+
+    def test_github_token_secret_is_absent_from_all_dashboard_assets(self):
+        for path in (
+            ROOT / "dashboard" / "index.html",
+            ROOT / "dashboard" / "app.js",
+            ROOT / "dashboard" / "training-control.js",
+            ROOT / "dashboard" / "config.js",
+        ):
+            self.assertNotIn("ULTRON_GITHUB_TOKEN", path.read_text(encoding="utf-8"))
+
     def test_upstream_failures_do_not_echo_upstream_details_to_clients(self):
         source = (ROOT / "supabase/functions/training-control/index.ts").read_text()
         self.assertIn('console.error("training-control request failed:", message);', source)
