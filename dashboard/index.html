@@ -47,7 +47,7 @@
           <button class="nav-button" type="button" data-view="math"><span>∑</span> Math Agent</button>
           <button class="nav-button" type="button" data-view="activity"><span>≋</span> Activity</button>
           <button class="nav-button" type="button" data-view="control"><span>▶</span> Training control</button>
-          <button class="nav-button" type="button" data-view="devices"><span>▣</span> Local training</button>
+          <button class="nav-button" type="button" data-view="devices"><span>▣</span> Device access</button>
           <button class="nav-button" type="button" data-view="servers"><span>⌘</span> Servers</button>
           <button class="nav-button" type="button" data-view="checkpoints"><span>⬡</span> Checkpoints</button>
           <button class="nav-button" type="button" data-view="settings"><span>⚙</span> Settings</button>
@@ -122,60 +122,55 @@
         <section id="view-devices" class="view-section" hidden>
           <div class="section-intro">
             <div>
-              <div class="eyebrow">LOCAL TRAINING RUNTIME</div>
-              <h2>Local training runtime</h2>
-              <p class="muted-text">Use this dashboard from a computer, phone or tablet. ULTRON does not pair devices or accept remote device commands. Training controls will run locally on the device that performs the training.</p>
+              <div class="eyebrow">DEVICE ACCESS / REMOTE CONTROL CONSOLE</div>
+              <h2>Use ULTRON from any device</h2>
+              <p class="muted-text">Open this website on a computer, phone or tablet. Your device is the control console; compute runs on the selected remote provider, not on your iPad or phone.</p>
             </div>
-            <span class="status-pill">LOCAL-ONLY</span>
+            <span class="status-pill">REMOTE CONSOLE</span>
           </div>
 
           <article class="panel device-device-hero">
             <div class="device-device-icon">▣</div>
             <div class="device-device-copy">
-              <div class="eyebrow">LOCAL RUNTIME</div>
-              <h2>Training runs where it is started</h2>
-              <p class="muted-text">No remote device agent is used. The local user controls the training process directly.</p>
+              <div class="eyebrow">REMOTE COMPUTE</div>
+              <h2>Training will run on the selected server</h2>
+              <p class="muted-text">The dashboard is designed for browser-based access. GitHub Actions CPU currently runs safe diagnostics only; Google Colab remains manual-only. Actual model training has not started.</p>
             </div>
-            <span class="status-pill">NOT CONNECTED</span>
+            <span class="status-pill">DIAGNOSTIC ONLY</span>
           </article>
 
           <div class="device-metric-grid">
-            <article class="metric-card panel"><span class="metric-label">REMOTE AGENTS</span><strong id="deviceCountMetric" class="metric-value">0</strong><small>Remote agents are not part of ULTRON</small></article>
-            <article class="metric-card panel"><span class="metric-label">PLATFORM</span><strong class="metric-value">—</strong><small>Not reported</small></article>
-            <article class="metric-card panel"><span class="metric-label">TRAINING STATE</span><strong class="metric-value">IDLE</strong><small>No device run has started</small></article>
-            <article class="metric-card panel"><span class="metric-label">MEMORY BUDGET</span><strong id="deviceRamLimitValue" class="metric-value numeric">6 GB</strong><small>Saved preference · not enforced</small></article>
+            <article class="metric-card panel"><span class="metric-label">DASHBOARD DEVICE</span><strong class="metric-value">Browser</strong><small>Computer · phone · tablet</small></article>
+            <article class="metric-card panel"><span class="metric-label">COMPUTE TARGET</span><strong class="metric-value">Remote</strong><small>Provider selected in Servers</small></article>
+            <article class="metric-card panel"><span class="metric-label">DEVICE PAIRING</span><strong class="metric-value">OFF</strong><small>No pairing or device agent</small></article>
+            <article class="metric-card panel"><span class="metric-label">MODEL TRAINING</span><strong class="metric-value">NOT STARTED</strong><small>No model weights or checkpoints changed</small></article>
           </div>
 
           <article class="panel section-panel">
-            <div class="section-heading"><div><div class="eyebrow">LOCAL-ONLY SECURITY</div><h2>No device pairing or remote control</h2></div><span class="status-pill">PAIRING REMOVED</span></div>
-            <p class="muted-text">ULTRON will not register remote devices, issue device credentials, or send commands to another person’s device. The person using a training device will configure its RAM limit and use its local Start and Stop controls. Closing this dashboard cannot start or stop a device process.</p>
-            <div class="notice notice-warn">Local training controls are not yet implemented. Training remains disabled until local RAM enforcement, safe stopping and checkpoint recovery are tested.</div>
-          </article>
-
-          <article class="panel section-panel">
-            <div class="section-heading"><div><div class="eyebrow">DEVICE COMPATIBILITY</div><h2>Capability-based support</h2></div><span class="status-pill">NOT YET VERIFIED</span></div>
+            <div class="section-heading"><div><div class="eyebrow">DEVICE SUPPORT</div><h2>Browser-first access</h2></div><span class="status-pill">DEVICE-GENERIC</span></div>
             <div class="device-run-grid">
-              <div><span>WINDOWS / MACOS / LINUX</span><strong>Local runtime planned; capability checks required</strong></div>
-              <div><span>IPADOS / IOS / ANDROID</span><strong>Dashboard information only; no remote control or background training</strong></div>
-              <div><span>DEVICE MEMORY / CPU / GPU</span><strong>Local measurement only; no remote telemetry</strong></div>
-              <div><span>TRAINING ELIGIBILITY</span><strong>Determined by runtime and resource preflight</strong></div>
+              <div><span>IPADOS / IOS / ANDROID</span><strong>Use the website as a remote dashboard; compute does not run on the mobile device.</strong></div>
+              <div><span>DESKTOP / LAPTOP / TABLET</span><strong>Use the same website and owner controls; no local model runtime is required.</strong></div>
+              <div><span>NETWORK ACCESS</span><strong>A supported browser and internet connection are required for remote status and controls.</strong></div>
+              <div><span>DEVICE PAIRING</span><strong>Retired. No device credentials, agents, or remote device commands are used.</strong></div>
             </div>
           </article>
 
           <article class="panel section-panel">
-            <div class="section-heading"><div><div class="eyebrow">LOCAL START / STOP</div><h2>Controls stay on the training device</h2></div><span class="status-pill">NOT IMPLEMENTED</span></div>
-            <p class="muted-text">This hosted dashboard cannot start, pause, resume, or stop another device. The future local runtime will provide the RAM selector and Start/Stop buttons directly beside the training process. Training is currently disabled.</p>
+            <div class="section-heading"><div><div class="eyebrow">REMOTE START / STOP</div><h2>Controls are provider-scoped</h2></div><span class="status-pill">OWNER ONLY</span></div>
+            <p class="muted-text">Owner-only controls in Training control operate the GitHub Actions CPU diagnostic workflow. They do not start model training or control another device. Google Colab remains manual-only. Public visitors can browse the dashboard without signing in.</p>
+            <div class="notice notice-warn">Actual model training remains disabled. Do not treat the diagnostic Start button as a training control.</div>
           </article>
 
           <article class="panel section-panel">
-            <div class="section-heading"><div><div class="eyebrow">LIVE TELEMETRY</div><h2>Device activity</h2></div><span class="small-pill">LOCAL RUNTIME NOT CONNECTED</span></div>
+            <div class="section-heading"><div><div class="eyebrow">RESOURCE PREFERENCE</div><h2>RAM preference</h2></div><span class="status-pill">NOT YET CONNECTED</span></div>
+            <p class="muted-text">The RAM slider in Settings saves a preference in this browser. It is not currently sent to a remote training process and does not cap the memory available to a hosted runner. It must be integrated with a future approved training runtime before it can control training resources.</p>
             <div class="device-telemetry">
-              <div><span>CPU usage</span><strong>—</strong></div>
-              <div><span>RAM in use</span><strong>—</strong></div>
-              <div><span>Training step</span><strong>—</strong></div>
-              <div><span>Latest checkpoint</span><strong>—</strong></div>
+              <div><span>Saved preference</span><strong id="deviceRamLimitValue">6 GB</strong></div>
+              <div><span>Remote memory cap</span><strong>Not applied</strong></div>
+              <div><span>GPU VRAM limit</span><strong>Not applied</strong></div>
+              <div><span>Training state</span><strong>Disabled</strong></div>
             </div>
-            <p class="fine-print">Telemetry remains unavailable until a future local training runtime reports verified measurements. No remote agent is used.</p>
           </article>
         </section>
 
