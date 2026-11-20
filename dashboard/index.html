@@ -475,21 +475,21 @@
             <div class="section-heading">
               <div>
                 <div class="eyebrow">DEVICE MEMORY SETTINGS</div>
-                <h2>RAM usage limit</h2>
+                <h2>Training RAM preference</h2>
               </div>
               <span class="small-pill">DEVICE CAPABILITY PENDING</span>
             </div>
             <p class="muted-text">Choose a preferred memory budget for a future local training runtime. This browser setting is only a preference; the local runtime must verify the actual device limits before training can start.</p>
             <div class="ram-control">
               <div class="ram-value-row">
-                <label for="ramLimitSlider">Training memory budget</label>
+                <label for="ramLimitSlider">Preferred training memory</label>
                 <strong><output id="ramLimitValue" for="ramLimitSlider">6 GB</output></strong>
               </div>
               <input id="ramLimitSlider" class="ram-slider" type="range" min="2" max="10" step="0.5" value="6">
               <div class="ram-scale"><span>2 GB · Light</span><span>10 GB · High</span></div>
             </div>
-            <p id="ramLimitStatus" class="notice notice-warn" role="status">Saved on this browser only. It does not enforce a memory cap or control a training process.</p>
-            <p class="fine-print">A future local runtime must enforce this limit for the full training process and its child processes before launch. The selected cap must leave enough memory for the operating system and other apps. This controls system RAM, not GPU VRAM.</p>
+            <p id="ramLimitStatus" class="notice notice-warn" role="status">Saved in this browser only. This preference is not connected to remote training or hosted-runner memory controls.</p>
+            <p class="fine-print">A future approved remote training runtime must consume this preference and translate it into safe batch sizes and memory-aware settings. This slider does not change hosted-runner RAM or GPU VRAM today.</p>
           </article>
           <article class="panel section-panel">
             <div class="eyebrow">PROVIDER TERMS</div>
