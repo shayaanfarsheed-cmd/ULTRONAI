@@ -163,7 +163,7 @@
       $("trainingStartButton").disabled = !canLaunch;
       $("trainingStopButton").hidden = false;
       $("trainingStatusTitle").textContent = "GitHub Actions CPU";
-      $("trainingServerHelp").textContent = "GitHub Actions CPU is ULTRON’s remote training provider. Google Colab remains a separate manual-only option.";
+      $("trainingServerHelp").textContent = "GitHub Actions CPU runs a safe remote compute diagnostic. It does not train ULTRON. Google Colab remains a separate manual-only option.";
       message(canLaunch ? "" : "Selected provider is manual-only; open its provider page from the Servers section.", canLaunch ? "" : "warn");
       refreshStatus();
     });
