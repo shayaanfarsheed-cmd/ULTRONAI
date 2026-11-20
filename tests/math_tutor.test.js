@@ -113,3 +113,11 @@ test("invalid attempts and unknown topics are rejected", () => {
   assert.throws(() => tutor.recordAttempt("fractions", "yes"));
   assert.throws(() => tutor.getPrerequisites("unknown"));
 });
+
+test("submitted working is acknowledged but not assigned an unsupported misconception", () => {
+  const tutor = create();
+  const result = tutor.diagnose("fractions", "Calculate: (1/3) + (1/6)", "2/3", ["1/3 + 1/6 = 2/3"]);
+  assert.equal(result.status, "incorrect_work_submitted");
+  assert.equal(result.misconception, null);
+  assert.match(result.diagnosisLimit, /not yet classify/);
+});
