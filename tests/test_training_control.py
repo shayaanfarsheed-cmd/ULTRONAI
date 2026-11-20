@@ -98,7 +98,7 @@ class TrainingControlSecurityContractTests(unittest.TestCase):
         self.assertIn("PR #80", readme)
         self.assertIn("version 5", readme)
         self.assertIn("workflow_dispatch", readme)
-        self.assertIn("deployed source matches GitHub main", readme)
+        self.assertIn("The deployed function source was fetched after deployment and matched", readme)
         self.assertIn("No diagnostic was launched and no model training was started.", readme)
         self.assertNotIn("version **3**", readme.split("## Latest verified status", 1)[1].split("## Authoritative model baseline correction", 1)[0])
 
