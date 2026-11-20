@@ -60,7 +60,7 @@
     ["ZFC-09","ZFC","foundation","Every nonempty set has an element disjoint from the original set.","For every nonempty X, some y∈X satisfies y∩X=∅.","Foundation excludes descending membership loops in standard well-founded set theory.","Treat as a ZF foundation assumption, not a property of every possible set theory.","advanced",[]],
     ["ZFC-10","ZFC","choice","Every family of nonempty sets admits a choice function.","For an index set I and a family (Aᵢ)ᵢ∈I of nonempty sets, there exists a function f with domain I such that f(i)∈Aᵢ for every i∈I.","Choice is an additional axiom in ZFC, not part of ZF alone.","Do not assume constructive selection from the statement alone.","advanced",[]]
   ].map(row => Object.freeze({
-    id: row[0], system: row[1], key: row[2], category: /schema$/.test(row[2]) ? "schema" : "axiom",
+    id: row[0], system: row[1], key: row[2], category: row[0] === "PEANO-00" ? "structure" : (/schema$/.test(row[2]) ? "schema" : "axiom"),
     name: row[3], formal: row[4], meaning: row[5], teaching: row[6],
     level: row[7], topics: Object.freeze(row[8].slice()),
     references: SYSTEMS[row[1]].references,
@@ -82,7 +82,7 @@
   function forTopic(topic, options) {
     const filter = options || {};
     return list({ topic, level: filter.level }).map(entry => Object.freeze({
-      id: entry.id, name: entry.name, formal: entry.formal, meaning: entry.meaning,
+      id: entry.id, category: entry.category, name: entry.name, formal: entry.formal, meaning: entry.meaning,
       teaching: entry.teaching, system: entry.system, systemLabel: entry.systemLabel,
       domain: entry.domain, references: entry.references
     }));
