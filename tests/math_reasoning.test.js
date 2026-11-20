@@ -44,6 +44,15 @@ test("structured reports reproduce exactly and detect tampering", () => {
   const alteredAnswer = JSON.parse(JSON.stringify(report));
   alteredAnswer.answer = "999";
   assert.equal(reasoning.verifyReport(agent, alteredAnswer).valid, false);
+  const alteredSteps = JSON.parse(JSON.stringify(report));
+  alteredSteps.steps[0] = "tampered step";
+  assert.equal(reasoning.verifyReport(agent, alteredSteps).valid, false);
+  const alteredKnowledge = JSON.parse(JSON.stringify(report));
+  alteredKnowledge.knowledge.rule = "tampered rule";
+  assert.equal(reasoning.verifyReport(agent, alteredKnowledge).valid, false);
+  const alteredStatus = JSON.parse(JSON.stringify(report));
+  alteredStatus.verified = false;
+  assert.equal(reasoning.verifyReport(agent, alteredStatus).valid, false);
 });
 
 test("typed problem records are immutable and preserve source questions", () => {
@@ -59,6 +68,13 @@ test("typed problem records are immutable and preserve source questions", () => 
 test("invalid domains and malformed formats abstain before producing an answer", () => {
   const invalid = [
     ["fractions", "Calculate: (1/0) + (1/2)"],
+    ["fractions", "Calculate: (1/2) / (0/3)"],
+    ["whole_number_arithmetic", "Calculate: 8 / 3"],
+    ["whole_number_arithmetic", "Calculate: 8 / 0"],
+    ["linear_equations", "Solve: 0*x + 2 = 8"],
+    ["inequalities", "Solve: 0*x + 2 < 8"],
+    ["exponents_and_roots", "Calculate: sqrt(10)"],
+    ["pythagorean_theorem", "Hypotenuse of right triangle: legs 2, 2"],
     ["ratios_and_proportions", "Simplify ratio: 0:0"],
     ["basic_probability", "Probability: 7 favorable, 6 total"],
     ["basic_probability", "Probability: 1 favorable, 0 total"],
@@ -84,4 +100,11 @@ test("verification scope does not claim intermediate steps are formal proofs", (
   const report = reasoning.reason(agent, "linear_equations", question);
   assert.match(report.verification.scope, /not formally proven/);
   assert.match(report.plan.finalAnswer.verification.scope, /not a formal proof/);
+});
+
+test("parser and step-kind registries cannot be mutated by callers", () => {
+  assert.equal(reasoning.SUPPORTED_TOPICS.length, 18);
+  assert.ok(Object.isFrozen(reasoning.SUPPORTED_TOPICS));
+  assert.throws(() => reasoning.SUPPORTED_TOPICS.push("unknown"));
+  assert.equal(reasoning.PARSERS, undefined);
 });
