@@ -114,3 +114,22 @@ test("returned solutions and history snapshots cannot mutate stored steps", () =
   snapshot[1].steps[0] = "tampered snapshot";
   assert.equal(chat.getHistory()[1].steps[0], originalStep);
 });
+
+test("unsupported decimal multiplication and division request clarification", () => {
+  for (const question of ["What is 1.2 * 3?", "What is 1.2 / 0.4?"]) {
+    const chat = conversation.createConversation(agent);
+    const result = chat.reply(question);
+    assert.equal(result.kind, "clarification", question);
+    assert.equal(result.verified, false);
+  }
+});
+
+test("decimal addition and subtraction remain supported", () => {
+  for (const [question, answer] of [["What is 1.2 + 3.4?", "4.6"], ["What is 5.5 - 2.25?", "3.25"]]) {
+    const chat = conversation.createConversation(agent);
+    const result = chat.reply(question);
+    assert.equal(result.kind, "solution", question);
+    assert.equal(result.answer, answer);
+    assert.equal(result.verified, true);
+  }
+});
