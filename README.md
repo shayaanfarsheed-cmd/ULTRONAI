@@ -1,5 +1,16 @@
 # ULTRON — current project status (2026-11-20)
 
+## Latest verified status — owner health check passed; GitHub API permission check next
+
+- The owner-only Check connection health request passed in the owner's browser: owner verification is active and the server-side GitHub token is present. This confirms configuration presence, not GitHub API authorization.
+- The next integration check is the owner-only Refresh status request, which must successfully read the repository's Actions workflow runs before a diagnostic can be launched.
+- A code audit identified a permission mismatch in the launch adapter: it used repository_dispatch, which requires repository Contents write, while the intended fine-grained token is deliberately limited to Actions read/write and Contents read-only.
+- This patch changes dispatch to GitHub's workflow_dispatch endpoint for cpu-diagnostic.yml, requiring Actions write without broadening Contents permissions. The workflow already declares workflow_dispatch.
+- Regression coverage verifies the endpoint, main ref, and workflow trigger. This change does not dispatch a workflow during tests or deployment.
+- Historical version 3 deployment notes below are retained as history; the latest live version 4 observation is recorded in the current operational handoff. Verify production source after merging this patch before claiming deployment.
+- No real model training has started; no weights or persistent checkpoints have been changed.
+
+
 ## Authoritative model baseline correction
 
 - The current baseline tokenizer has **80 characters** after the semicolon and exponent-caret compatibility fixes.
