@@ -9,12 +9,15 @@
   <link rel="stylesheet" href="./styles.css">
   <link rel="stylesheet" href="./training-control.css">
   <link rel="stylesheet" href="./math-tutor.css">
+  <link rel="stylesheet" href="./axiom-bank.css">
   <script src="./config.js"></script>
   <script defer src="./runtime.js"></script>
   <script defer src="./math-agent.js"></script>
   <script defer src="./math-reasoning.js"></script>
   <script defer src="./math-tutor.js"></script>
   <script defer src="./math-tutor-ui.js"></script>
+  <script defer src="./axiom-bank.js"></script>
+  <script defer src="./axiom-bank-ui.js"></script>
   <script defer src="./math-conversation.js"></script>
   <script defer src="./math-conversation-ui.js"></script>
   <script defer src="./math-agent-ui.js"></script>
@@ -472,6 +475,13 @@
               </div>
             </div>
             <p class="fine-print">Mistake diagnosis is deliberately conservative: a wrong final answer alone is not enough to identify a misconception. This release requests working but does not yet classify step-level error patterns. Difficulty is fixed at foundation level; adaptation selects topics, not difficulty. No questions, answers or mastery records are written to storage or training data.</p>
+          </article>
+          <article class="panel section-panel axiom-bank-panel">
+            <div class="section-heading"><div><div class="eyebrow">MATHEMATICAL FOUNDATIONS</div><h2>Axiom Bank</h2></div><span class="small-pill">RESEARCHED REFERENCE</span></div>
+            <p class="muted-text">Browse foundational assumptions from Peano arithmetic, field and order theory, real analysis, Euclidean geometry, probability and ZFC set theory. Every entry identifies its formal system, domain and research sources. This is a reference library, not yet a machine-checked proof engine.</p>
+            <div class="axiom-bank-toolbar"><label for="axiomSearch">Search the axiom bank</label><input id="axiomSearch" type="search" maxlength="100" placeholder="Try: induction, inverse, parallel, probability…"><span id="axiomCount" class="fine-print"></span></div>
+            <div class="axiom-bank-layout"><div id="axiomResults" class="axiom-results" aria-label="Axiom search results"></div><article id="axiomDetail" class="axiom-detail" aria-live="polite">Choose an axiom to inspect its formal statement, scope and sources.</article></div>
+            <p class="fine-print">Axioms are system-dependent assumptions. Definitions are not axioms, and theorems require proofs. Euclidean, probability, real-field and set-theory assumptions are never interchangeable by default.</p>
           </article>
           <article class="panel section-panel">
             <div class="eyebrow">IMPORTANT MODEL STATUS</div>
