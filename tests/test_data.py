@@ -52,6 +52,24 @@ class DataPipelineTests(unittest.TestCase):
         second = generate_dataset(80, seed=20261117, split="train")
         self.assertEqual(first, second)
 
+    def test_median_and_range_examples_require_sorting(self):
+        examples = [
+            generate_example(
+                "median_and_range",
+                random.Random(seed),
+                sample_index=seed,
+            )
+            for seed in range(1, 40)
+        ]
+        unsorted_examples = [
+            example for example in examples
+            if [int(value.strip()) for value in example["question"].split(":", 1)[1].split(",")]
+            != sorted(int(value.strip()) for value in example["question"].split(":", 1)[1].split(","))
+        ]
+        self.assertTrue(unsorted_examples, "Median examples should include unsorted inputs")
+        for example in examples:
+            self.assertTrue(verify_example(example), example["question"])
+
     def test_every_topic_cycles_through_all_three_difficulty_levels(self):
         examples = generate_dataset(600, seed=20261119, split="train")
         topic_levels = {topic: set() for topic in SUPPORTED_TOPICS}
