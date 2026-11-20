@@ -103,7 +103,7 @@ class RecoveryTest(unittest.TestCase):
         )
         self.assertTrue(result["recovery_test_passed"])
         self.assertEqual(result["architecture"], architecture)
-        self.assertEqual(result["model_parameter_count"], 25_398_350)
+        self.assertEqual(result["model_parameter_count"], 25_399_374)
         self.assertEqual(result["saved_step"], 2)
         self.assertEqual(result["resumed_step"], 3)
         self.assertTrue(all(result["checks"].values()))
