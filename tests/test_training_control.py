@@ -171,6 +171,15 @@ class TrainingControlSecurityContractTests(unittest.TestCase):
         self.assertNotIn("body.action", source)
         self.assertNotIn("body.server_id", source)
 
+    def test_readme_records_pr_92_and_current_owner_browser_gate(self):
+        readme = (ROOT / "README.md").read_text()
+        latest = readme.split("## Latest verified status", 1)[1].split("\n## ", 1)[0]
+        self.assertIn("PR [#92]", latest)
+        self.assertIn("50ba963a3c47a6815b09a067a0d8bdefde03d9fe", latest)
+        self.assertIn("Deno type-check", latest)
+        self.assertIn("Owner-only **Refresh status** still needs to succeed", latest)
+        self.assertIn("Keep actual training disabled", readme)
+
     def test_supabase_edge_function_is_typechecked_in_preflight(self):
         workflow = (ROOT / ".github/workflows/preflight-tests.yml").read_text()
         self.assertIn("uses: denoland/setup-deno@v2", workflow)
