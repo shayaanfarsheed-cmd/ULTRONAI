@@ -3,6 +3,7 @@ from __future__ import annotations
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+import os
 from threading import Thread
 from playwright.sync_api import sync_playwright
 
@@ -50,10 +51,14 @@ def main() -> None:
 
     try:
         with sync_playwright() as playwright:
-            browser = playwright.chromium.launch()
+            browser_name = os.environ.get("ULTRON_BROWSER", "chromium").lower()
+            if browser_name not in {"chromium", "webkit"}:
+                raise ValueError(f"Unsupported browser: {browser_name}")
+            browser_type = getattr(playwright, browser_name)
+            browser = browser_type.launch()
             context = browser.new_context(
                 viewport={"width": 390, "height": 844},
-                is_mobile=True,
+                is_mobile=(browser_name == "chromium"),
                 has_touch=True,
             )
             page = context.new_page()
