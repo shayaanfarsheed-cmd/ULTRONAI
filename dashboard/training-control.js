@@ -71,7 +71,7 @@
     if (startButton) startButton.disabled = !ownerSession() || !canRemoteLaunch;
     $("trainingStopButton").hidden = false;
     $("trainingStatusTitle").textContent = "GitHub Actions CPU";
-    $("trainingServerHelp").textContent = "GitHub Actions CPU is ULTRON’s remote training provider. Google Colab remains a separate manual-only option.";
+    $("trainingServerHelp").textContent = "GitHub Actions CPU runs a safe remote compute diagnostic. It does not train ULTRON. Google Colab remains a separate manual-only option.";
     if (busy) return;
     if (selectedServer !== "github_actions_cpu") {
       setStatus(null, selectedServer);
@@ -99,14 +99,14 @@
       message("That provider does not have a remote launch adapter yet.", "warn");
       return;
     }
-    const confirmation = "Start ULTRON neural training on GitHub Actions CPU? This will use the configured training secrets and begin a real training session.";
+    const confirmation = "Start a safe CPU compute diagnostic on GitHub Actions? It installs Python dependencies and CPU-only PyTorch, measures runner resources, and does not start model training or touch checkpoints.";
     if (!window.confirm(confirmation)) return;
     busy = true;
     $("trainingStartButton").disabled = true;
     message("Submitting the owner-approved launch request…", "");
     try {
       const result = await callControl("start", serverId);
-      message(result.message || "Launch request accepted.", "success");
+      message(result.message || "Diagnostic request accepted.", "success");
       await refreshStatus();
     } catch (error) {
       message(error.message, "error");
