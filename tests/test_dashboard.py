@@ -359,5 +359,18 @@ class DataLibraryDeletionTests(unittest.TestCase):
         self.assertIn('data-data-delete-folder=', javascript)
         self.assertIn('prefixes: objectPaths.slice(offset, offset + 1000)', javascript)
 
+    def test_dashboard_browser_smoke_is_run_in_chromium_ci(self):
+        workflow = (ROOT / ".github/workflows/dashboard-browser-smoke.yml").read_text()
+        script = (ROOT / "tests/dashboard_browser_smoke.py").read_text()
+        self.assertIn("playwright==1.65.1", workflow)
+        self.assertIn("python -m playwright install --with-deps chromium", workflow)
+        self.assertIn("python tests/dashboard_browser_smoke.py", workflow)
+        self.assertIn("VIEWPORTS = (", script)
+        self.assertIn('(320, 800)', script)
+        self.assertIn('(1366, 900)', script)
+        self.assertIn("getBoundingClientRect().height", script)
+        self.assertIn("not external_requests", script)
+        self.assertIn("page.reload(wait_until=\"networkidle\")", script)
+
 if __name__ == "__main__":
     unittest.main()
