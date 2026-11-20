@@ -596,3 +596,17 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible) { outline: none; }
   }
   .nav-button span { width: 18px; }
 }
+
+/* Prevent the owner controls from crowding the brand on compact screens. */
+@media (max-width: 520px) {
+  .topbar-right { gap: 6px; }
+  .topbar-right .secondary-button {
+    min-height: 38px;
+    padding: 0 9px;
+    font-size: 11px;
+  }
+}
+@media (max-width: 360px) {
+  .topbar { padding-left: 10px; padding-right: 10px; }
+  .brand-copy small { letter-spacing: .1em; }
+}
