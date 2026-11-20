@@ -70,6 +70,16 @@ class TrainingControlSecurityContractTests(unittest.TestCase):
         self.assertEqual(servers["servers"][0]["role"], "primary_cpu_runtime")
         self.assertFalse(servers["servers"][1]["remote_control_allowed"])
 
+
+    def test_remote_dispatch_uses_actions_write_without_contents_write(self):
+        source = (ROOT / "supabase/functions/training-control/index.ts").read_text()
+        workflow = (ROOT / ".github/workflows/cpu-diagnostic.yml").read_text()
+        self.assertIn('"/actions/workflows/" + workflowPath + "/dispatches"', source)
+        self.assertIn('ref: "main"', source)
+        self.assertIn("Actions: write only", source)
+        self.assertIn("workflow_dispatch:", workflow)
+        self.assertNotIn("repository_dispatch:", workflow)
+
     def test_health_diagnostic_is_owner_gated_and_never_returns_secret_values(self):
         source = (ROOT / "supabase/functions/training-control/index.ts").read_text()
         owner_check = source.index("if (user.id !== ownerId)")
