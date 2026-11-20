@@ -65,7 +65,8 @@ class ComputeDiagnosticTests(unittest.TestCase):
     def test_owner_control_targets_safe_diagnostic_workflow(self):
         source = (ROOT / "supabase/functions/training-control/index.ts").read_text()
         self.assertIn('const CPU_WORKFLOW_PATH = "cpu-diagnostic.yml"', source)
-        self.assertIn('"ultron-cpu-diagnostic"', source)
+        self.assertIn('const CPU_WORKFLOW_PATH = "cpu-diagnostic.yml"', source)
+        self.assertIn('"/actions/workflows/" + workflowPath + "/dispatches"', source)
         self.assertNotIn('const CPU_WORKFLOW_PATH = "cpu-training.yml"', source)
 
     def test_dashboard_labels_start_as_diagnostic_not_training(self):
