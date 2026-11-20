@@ -1,5 +1,14 @@
 # ULTRON — current project status (2026-11-20)
 
+## Authoritative model baseline correction
+
+- The current baseline tokenizer has **80 characters** after the semicolon and exponent-caret compatibility fixes.
+- The current baseline model has **4,039,504 trainable parameters**, with a 192-character context (one character per token).
+- Older sections below that cite 78 characters / 4,038,478 parameters describe the pre-expansion architecture and must not be used as the current configuration.
+- Checkpoints from earlier vocabulary sizes are incompatible and must be rejected by checkpoint validation.
+- This documentation correction does not alter model code, weights, datasets, checkpoints, or training state. No real training has started.
+
+
 **Current phase:** Phase 2 compute diagnostics completed; production-safe remote-control function deployed for diagnostic-only operations. No real training is authorized or started.
 
 ## Dashboard wording correction — diagnostic stop behavior
@@ -226,7 +235,7 @@ The diagnostic-only `training-control` Edge Function is now deployed with JWT ve
 
 ## Model capacity benchmark merged — 2026-11-19 (PR #60)
 
-- The current 4,038,478-parameter architecture is a baseline, not an immutable limit. A bounded candidate sweep now measures widths/depths from approximately 4.83M through 56.97M parameters using ULTRON-generated, independently verified maths examples, the same 192-token context, batch size and 2-thread GitHub Actions CPU profile.
+- The pre-expansion 4,038,478-parameter architecture was a baseline, not an immutable limit. A bounded candidate sweep now measures widths/depths from approximately 4.83M through 56.97M parameters using ULTRON-generated, independently verified maths examples, the same 192-token context, batch size and 2-thread GitHub Actions CPU profile.
 - Each candidate runs in its own isolated GitHub-hosted job so peak RSS is measured independently. The sweep reports measured step throughput, loss finiteness, peak process RSS, and estimated FP32 model/Adam checkpoint payload.
 - Important constraint discovered during review: the current checkpoint format writes a single `optimizer.safetensors` component, and both local and remote checkpoint stores enforce a 45,000,000-byte per-component limit. Adam's two FP32 moment tensors alone need approximately 8 bytes per parameter, so larger candidates cannot be adopted safely until checkpoint sharding is implemented and tested.
 - The sweep is diagnostic only: it does not change the configured production architecture, write checkpoints, call Supabase/Hugging Face, or start training. No new model size is selected until both CPU capacity and checkpoint save/restore limits are validated.
@@ -490,7 +499,7 @@ The diagnostic-only `training-control` Edge Function is now deployed with JWT ve
 
 ## Model and training status
 
-- From-scratch decoder-only Transformer with approximately 4.04 million trainable parameters, character-level tokenization, 78-character vocabulary, 5 layers, embedding size 256, 8 attention heads, and context length 192 characters.
+- From-scratch decoder-only Transformer with **4,039,504 trainable parameters**, character-level tokenization, an **80-character vocabulary**, 5 layers, embedding size 256, 8 attention heads, and context length 192 characters (one character per token).
 - Randomly initialized; no pretrained weights.
 - Own data generator covers 14 topic areas; an independent arithmetic verifier exists.
 - Automated smoke tests validate implementation mechanics, not broad mathematical competence.
