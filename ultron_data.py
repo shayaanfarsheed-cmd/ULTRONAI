@@ -267,15 +267,17 @@ def generate_example(topic: str, rng: random.Random, difficulty: int = 1, sample
         return _make_example(topic, question, steps, answer, level, sample_index)
 
     if topic == "median_and_range":
-        values = sorted(rng.randint(1, upper) for _ in range(5))
-        median = values[2]
-        spread = values[-1] - values[0]
+        values = [rng.randint(1, upper) for _ in range(5)]
+        ordered = sorted(values)
+        median = ordered[2]
+        spread = ordered[-1] - ordered[0]
         rendered = ", ".join(str(value) for value in values)
+        sorted_rendered = ", ".join(str(value) for value in ordered)
         answer = f"median={median}; range={spread}"
         question = f"Median and range of: {rendered}"
         steps = [
-            f"Step 1: Sort the five values: {rendered}.",
-            f"Step 2: The middle value is {median}, and the range is {values[-1]} - {values[0]} = {spread}.",
+            f"Step 1: Sort the five values: {sorted_rendered}.",
+            f"Step 2: The middle value is {median}, and the range is {ordered[-1]} - {ordered[0]} = {spread}.",
             f"Step 3: {answer}.",
         ]
         return _make_example(topic, question, steps, answer, level, sample_index)
