@@ -22,6 +22,7 @@
   deepFreeze(SYSTEMS);
 
   const ENTRIES = [
+    ["PEANO-00","PEANO_N","natural-number-structure","The natural-number structure is given by a set, a distinguished initial element and a successor function.","There exist N, 0 in N, and S:N→N.","The natural numbers, zero and successor are the primitive structure in this presentation of Peano arithmetic.","Specify the natural-number domain and successor operation before applying Peano axioms.","foundation",["whole_number_arithmetic"]],
     ["PEANO-01","PEANO_N","successor-closure","A natural number's successor is a natural number.","For every n in N, S(n) is in N.","The successor operation stays inside the natural-number domain.","A successor step cannot leave N.","foundation",["whole_number_arithmetic","order_of_operations","pre_algebra"]],
     ["PEANO-02","PEANO_N","zero-is-not-successor","The initial natural number is not the successor of any natural number.","For every n in N, S(n) ≠ 0.","The number system has a designated starting point.","Do not identify zero with a successor value.","foundation",["whole_number_arithmetic"]],
     ["PEANO-03","PEANO_N","successor-injective","Equal successors have equal predecessors.","S(m) = S(n) implies m = n.","Successor does not merge two distinct natural numbers.","If two successor expressions are equal, their inputs must be equal.","foundation",["whole_number_arithmetic"]],
