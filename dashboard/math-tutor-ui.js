@@ -9,6 +9,7 @@
     const tutor = tutorApi.createTutor(agent, reasoning);
     const questionNode = document.getElementById("tutorQuestion");
     const answerNode = document.getElementById("tutorAnswer");
+    const workingNode = document.getElementById("tutorWorking");
     const feedback = document.getElementById("tutorFeedback");
     const hintNode = document.getElementById("tutorHint");
     const masteryNode = document.getElementById("tutorMastery");
@@ -76,6 +77,7 @@
         }
         questionNode.textContent = exercise.question;
         answerNode.value = "";
+        workingNode.value = "";
         feedback.textContent = "Try the question. Your answer is checked independently.";
         hintNode.textContent = "Hints are available one step at a time.";
         renderMastery();
@@ -99,7 +101,7 @@
         return;
       }
       if (answered) { feedback.textContent = "This question has already been recorded. Generate a new question to continue."; return; }
-      const diagnosis = tutor.diagnose(exercise.topic, exercise.question, answerNode.value);
+      const diagnosis = tutor.diagnose(exercise.topic, exercise.question, answerNode.value, workingNode.value.split("\n").filter(line => line.trim()));
       if (diagnosis.status !== "correct" && diagnosis.status !== "incorrect_unclassified") {
         feedback.textContent = diagnosis.message;
         return;
@@ -120,6 +122,7 @@
       axiomContext.textContent = "Related axioms appear when a question is active.";
       questionNode.textContent = "Choose New question to begin.";
       answerNode.value = "";
+      workingNode.value = "";
       feedback.textContent = "Session mastery and review schedule reset. Nothing was saved.";
       hintNode.textContent = "Hints are available one step at a time.";
       renderMastery();
