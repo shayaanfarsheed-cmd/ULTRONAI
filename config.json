@@ -324,7 +324,7 @@
     "attention_heads": 8,
     "feedforward_multiplier": 4,
     "dropout": 0.1,
-    "expected_parameter_count": 4038990,
+    "expected_parameter_count": 4038991,
     "tie_input_output_embeddings": false,
     "initialization": "random_normal",
     "parameter_count_minimum": 3000000,
