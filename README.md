@@ -2,7 +2,7 @@
 
 ## Overall ULTRON completion estimate — 2026-11-20
 
-**Estimated whole-project completion: 25%.** This is a milestone-based engineering estimate, not a line-count or feature-count metric. It includes the website, security, data pipeline, model, evaluation, compute/recovery, testing and release readiness. The estimate is deliberately conservative: the dashboard and substantial foundations exist, but physical-device verification and live security checks remain open; conversational mathematics is only at Stage 1; the neural model has not been trained; production training readiness is not established. Increase this figure only when substantial work is implemented and independently validated. Report this estimate in every progress update and revise it when evidence changes.
+**Estimated whole-project completion: 26%.** This is a milestone-based engineering estimate, not a line-count or feature-count metric. It includes the website, security, data pipeline, model, evaluation, compute/recovery, testing and release readiness. The estimate is deliberately conservative: the dashboard and substantial foundations exist, conversational mathematics has completed Stages 1 and 2, but physical-device verification and live security checks remain open; diagnosis/teaching and later reasoning stages remain; the neural model has not been trained; production training readiness is not established. The increase from 25% to 26% reflects the independently tested and merged conversational shell plus structured reasoning kernel. Increase this figure only when substantial work is implemented and independently validated. Report this estimate in every progress update and revise it when evidence changes.
 
 ## Legacy pull-request reconciliation — 2026-11-20
 
@@ -36,13 +36,14 @@ The legacy PR backlog was reviewed against `main` at `346b36a940f5f662c07bc3b07e
 - This is Stage 1 only. It is not general natural-language mathematical parsing, formal proof checking, neural inference, or durable learner memory. Those require later independently tested stages.
 - No model weights, datasets, checkpoints, Supabase configuration, production secrets or training state are modified.
 
-## Stage 2 — structured reasoning kernel (implementation in progress)
+## Stage 2 — structured reasoning kernel — PR #101 merged
 
-- Add a versioned typed problem representation for all 18 supported foundation topics, including domain, operands, assumptions and the original source question.
-- Build explicit operation plans from the existing deterministic solver output. Each explanatory step is marked as reproducibly matched, not as a formally proven derivation.
-- Independently verify final answers through the existing topic-specific verifier; reject malformed or unsupported structures rather than guessing.
-- Provide deterministic report replay so tampered problem, plan, answer or verification fields are detected.
-- Integrate the typed problem summary into the browser conversation and add regression/browser coverage.
+- Added a versioned typed problem representation for all 18 supported foundation topics, including domain, operands, assumptions and the original source question.
+- Built explicit operation plans from the existing deterministic solver output. Each explanatory step is marked as reproducibly matched, not as a formally proven derivation.
+- Independently verify final answers through the existing topic-specific verifier; malformed or unsupported structures are rejected rather than guessed.
+- Added deterministic report replay so tampered problem, plan, answer, explanation, knowledge or verification fields are detected; the typed parser registry is frozen.
+- Integrated the typed problem summary into the browser conversation and added regression/browser coverage.
+- PR [#101](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/101) merged to `main` at `ceaff2017ad42030e736e51a86fe40c676154c37`. Test Suite, preflight, Training Prototype Validation, Chromium and WebKit all passed on reviewed PR head `e04e49528e82ef53ef8723eb0d3f6d8ac01c0f53`.
 - No changes to model weights, datasets, checkpoints, Supabase, training state or external services.
 
 ## Latest verified status — PR #96 merged and deployed
