@@ -8,6 +8,12 @@
 - Dataset workflow run [44655730066](https://github.com/shayaanfarsheed-cmd/ULTRONAI/actions/runs/44655730066) passed: 110,000 examples (100,000 train / 5,000 validation / 5,000 test), 18 topics, fixed-seed reproducibility, quality audit, and artifact upload.
 - The dataset artifact is retained for 30 days. Dataset audit success is not proof of model capability.
 
+## Free compute-provider review (2026-11-20)
+
+- **GitHub Actions public-repository CPU:** this repository is public. GitHub documents standard `ubuntu-latest` runners as 4 logical CPUs, 16 GB RAM and 14 GB SSD, with standard hosted runners free and unlimited for public repositories. Each job is limited to 6 hours. These are published baselines; the new diagnostic will measure the actual allocated runner and filesystem. Sources: [runner specifications](https://docs.github.com/en/actions/reference/runners/github-hosted-runners) and [Actions limits](https://docs.github.com/en/actions/reference/limits).
+- **Google Colab Free:** free GPU access may be offered, but hardware and usage limits are dynamic, not guaranteed or published as fixed quotas; free notebooks can run for at most 12 hours depending on availability and usage patterns. Google explicitly disallows remote control / bypassing the notebook UI on managed free runtimes. Therefore Colab stays manual notebook-only and is not a dashboard-controlled worker. Source: [Colab FAQ and resource limits](https://research.google.com/colaboratory/faq.html).
+- **Current provider decision:** GitHub Actions is the repeatable CPU diagnostic/fallback provider; Colab is a possible manually operated GPU runtime when Google offers one. Neither is a guaranteed always-on GPU service. No paid provider or payment method is considered.
+
 ## Phase 2 scope
 - Add a read-only GitHub Actions CPU diagnostic that measures visible CPU, memory/cgroup limits, root disk, Python, PyTorch and installed package versions.
 - The diagnostic does not import or call the training loop, does not modify model weights, and does not access Supabase or persistent checkpoints.
