@@ -684,3 +684,34 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible) { outline: none; }
   .conversation-form .control-row { flex-wrap:wrap; }
   .conversation-form .control-row button { flex:1 1 130px; min-height:44px; }
 }
+
+/* Keep the math view heading and conversation panel inside narrow phone viewports. */
+@media (max-width: 520px) {
+  #view-math > .section-intro {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+  #view-math > .section-intro > div {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  #view-math > .section-intro > .status-pill {
+    max-width: 100%;
+    white-space: normal;
+  }
+  #view-math > .conversation-panel .section-heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+  #view-math > .conversation-panel .section-heading > div {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  #view-math > .conversation-panel .small-pill {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
