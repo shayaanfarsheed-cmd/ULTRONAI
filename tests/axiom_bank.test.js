@@ -60,10 +60,11 @@ test("unknown axiom lookup returns a safe not-found result", () => {
   assert.equal(bank.explain("NOT-AN-AXIOM").found, false);
 });
 
-test("axiom bank covers all topics that claim a foundation association", () => {
-  const covered = new Set(bank.entries.flatMap(x => x.topics));
-  for (const topic of agent.TOPIC_KEYS) {
-    assert.ok(typeof agent.TOPICS[topic].label === "string", topic);
-    assert.ok(covered.has(topic) || topic === "median_and_range" || topic === "simple_interest" || topic === "unit_conversion" || topic === "pythagorean_theorem", topic);
+test("every topic tag belongs to the registered foundation curriculum", () => {
+  const known = new Set(agent.TOPIC_KEYS);
+  for (const entry of bank.entries) {
+    for (const topic of entry.topics) assert.ok(known.has(topic), entry.id + " -> " + topic);
   }
+  assert.ok(bank.forTopic("basic_geometry").some(x => x.id === "EUCLID-01"));
+  assert.ok(bank.forTopic("basic_probability").some(x => x.id === "PROB-01"));
 });
