@@ -16,7 +16,7 @@
     inequalities: ["inequality", "inequalities"],
     exponents_and_roots: ["exponent", "exponents", "square root", "roots", "powers"],
     basic_geometry: ["geometry", "rectangle", "area", "perimeter"],
-    basic_statistics: ["statistics", "mean", "average"],
+    basic_statistics: ["statistics", "average"],
     basic_probability: ["probability"],
     median_and_range: ["median", "range"],
     simple_interest: ["simple interest", "interest"],
