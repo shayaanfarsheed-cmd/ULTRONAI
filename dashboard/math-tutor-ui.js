@@ -17,7 +17,6 @@
     let hints = [];
     let hintIndex = 0;
     let answered = false;
-    let answered = false;
 
     function text(parent, tag, className, value) {
       const node = document.createElement(tag);
