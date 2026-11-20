@@ -25,7 +25,7 @@ The legacy PR backlog was reviewed against `main` at `346b36a940f5f662c07bc3b07e
 
 ## Conversational mathematics shell — PR #100 merged
 
-- The next implementation stage adds a browser-local conversational layer over the existing deterministic math solver. It does not claim that the untrained transformer powers these answers.
+- Stage 1 adds a browser-local conversational layer over the existing deterministic math solver. It does not claim that the untrained transformer powers these answers.
 - The conversation manager routes simple arithmetic, recognizes explicitly named foundation topics, asks a clarification when it cannot identify a supported question, and retains at most 20 user/assistant turns in memory.
 - Each supported solution is passed through the existing independent verifier. Unverified answers are labelled; unsupported formats receive a format example rather than a fabricated solution.
 - Conversation context is memory-only: it is not written to localStorage, Supabase, the Data Library, checkpoints or training datasets. Reset clears the session. No automatic chat ingestion or training is implemented.
