@@ -136,7 +136,7 @@ def main() -> None:
             require("Correct" in page.locator("#tutorFeedback").inner_text(), "Tutor did not accept independently verified correct answer.")
             require("100%" in page.locator("#tutorMastery").inner_text(), "Tutor mastery did not update after a correct attempt.")
             page.locator("#tutorNextButton").click()
-            page.locator("#tutorAnswer").fill("0")
+            page.locator("#tutorAnswer").fill("not-the-answer")
             page.locator("#tutorWorking").fill("I combined the numerators and denominators.")
             page.locator("#tutorAnswerForm button[type=submit]").click()
             require("does not yet classify" in page.locator("#tutorFeedback").inner_text(), "Tutor invented a misconception diagnosis from unparsed working.")
