@@ -16,6 +16,7 @@
 
 ## Phase 2 scope
 - Add a read-only GitHub Actions CPU diagnostic that measures visible CPU, memory/cgroup limits, root disk, Python, PyTorch and installed package versions.
+- Add a separate manual Google Colab diagnostic notebook to report the actual assigned CPU/RAM/disk/PyTorch/GPU; it performs no training and uses no credentials.
 - The diagnostic does not import or call the training loop, does not modify model weights, and does not access Supabase or persistent checkpoints.
 - Route the dashboard's owner-only Start/Status/Stop control to the diagnostic workflow rather than the real training workflow.
 - Keep the actual `cpu-training.yml` workflow separate and unchanged in behavior.
@@ -29,10 +30,11 @@ The source change to `supabase/functions/training-control/index.ts` is **not liv
 1. Review this PR and pass CI.
 2. Merge only after explicit owner approval.
 3. Manually run **ULTRON Safe CPU Compute Diagnostic** from GitHub Actions; inspect its JSON report and artifact.
-4. Separately approve and deploy the diagnostic-only `training-control` Edge Function; verify missing/invalid/expired JWT, non-owner denial, owner status/start/stop, and public dashboard denial.
-5. Test cancellation of a diagnostic run and verify no training or checkpoint writes occur.
-6. Document actual runner resources and free-tier limits. GitHub-hosted runner resources are provider-managed; the dashboard RAM preference is not a hard cap.
-7. Do not begin the 100-example overfit experiment until the user separately approves the tiny diagnostic training test and all safety gates are satisfied.
+4. Open `compute_provider_diagnostic.ipynb` in Google Colab and run its cells manually; record whether a free GPU is offered and its actual resources. Do not connect Colab Free to remote dashboard controls.
+5. Separately approve and deploy the diagnostic-only `training-control` Edge Function; verify missing/invalid/expired JWT, non-owner denial, owner status/start/stop, and public dashboard denial.
+6. Test cancellation of a diagnostic run and verify no training or checkpoint writes occur.
+7. Document actual runner resources and free-tier limits. GitHub-hosted runner resources are provider-managed; the dashboard RAM preference is not a hard cap.
+8. Do not begin the 100-example overfit experiment until the user separately approves the tiny diagnostic training test and all safety gates are satisfied.
 
 ## Current safety status
 - No model training started.
