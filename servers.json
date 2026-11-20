@@ -98,8 +98,8 @@
       "provider": "google_colab",
       "role": "manual_gpu_runtime",
       "enabled": true,
-      "notebook_open_url": "https://colab.research.google.com/",
-      "notebook_source_url": "https://colab.research.google.com/github/shayaanfarsheed-cmd/ULTRONAI/blob/main/train.ipynb",
+      "notebook_open_url": "https://colab.research.google.com/github/shayaanfarsheed-cmd/ULTRONAI/blob/main/compute_provider_diagnostic.ipynb",
+      "notebook_source_url": "https://github.com/shayaanfarsheed-cmd/ULTRONAI/blob/main/compute_provider_diagnostic.ipynb",
       "documentation_url": "https://research.google.com/colaboratory/faq.html",
       "terms_url": "https://research.google.com/colaboratory/faq.html",
       "hardware": {
