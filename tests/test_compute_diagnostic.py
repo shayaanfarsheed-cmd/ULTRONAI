@@ -49,6 +49,19 @@ class ComputeDiagnosticTests(unittest.TestCase):
             self.assertNotIn("actions/setup-python@v5", content, path.name)
             self.assertNotIn("actions/upload-artifact@v4", content, path.name)
 
+    def test_colab_notebook_is_manual_and_diagnostic_only(self):
+        notebook = json.loads((ROOT / "compute_provider_diagnostic.ipynb").read_text())
+        code = "\\n".join(
+            "".join(cell.get("source", []))
+            for cell in notebook["cells"]
+            if cell.get("cell_type") == "code"
+        )
+        self.assertIn("google_colab_manual", code)
+        self.assertIn("'training_started': False", code)
+        self.assertNotIn("train.py --train", code)
+        self.assertNotIn("SUPABASE_SECRET_KEY", code)
+        self.assertNotIn("ULTRON_GITHUB_TOKEN", code)
+
     def test_owner_control_targets_safe_diagnostic_workflow(self):
         source = (ROOT / "supabase/functions/training-control/index.ts").read_text()
         self.assertIn('const CPU_WORKFLOW_PATH = "cpu-diagnostic.yml"', source)
