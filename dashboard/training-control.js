@@ -78,7 +78,7 @@
       const result = await callControl("health", $("trainingServerSelect").value);
       const checks = result.checks || {};
       if (!checks.github_token_configured) {
-        message("Owner verification is configured, but ULTRON_GITHUB_TOKEN is missing from Supabase Edge Function secrets. Add it in Supabase Dashboard; never paste it into this page or chat.", "error");
+        message("Owner verification is configured, but the GitHub credential is missing from Supabase Edge Function secrets. Add it in Supabase Dashboard; never paste credentials into this page or chat.", "error");
       } else {
         message("Health check passed: owner verification is active and the GitHub token is present. Refresh status next to test GitHub API permissions.", "success");
       }
