@@ -95,12 +95,21 @@ class TrainingControlSecurityContractTests(unittest.TestCase):
 
     def test_readme_documents_current_training_control_deployment_and_live_gate(self):
         readme = (ROOT / "README.md").read_text()
-        self.assertIn("PR #78", readme)
-        self.assertIn("version **3**", readme)
-        self.assertIn("Check connection", readme)
-        self.assertIn("has not been retested after the version 3 deployment", readme)
-        self.assertIn("Do not start a diagnostic until health and GitHub Status both succeed.", readme)
-        self.assertNotIn("training-control` Edge Function, version 1", readme)
+        self.assertIn("PR #80", readme)
+        self.assertIn("version **5**", readme)
+        self.assertIn("workflow_dispatch", readme)
+        self.assertIn("deployed source matches GitHub main", readme)
+        self.assertIn("No diagnostic was launched and no model training was started.", readme)
+        self.assertNotIn("version **3**", readme.split("## Latest verified status", 1)[1].split("## Authoritative model baseline correction", 1)[0])
+
+    def test_training_status_responses_are_invalidated_after_owner_mode_changes(self):
+        script = (ROOT / "dashboard/training-control.js").read_text()
+        refresh = script.split("async function refreshStatus()", 1)[1].split("async function launch()", 1)[0]
+        self.assertIn("const requestSequence = ++statusSequence;", refresh)
+        self.assertIn("requestSequence !== statusSequence || !ownerSession()", refresh)
+        self.assertIn('window.addEventListener("ultron:owner-mode-changed"', script)
+        self.assertIn("statusSequence += 1;", script)
+        self.assertIn('message(error.message, "error");', refresh)
 
     def test_upstream_failures_do_not_echo_upstream_details_to_clients(self):
         source = (ROOT / "supabase/functions/training-control/index.ts").read_text()
