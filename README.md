@@ -1,20 +1,29 @@
 # ULTRON — current project status (2026-11-20)
 
-## Latest verified status — PR #91 merged; Supabase version 6 recorded
+## Latest verified status — PR #92 merged; Deno type-check enabled
 
-- PR [#90](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/90) merged at `453667bfe79076d06c02c5172cebf30a471fdceb`; all three required checks and post-merge test, preflight and Pages deployment passed.
-- PR [#91](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/91) merged at `27bcb24cb9b321b4fc355bf9535b35c01682cb89`; all three required checks and post-merge test, preflight and Pages deployment passed.
+- PR [#90](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/90) merged at `453667bfe79076d06c02c5172cebf30a471fdceb`; all required checks and post-merge test, preflight and Pages deployment passed.
+- PR [#91](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/91) merged at `27bcb24cb9b321b4fc355bf9535b35c01682cb89`; all required checks and post-merge checks passed.
+- PR [#92](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/92) merged at `50ba963a3c47a6815b09a067a0d8bdefde03d9fe`; Deno type-check, unit tests, training-prototype validation, post-merge preflight, test suite and Pages deployment all passed.
 - Supabase `training-control` is **ACTIVE, version 6**, with `verify_jwt=true`. Its deployed `index.ts` was fetched and compared byte-for-byte with GitHub `main`; the source matches exactly.
 - Request parsing rejects JSON null, arrays, primitives, missing/non-string actions, and non-string server IDs with safe HTTP 400 responses before action routing. The 4 KiB request limit remains enforced.
-- Current CI improvement adds a pinned Deno 2.9.8 type-check for the Supabase Edge Function in preflight, so backend TypeScript errors are caught before merge.
+- Preflight now installs pinned Deno 2.9.8 and runs `deno check supabase/functions/training-control/index.ts`, catching Edge Function TypeScript errors before merge.
 - Device access is browser-based remote control for iPadOS, iOS, Android, desktop and tablets. Compute runs on the selected remote provider; device pairing and local model runtime are not used.
 - The Settings RAM slider is a browser-local preference. It is not sent to a remote training process and does not cap hosted-runner RAM or GPU VRAM.
 - GitHub Actions remote controls remain limited to safe CPU diagnostics. Google Colab remains manual-only. Actual model training has not started.
-- GitHub Pages deployment workflow passed. The hosted dashboard still needs a real visual smoke test in a browser; an external page reader could not fetch it.
+- The GitHub Pages deployment workflow passed. The hosted dashboard still needs a real visual smoke test in a browser; an external page reader could not fetch it.
 - Owner-only **Refresh status** still needs to succeed in the signed-in owner's browser to verify the configured GitHub token's actual API permissions.
 - No diagnostic was launched, no model training was started, and no weights or persistent checkpoints were changed.
 
 ## Immediate next steps
+
+1. Run the owner-only **Refresh status** from the signed-in owner's browser to verify actual GitHub Actions API permissions.
+2. Perform a real visual smoke test of the deployed dashboard on iPad, phone and desktop; check navigation, header fit, RAM preference, console errors and owner sign-in/out transitions.
+3. Complete live production security checks for invalid/expired JWTs, non-owner denial, public dispatch denial and secret non-disclosure.
+4. Finish the model, dataset, evaluation, checkpoint recovery and training-resource readiness audits.
+5. Keep actual training disabled until all readiness checks pass and the owner separately authorizes a tiny overfit experiment.
+
+
 
 1. Merge the Settings RAM wording correction only after all required checks pass.
 2. Continue dashboard accessibility, iPad/phone responsive and browser-console audits.
