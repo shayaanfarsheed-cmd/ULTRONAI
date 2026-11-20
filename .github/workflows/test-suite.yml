@@ -41,6 +41,8 @@ jobs:
           node --check dashboard/config.js
           node --check dashboard/math-agent.js
           node --check dashboard/math-agent-ui.js
+          node --check dashboard/math-conversation.js
+          node --check dashboard/math-conversation-ui.js
           node --check dashboard/training-control.js
 
       - name: Validate JSON configuration and notebook
@@ -61,6 +63,9 @@ jobs:
 
       - name: Run unit tests
         run: python -m unittest discover -s tests -v
+
+      - name: Run JavaScript unit tests
+        run: node --test tests/*.test.js
 
       - name: Run model, data, checkpoint and training smoke tests
         run: |
