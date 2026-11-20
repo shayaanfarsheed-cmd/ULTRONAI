@@ -12,6 +12,18 @@ class TrainingControlSecurityContractTests(unittest.TestCase):
         self.assertIn('Deno.env.get("ULTRON_GITHUB_TOKEN")', source)
         self.assertNotIn("device-control", source)
 
+    def test_missing_owner_configuration_has_specific_safe_errors(self):
+        source = (ROOT / "supabase/functions/training-control/index.ts").read_text()
+        supabase_guard = source.index('if (!supabaseUrl)')
+        owner_guard = source.index('if (!ownerId)')
+        auth_lookup = source.index('const authResponse = await fetch')
+        self.assertLess(supabase_guard, owner_guard)
+        self.assertLess(owner_guard, auth_lookup)
+        self.assertIn('Confirm the built-in SUPABASE_URL Edge Function environment setting.', source)
+        self.assertIn('Add ULTRON_OWNER_USER_ID to Supabase Edge Function secrets', source)
+        self.assertNotIn('ownerId: ownerId', source)
+        self.assertNotIn('owner_id: ownerId', source)
+
     def test_github_actions_is_the_only_remote_launch_target(self):
         source = (ROOT / "supabase/functions/training-control/index.ts").read_text()
         self.assertIn('const CPU_SERVER_ID = "github_actions_cpu"', source)
