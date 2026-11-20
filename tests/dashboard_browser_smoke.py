@@ -162,6 +162,31 @@ def main() -> None:
                         dimensions["document"] <= dimensions["viewport"] + 1,
                         f"{view} overflows horizontally at {width}px: {dimensions}",
                     )
+                    if view == "settings":
+                        ram_geometry = page.evaluate(
+                            """() => {
+                                const panel = document.querySelector(".ram-panel");
+                                const slider = document.querySelector("#ramLimitSlider");
+                                if (!panel || !slider) return null;
+                                const panelRect = panel.getBoundingClientRect();
+                                const sliderRect = slider.getBoundingClientRect();
+                                return {
+                                    viewport: window.innerWidth,
+                                    panelLeft: Math.round(panelRect.left),
+                                    panelRight: Math.round(panelRect.right),
+                                    sliderLeft: Math.round(sliderRect.left),
+                                    sliderRight: Math.round(sliderRect.right),
+                                };
+                            }"""
+                        )
+                        require(
+                            ram_geometry is not None
+                            and ram_geometry["panelLeft"] >= -1
+                            and ram_geometry["panelRight"] <= width + 1
+                            and ram_geometry["sliderLeft"] >= -1
+                            and ram_geometry["sliderRight"] <= width + 1,
+                            f"Settings RAM controls exceed the {width}px viewport: {ram_geometry}",
+                        )
 
             require(not page_errors, f"Browser page errors: {page_errors}")
             require(not console_errors, f"Browser console errors: {console_errors}")
@@ -173,7 +198,7 @@ def main() -> None:
         server.server_close()
         server_thread.join(timeout=2)
 
-    print("Dashboard browser smoke passed: public Guest Mode, all navigation pages, RAM persistence, optional owner dialog, theme toggle, 44px touch targets, six viewport widths, no JS/console errors, and no external requests.")
+    print("Dashboard browser smoke passed: public Guest Mode, all navigation pages, RAM persistence, optional owner dialog, theme toggle, 44px touch targets, six viewport widths, RAM panel/slider fit checks, no JS/console errors, and no external requests.")
 
 
 if __name__ == "__main__":
