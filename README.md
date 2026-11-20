@@ -36,6 +36,15 @@ The legacy PR backlog was reviewed against `main` at `346b36a940f5f662c07bc3b07e
 - This is Stage 1 only. It is not general natural-language mathematical parsing, formal proof checking, neural inference, or durable learner memory. Those require later independently tested stages.
 - No model weights, datasets, checkpoints, Supabase configuration, production secrets or training state are modified.
 
+## Stage 2 — structured reasoning kernel (implementation in progress)
+
+- Add a versioned typed problem representation for all 18 supported foundation topics, including domain, operands, assumptions and the original source question.
+- Build explicit operation plans from the existing deterministic solver output. Each explanatory step is marked as reproducibly matched, not as a formally proven derivation.
+- Independently verify final answers through the existing topic-specific verifier; reject malformed or unsupported structures rather than guessing.
+- Provide deterministic report replay so tampered problem, plan, answer or verification fields are detected.
+- Integrate the typed problem summary into the browser conversation and add regression/browser coverage.
+- No changes to model weights, datasets, checkpoints, Supabase, training state or external services.
+
 ## Latest verified status — PR #96 merged and deployed
 
 - PR [#96](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/96) merged to `main` at `397199389a1c829ff3107cff5560a2c27516fd9a`.
