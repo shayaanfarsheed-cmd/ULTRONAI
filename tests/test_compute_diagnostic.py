@@ -41,6 +41,14 @@ class ComputeDiagnosticTests(unittest.TestCase):
         self.assertIn("actions/checkout@v5", workflow)
         self.assertIn("actions/setup-python@v6", workflow)
 
+    def test_all_workflows_use_node24_compatible_action_majors(self):
+        workflow_dir = ROOT / ".github/workflows"
+        for path in workflow_dir.glob("*.yml"):
+            content = path.read_text()
+            self.assertNotIn("actions/checkout@v4", content, path.name)
+            self.assertNotIn("actions/setup-python@v5", content, path.name)
+            self.assertNotIn("actions/upload-artifact@v4", content, path.name)
+
     def test_owner_control_targets_safe_diagnostic_workflow(self):
         source = (ROOT / "supabase/functions/training-control/index.ts").read_text()
         self.assertIn('const CPU_WORKFLOW_PATH = "cpu-diagnostic.yml"', source)
