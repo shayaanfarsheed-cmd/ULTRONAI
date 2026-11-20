@@ -1,0 +1,17 @@
+.math-tutor-panel { display: grid; gap: 18px; }
+.tutor-practice-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(260px, .9fr); gap: 18px; }
+.tutor-question-card, .tutor-progress-card { min-width: 0; padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-2); }
+.tutor-question { margin: 12px 0 18px; font-size: 1.15rem; font-weight: 650; overflow-wrap: anywhere; }
+.tutor-answer-form { display: grid; gap: 10px; }
+.tutor-answer-form input { width: 100%; min-height: 46px; padding: 10px 12px; color: var(--text); background: var(--bg); border: 1px solid var(--line-strong); border-radius: 10px; font: inherit; }
+.tutor-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.tutor-hint { min-height: 58px; padding: 12px; border-radius: 10px; background: var(--red-soft); color: var(--text); line-height: 1.5; overflow-wrap: anywhere; }
+.tutor-feedback { min-height: 48px; line-height: 1.5; overflow-wrap: anywhere; }
+.tutor-mastery-list { display: grid; gap: 9px; max-height: 430px; overflow: auto; }
+.tutor-mastery-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(55px, .8fr) auto; align-items: center; gap: 9px; font-size: .78rem; }
+.tutor-mastery-name { overflow-wrap: anywhere; }
+.tutor-mastery-track { display: block; height: 7px; overflow: hidden; border-radius: 99px; background: var(--surface-3); }
+.tutor-mastery-fill { display: block; height: 100%; background: var(--red); border-radius: inherit; }
+.tutor-mastery-value { text-align: right; }
+.tutor-due-label { grid-column: 1 / -1; color: var(--amber); }
+@media (max-width: 760px) { .tutor-practice-grid { grid-template-columns: minmax(0, 1fr); } }
