@@ -17,6 +17,7 @@
     let hints = [];
     let hintIndex = 0;
     let answered = false;
+    let answered = false;
 
     function text(parent, tag, className, value) {
       const node = document.createElement(tag);
@@ -80,12 +81,14 @@
         return;
       }
       if (answered) { feedback.textContent = "This question has already been recorded. Generate a new question to continue."; return; }
+      if (answered) { feedback.textContent = "This question has already been recorded. Generate a new question to continue."; return; }
       const diagnosis = tutor.diagnose(exercise.topic, exercise.question, answerNode.value);
       if (diagnosis.status !== "correct" && diagnosis.status !== "incorrect_unclassified") {
         feedback.textContent = diagnosis.message;
         return;
       }
       tutor.recordAttempt(exercise.topic, diagnosis.status === "correct");
+      answered = true;
       answered = true;
       feedback.textContent = diagnosis.status === "correct"
         ? diagnosis.message
