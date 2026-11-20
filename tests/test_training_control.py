@@ -82,6 +82,15 @@ class TrainingControlSecurityContractTests(unittest.TestCase):
         self.assertIn('return safeError("GitHub integration is not configured.', source)
         self.assertIn('return safeError("GitHub integration is not configured. Add the server-side ULTRON_GITHUB_TOKEN secret.", 503, origin);', source)
 
+    def test_readme_documents_current_training_control_deployment_and_live_gate(self):
+        readme = (ROOT / "README.md").read_text()
+        self.assertIn("PR #78", readme)
+        self.assertIn("version **3**", readme)
+        self.assertIn("Check connection", readme)
+        self.assertIn("has not been retested after the version 3 deployment", readme)
+        self.assertIn("Do not start a diagnostic until health and GitHub Status both succeed.", readme)
+        self.assertNotIn("training-control` Edge Function, version 1", readme)
+
     def test_upstream_failures_do_not_echo_upstream_details_to_clients(self):
         source = (ROOT / "supabase/functions/training-control/index.ts").read_text()
         self.assertIn('console.error("training-control request failed:", message);', source)
