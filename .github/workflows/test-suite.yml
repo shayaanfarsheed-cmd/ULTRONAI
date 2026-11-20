@@ -42,6 +42,10 @@ jobs:
           node --check dashboard/math-agent.js
           node --check dashboard/math-agent-ui.js
           node --check dashboard/math-reasoning.js
+          node --check dashboard/math-tutor.js
+          node --check dashboard/math-tutor-ui.js
+          node --check dashboard/axiom-bank.js
+          node --check dashboard/axiom-bank-ui.js
           node --check dashboard/math-conversation.js
           node --check dashboard/math-conversation-ui.js
           node --check dashboard/training-control.js
