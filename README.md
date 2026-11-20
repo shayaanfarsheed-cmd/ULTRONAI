@@ -1,15 +1,16 @@
 # ULTRON — current project status (2026-11-20)
 
-## Latest verified status — PR #89 merged; owner security regressions expanded
+## Latest verified status — PR #90 merged; training-control version 6 deployed
 
-- PR [#87](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/87) merged at `3bad4870586e583807de19d4f033c42f4001a359`; all three required checks and post-merge test, preflight and Pages deployment passed.
-- PR [#88](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/88) merged at `286a1c836d0a8698f6d486a298e8899714693f1b`; all three required checks and post-merge test, preflight and Pages deployment passed.
-- PR [#89](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/89) merged at `f2c09d500a6d9ef7b60e91e0df31dd506caf9b61`; all three required checks passed. Regression coverage now asserts 401 for invalid/expired sessions, 403 for non-owners, strict origin/method handling, and no GitHub token secret name in browser assets.
-- The production `training-control` Edge Function remains **ACTIVE, version 5**, with `verify_jwt=true`. PR #90 is validating stricter JSON body-shape and field-type checks before any action is processed; deployment to Supabase is pending those checks and merge.
+- PR [#89](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/89) merged at `f2c09d500a6d9ef7b60e91e0df31dd506caf9b61`; all three required checks passed. Regression coverage asserts invalid/expired owner sessions return 401, non-owners return 403, origin/method restrictions are enforced, and the GitHub token secret name is absent from browser assets.
+- PR [#90](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/90) merged at `453667bfe79076d06c02c5172cebf30a471fdceb`; all three required checks and post-merge test, preflight and Pages deployment passed.
+- Supabase `training-control` is **ACTIVE, version 6**, with `verify_jwt=true`. The deployed `index.ts` was fetched and compared byte-for-byte with GitHub `main`; the source matches exactly.
+- Request parsing now rejects JSON null, arrays, primitives, missing/non-string actions, and non-string server IDs with safe HTTP 400 responses before action routing. The 4 KiB request limit remains enforced.
 - Device access is browser-based remote control for iPadOS, iOS, Android, desktop and tablets. Compute runs on the selected remote provider; device pairing and local model runtime are not used.
 - The Settings RAM slider is a browser-local preference. It is not sent to a remote training process and does not cap hosted-runner RAM or GPU VRAM.
 - GitHub Actions remote controls remain limited to safe CPU diagnostics. Google Colab remains manual-only. Actual model training has not started.
-- GitHub Pages deployment workflow passed for PR #88. The hosted dashboard still needs a real visual smoke test in a browser; an external page reader could not fetch it.
+- GitHub Pages deployment workflow passed. The hosted dashboard still needs a real visual smoke test in a browser; an external page reader could not fetch it.
+- Owner-only **Refresh status** still needs to succeed in the signed-in owner's browser to verify the configured GitHub token's actual API permissions.
 - No diagnostic was launched, no model training was started, and no weights or persistent checkpoints were changed.
 
 ## Immediate next steps
