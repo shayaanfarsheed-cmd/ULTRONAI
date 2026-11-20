@@ -104,6 +104,10 @@ def main() -> None:
                 "INDEPENDENT CHECK PASSED" in page.locator(".conversation-verification").inner_text(),
                 "Conversational arithmetic did not show independent verification.",
             )
+            require(
+                "integer_arithmetic" in page.locator(".conversation-reasoning-summary").inner_text(),
+                "Conversation did not display its structured problem representation.",
+            )
             page.locator("#mathConversationInput").fill("Can you help me with this homework?")
             page.locator("#mathConversationSend").click()
             require(
