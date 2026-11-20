@@ -13,6 +13,14 @@
     ZFC: { label: "Zermelo–Fraenkel set theory with Choice", domain: "set_theory", description: "A foundational axiom system for sets. Separation and Replacement are axiom schemas, not single finite formulas; Choice is an additional principle.", references: ["https://plato.stanford.edu/entries/set-theory/zf.html", "https://wwwevs.mathematik.tu-darmstadt.de/index.php?evsdir=1059&evsfile=zfc.pdf"] }
   });
 
+  function deepFreeze(value) {
+    if (!value || typeof value !== "object" || Object.isFrozen(value)) return value;
+    Object.freeze(value);
+    Object.keys(value).forEach(key => deepFreeze(value[key]));
+    return value;
+  }
+  deepFreeze(SYSTEMS);
+
   const ENTRIES = [
     ["PEANO-01","PEANO_N","successor-closure","A natural number's successor is a natural number.","For every n in N, S(n) is in N.","The successor operation stays inside the natural-number domain.","A successor step cannot leave N.","foundation",["whole_number_arithmetic","order_of_operations","pre_algebra"]],
     ["PEANO-02","PEANO_N","zero-is-not-successor","The initial natural number is not the successor of any natural number.","For every n in N, S(n) ≠ 0.","The number system has a designated starting point.","Do not identify zero with a successor value.","foundation",["whole_number_arithmetic"]],
