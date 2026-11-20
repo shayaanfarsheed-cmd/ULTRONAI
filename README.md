@@ -20,6 +20,13 @@
 - The only remotely dispatchable workflow is the CPU compute diagnostic. It does not train the model or touch checkpoints.
 - This documents the current boundary; it does not change authentication, production secrets, database policies, or Edge Function behavior.
 
+## Dashboard diagnostic status refresh fix
+
+- Fixed the launch flow so the busy state is cleared before requesting the updated workflow status.
+- Previously, the immediate refresh returned early while the launch request was still marked busy; the UI could remain stale until the next 60-second poll.
+- Added a regression test to keep the post-launch refresh after the busy-state cleanup.
+- This is a dashboard status-display fix only. It does not change workflow dispatch, authentication, model training, weights, checkpoints, or production secrets.
+
 ## Dashboard wording correction — diagnostic stop behavior
 
 - Corrected the Stop confirmation: it now accurately says it cancels the CPU diagnostic and does not create, modify, or delete checkpoints.

@@ -29,6 +29,14 @@ class TrainingControlSecurityContractTests(unittest.TestCase):
         self.assertNotIn("ULTRON_GITHUB_TOKEN", script)
 
 
+    def test_launch_refreshes_status_after_busy_flag_is_cleared(self):
+        script = (ROOT / "dashboard/training-control.js").read_text()
+        launch = script.split("async function launch()", 1)[1].split("async function stop()", 1)[0]
+        finally_block = launch.index("} finally {")
+        refresh_call = launch.rindex("await refreshStatus();")
+        self.assertGreater(refresh_call, finally_block)
+        self.assertIn("busy = false;", launch[finally_block:refresh_call])
+
     def test_stop_confirmation_describes_diagnostic_without_checkpoint_claims(self):
         script = (ROOT / "dashboard/training-control.js").read_text()
         self.assertIn("Cancel the currently queued or running ULTRON CPU diagnostic?", script)
