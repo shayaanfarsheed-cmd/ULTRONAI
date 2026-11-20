@@ -30,6 +30,7 @@ The legacy PR backlog was reviewed against `main` at `346b36a940f5f662c07bc3b07e
 - Each supported solution is passed through the existing independent verifier. Unverified answers are labelled; unsupported formats receive a format example rather than a fabricated solution.
 - Conversation context is memory-only: it is not written to localStorage, Supabase, the Data Library, checkpoints or training datasets. Reset clears the session. No automatic chat ingestion or training is implemented.
 - Browser UI uses DOM text nodes rather than injecting user content as HTML. The existing single-question solver and bounded benchmark remain available separately.
+- The added WebKit run exposed a 320px horizontal overflow in the Math view heading; the narrow-screen flex wrapping/min-width fix is included, and Chromium/WebKit smoke must both pass on the final commit.
 - Regression tests cover arithmetic routing, all 18 registered topics, clarification, bounded history, reset, invalid/oversized input, independent verification and immutable history snapshots. The Test Suite workflow now runs the Node.js browser-module tests and syntax checks, rather than leaving the JavaScript test files outside CI.
 - This is Stage 1 only. It is not general natural-language mathematical parsing, formal proof checking, neural inference, or durable learner memory. Those require later independently tested stages.
 - No model weights, datasets, checkpoints, Supabase configuration, production secrets or training state are modified.
