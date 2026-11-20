@@ -93,9 +93,8 @@ Deno.serve(async (req: Request) => {
       const cpuRuns = await listRuns(CPU_WORKFLOW_PATH);
       const active = cpuRuns.find(run => run.status === "queued" || run.status === "in_progress");
       if (active) return response({ ok: false, error: "Another ULTRON remote launch workflow is already queued or running.", run: summarizeRun(active, "ULTRON CPU Diagnostic") }, 409, origin);
-      const requestId = crypto.randomUUID();
       await dispatchWorkflow(workflowPath);
-      return response({ ok: true, accepted: true, request_id: requestId, message: "GitHub Actions accepted the safe CPU diagnostic request. It measures runner resources and installs CPU PyTorch; it does not start training or touch checkpoints." }, 202, origin);
+      return response({ ok: true, accepted: true, message: "GitHub Actions accepted the safe CPU diagnostic request. It measures runner resources and installs CPU PyTorch; it does not start training or touch checkpoints." }, 202, origin);
     }
     if (body.action === "stop") {
       const id = body.server_id || CPU_SERVER_ID;
