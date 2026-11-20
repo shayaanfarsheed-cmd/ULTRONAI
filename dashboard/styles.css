@@ -629,3 +629,58 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible) { outline: none; }
   .topbar { padding-left: 10px; padding-right: 10px; }
   .brand-copy small { letter-spacing: .1em; }
 }
+
+/* Conversational mathematics shell: bounded, local-only chat UI. */
+.conversation-transcript {
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  max-height:560px;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  padding:12px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:var(--surface-2);
+}
+.conversation-message {
+  max-width:min(100%,760px);
+  min-width:0;
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  overflow-wrap:anywhere;
+}
+.conversation-user { align-self:flex-end; background:var(--surface); }
+.conversation-assistant { align-self:flex-start; background:var(--surface-2); }
+.conversation-role,.conversation-topic {
+  color:var(--muted);
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.12em;
+}
+.conversation-copy,.conversation-detail { margin:8px 0; color:var(--text); line-height:1.55; }
+.conversation-answer { margin:10px 0; font-size:clamp(20px,4vw,28px); font-weight:800; color:var(--text); overflow-wrap:anywhere; }
+.conversation-concept { display:block; margin-top:12px; color:var(--soft); }
+.conversation-steps { padding-left:22px; color:var(--text); line-height:1.65; }
+.conversation-verification {
+  display:inline-block;
+  margin-top:8px;
+  padding:6px 9px;
+  border:1px solid var(--line);
+  border-radius:999px;
+  color:var(--muted);
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.08em;
+}
+.conversation-verification.is-verified { color:var(--success,var(--soft)); }
+.conversation-form { display:grid; gap:10px; margin-top:14px; }
+.conversation-form textarea { width:100%; min-height:84px; resize:vertical; }
+.conversation-example { min-height:40px; margin-top:8px; }
+@media(max-width:520px) {
+  .conversation-transcript { max-height:460px; padding:8px; }
+  .conversation-message { padding:11px; }
+  .conversation-form .control-row { flex-wrap:wrap; }
+  .conversation-form .control-row button { flex:1 1 130px; min-height:44px; }
+}
