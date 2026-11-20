@@ -141,7 +141,22 @@ def main() -> None:
                 for width, height in VIEWPORTS:
                     page.set_viewport_size({"width": width, "height": height})
                     dimensions = page.evaluate(
-                        "() => ({ viewport: window.innerWidth, document: document.documentElement.scrollWidth })"
+                        """() => ({
+                            viewport: window.innerWidth,
+                            document: document.documentElement.scrollWidth,
+                            offenders: [...document.querySelectorAll("body *")].map((element) => {
+                                const rect = element.getBoundingClientRect();
+                                return {
+                                    tag: element.tagName,
+                                    id: element.id,
+                                    className: typeof element.className === "string" ? element.className : "",
+                                    left: Math.round(rect.left),
+                                    right: Math.round(rect.right),
+                                    width: Math.round(rect.width),
+                                    scrollWidth: element.scrollWidth,
+                                };
+                            }).filter((item) => item.right > window.innerWidth + 1 || item.left < -1).slice(0, 12),
+                        })"""
                     )
                     require(
                         dimensions["document"] <= dimensions["viewport"] + 1,
