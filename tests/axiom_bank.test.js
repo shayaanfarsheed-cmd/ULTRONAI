@@ -12,6 +12,7 @@ test("axiom bank has stable identifiers and named formal systems", () => {
     assert.ok(entry.references.length > 0, entry.id);
     assert.ok(entry.formal.length > 10, entry.id);
     assert.ok(["foundation", "proof", "advanced"].includes(entry.level), entry.id);
+    assert.ok(["axiom", "schema", "structure"].includes(entry.category), entry.id);
   }
 });
 
@@ -67,4 +68,6 @@ test("every topic tag belongs to the registered foundation curriculum", () => {
   }
   assert.ok(bank.forTopic("basic_geometry").some(x => x.id === "EUCLID-01"));
   assert.ok(bank.forTopic("basic_probability").some(x => x.id === "PROB-01"));
+  assert.equal(bank.get("PEANO-00").category, "structure");
+  assert.equal(bank.get("ZFC-07").category, "schema");
 });
