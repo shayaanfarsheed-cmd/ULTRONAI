@@ -52,8 +52,15 @@
     let history = [];
     let lastTopic = null;
 
+    function copyTurn(turn) {
+      const copy = { ...turn };
+      if (Array.isArray(turn.steps)) copy.steps = turn.steps.slice();
+      if (turn.knowledge && typeof turn.knowledge === "object") copy.knowledge = { ...turn.knowledge };
+      return copy;
+    }
+
     function append(turn) {
-      history.push(turn);
+      history.push(copyTurn(turn));
       if (history.length > maxTurns * 2) history = history.slice(-maxTurns * 2);
     }
 
@@ -157,7 +164,7 @@
     return {
       reply,
       reset() { history = []; lastTopic = null; },
-      getHistory() { return history.map(turn => ({ ...turn })); },
+      getHistory() { return history.map(copyTurn); },
       getLastTopic() { return lastTopic; },
       maxTurns
     };
