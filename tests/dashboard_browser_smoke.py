@@ -95,6 +95,27 @@ def main() -> None:
                 require(section.is_visible(), f"Navigation failed to open {view}.")
                 require(button.get_attribute("aria-current") == "page", f"{view} navigation lacks aria-current.")
 
+            # The conversational shell must solve, verify, clarify, and reset in a real browser.
+            page.locator('[data-view="math"]').click()
+            page.locator("#mathConversationInput").fill("What is 12 + 5?")
+            page.locator("#mathConversationSend").click()
+            require(page.locator(".conversation-answer").inner_text() == "17", "Conversational arithmetic returned the wrong answer.")
+            require(
+                "INDEPENDENT CHECK PASSED" in page.locator(".conversation-verification").inner_text(),
+                "Conversational arithmetic did not show independent verification.",
+            )
+            page.locator("#mathConversationInput").fill("Can you help me with this homework?")
+            page.locator("#mathConversationSend").click()
+            require(
+                "Clarification needed" in page.locator("#mathConversationStatus").inner_text(),
+                "Ambiguous conversation input did not request clarification.",
+            )
+            page.locator("#mathConversationReset").click()
+            require(
+                "Conversation reset" in page.locator("#mathConversationTranscript").inner_text(),
+                "Conversation reset did not clear the transcript.",
+            )
+
             # RAM preference is local, persists after reload, and explicitly does not control hosted memory.
             page.locator('[data-view="settings"]').click()
             slider = page.locator("#ramLimitSlider")
@@ -136,7 +157,7 @@ def main() -> None:
             require(before_theme != after_theme, "Theme toggle did not change the theme.")
 
             # Check key pages at phone, tablet and desktop widths for horizontal overflow.
-            for view in ("overview", "devices", "settings", "control"):
+            for view in ("overview", "devices", "math", "settings", "control"):
                 page.locator(f'[data-view="{view}"]').click()
                 for width, height in VIEWPORTS:
                     page.set_viewport_size({"width": width, "height": height})
