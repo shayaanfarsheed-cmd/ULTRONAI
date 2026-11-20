@@ -99,6 +99,9 @@ class DashboardStaticTests(unittest.TestCase):
         self.assertIn("does not cap the memory available to a hosted runner", html)
         self.assertIn("deviceRamLimitValue", html)
         self.assertIn("not sent to a remote training process", javascript)
+        self.assertIn("Choose a preferred memory budget for future remote training.", html)
+        self.assertIn("not sent to the remote provider", html)
+        self.assertNotIn("future local training runtime", html.lower())
         self.assertNotIn("future local runtime", html.lower())
 
     def test_all_static_javascript_id_references_exist(self):
