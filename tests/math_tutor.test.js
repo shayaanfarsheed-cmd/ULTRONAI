@@ -20,7 +20,7 @@ test("progressive hints are grounded in verified solution knowledge", () => {
   assert.equal(hints.verifiedSource, true);
   assert.deepEqual(hints.hints.map(item => item.level), [1, 2, 3]);
   assert.match(hints.hints[0].text, /common denominator/i);
-  assert.match(hints.hints[1].text, /reduced/i);
+  assert.match(hints.hints[1].text, /reduce/i);
   assert.equal(tutor.getHints("fractions", "unsupported").available, false);
 });
 
