@@ -171,7 +171,7 @@ class TrainingControlSecurityContractTests(unittest.TestCase):
         self.assertNotIn("body.action", source)
         self.assertNotIn("body.server_id", source)
 
-    def test_readme_records_pr_95_and_current_owner_browser_gate(self):
+    def test_readme_records_pr_96_and_current_owner_browser_gate(self):
         readme = (ROOT / "README.md").read_text()
         latest = readme.split("## Latest verified status", 1)[1].split("\n## ", 1)[0]
         self.assertIn("PR [#96]", latest)
