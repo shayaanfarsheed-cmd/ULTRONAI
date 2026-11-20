@@ -41,7 +41,8 @@ def main() -> None:
     server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
     server_thread = Thread(target=server.serve_forever, daemon=True)
     server_thread.start()
-    base_url = f"http://127.0.0.1:{server.server_port}/dashboard/"
+    origin = f"http://127.0.0.1:{server.server_port}"
+    base_url = origin + "/dashboard/"
 
     page_errors: list[str] = []
     external_requests: list[str] = []
@@ -65,7 +66,9 @@ def main() -> None:
             )
 
             def restrict_network(route) -> None:
-                if route.request.url.startswith(base_url):
+                if route.request.url == origin + "/favicon.ico":
+                    route.fulfill(status=204, body="")
+                elif route.request.url.startswith(origin + "/"):
                     route.continue_()
                 else:
                     external_requests.append(route.request.url)
