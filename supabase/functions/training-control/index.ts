@@ -63,6 +63,20 @@ Deno.serve(async (req: Request) => {
     let body: { action?: string; server_id?: string };
     try { body = JSON.parse(rawBody); } catch { return safeError("Invalid JSON request.", 400, origin); }
 
+    // This read-only diagnostic is owner-gated and never contacts GitHub or reveals secret values.
+    if (body.action === "health") {
+      return response({ ok: true, checks: {
+        owner_verification_configured: true,
+        github_token_configured: Boolean(Deno.env.get("ULTRON_GITHUB_TOKEN")),
+        remote_target: CPU_SERVER_ID,
+        workflow: CPU_WORKFLOW_PATH,
+      } }, 200, origin);
+    }
+    // Report missing integration configuration explicitly instead of misclassifying it as an upstream 502.
+    if (!Deno.env.get("ULTRON_GITHUB_TOKEN")) {
+      return safeError("GitHub integration is not configured. Add the server-side ULTRON_GITHUB_TOKEN secret.", 503, origin);
+    }
+
     if (body.action === "status") {
       const id = body.server_id || CPU_SERVER_ID;
       if (id !== CPU_SERVER_ID) return safeError("Unsupported server status target.", 400, origin);
@@ -92,6 +106,7 @@ Deno.serve(async (req: Request) => {
     return safeError("Unsupported action.", 400, origin);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unexpected server error.";
-    return safeError(message.slice(0, 240), 502, origin);
+    console.error("training-control request failed:", message);
+    return safeError("The control service could not complete the request. Check the owner-only health diagnostic and Edge Function logs.", 502, origin);
   }
 });
