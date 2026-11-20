@@ -122,7 +122,8 @@ def main() -> None:
 
             # Stage 3 tutor: hints, independent checking, session mastery and axiom research.
             require(page.locator("#tutorQuestion").is_visible(), "Guided practice panel did not load.")
-            require("foundation difficulty" in page.locator("#tutorTopic").inner_text(), "Tutor difficulty disclosure is missing: topic=" + page.locator("#tutorTopic").inner_text() + "; feedback=" + page.locator("#tutorFeedback").inner_text())
+            tutor_runtime = page.evaluate("""() => ({ready: document.readyState, agent: !!window.ULTRON_MATH_AGENT, tutor: !!window.ULTRON_MATH_TUTOR, reasoning: !!window.ULTRON_REASONING, panel: !!document.getElementById("mathTutorPanel")})""")
+            require("foundation difficulty" in page.locator("#tutorTopic").inner_text(), "Tutor difficulty disclosure is missing: topic=" + page.locator("#tutorTopic").inner_text() + "; feedback=" + page.locator("#tutorFeedback").inner_text() + "; globals=" + str(tutor_runtime) + "; pageErrors=" + str(page_errors) + "; consoleErrors=" + str(console_errors))
             require("Related axioms" in page.locator("#tutorAxiomContext").inner_text(), "Tutor did not show topic-scoped axiom context.")
             page.locator("#tutorHintButton").click()
             require("HINT 1" in page.locator("#tutorHint").inner_text(), "Progressive tutor hint did not appear.")
