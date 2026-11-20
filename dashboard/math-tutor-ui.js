@@ -3,7 +3,7 @@
   function init() {
     const agent = window.ULTRON_MATH_AGENT;
     const tutorApi = window.ULTRON_MATH_TUTOR;
-    const reasoning = window.ULTRON_MATH_REASONING;
+    const reasoning = window.ULTRON_REASONING;
     const root = document.getElementById("mathTutorPanel");
     if (!agent || !tutorApi || !root) return;
     const tutor = tutorApi.createTutor(agent, reasoning);
@@ -16,6 +16,7 @@
     let exercise = null;
     let hints = [];
     let hintIndex = 0;
+    let answered = false;
 
     function text(parent, tag, className, value) {
       const node = document.createElement(tag);
@@ -52,6 +53,7 @@
         exercise = tutor.nextExercise();
         hints = tutor.getHints(exercise.topic, exercise.question).hints;
         hintIndex = 0;
+        answered = false;
         topicNode.textContent = agent.TOPICS[exercise.topic].label + " · fixed foundation difficulty";
         questionNode.textContent = exercise.question;
         answerNode.value = "";
@@ -77,12 +79,14 @@
         feedback.textContent = "Generate a question first.";
         return;
       }
+      if (answered) { feedback.textContent = "This question has already been recorded. Generate a new question to continue."; return; }
       const diagnosis = tutor.diagnose(exercise.topic, exercise.question, answerNode.value);
       if (diagnosis.status !== "correct" && diagnosis.status !== "incorrect_unclassified") {
         feedback.textContent = diagnosis.message;
         return;
       }
       tutor.recordAttempt(exercise.topic, diagnosis.status === "correct");
+      answered = true;
       feedback.textContent = diagnosis.status === "correct"
         ? diagnosis.message
         : diagnosis.message + " Verified answer: " + diagnosis.expected + ".";
