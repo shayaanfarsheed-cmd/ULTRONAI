@@ -740,3 +740,15 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible) { outline: none; }
     word-break: normal;
   }
 }
+
+.conversation-reasoning-summary {
+  margin: 8px 0;
+  padding: 8px 10px;
+  border-left: 2px solid var(--red);
+  border-radius: 0 8px 8px 0;
+  background: var(--surface-3);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
