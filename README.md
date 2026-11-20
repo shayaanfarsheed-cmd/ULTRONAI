@@ -1,3 +1,10 @@
+## PR #68 review correction — unsorted median inputs (2026-11-20)
+
+- Review found the median-and-range generator sorted values before presenting the question, which made the median task easier than intended and did not require sorting.
+- The generator now presents the original unsorted values while independently calculating the median/range from a sorted copy. The solution target explicitly shows the sorted sequence.
+- Added regression coverage requiring unsorted examples and independent verification of all generated solution steps.
+- This is a data-quality correction only. No model weights, training configuration, remote storage, or production checkpoints were changed. PR #68 remains unmerged; rerun CI on the updated head before considering merge.
+
 ## Exponent tokenizer compatibility repair — PR #68 (2026-11-20)
 
 - The next CI run exposed that generated exponent examples contain the caret character `^`, which was also missing from the character tokenizer.
