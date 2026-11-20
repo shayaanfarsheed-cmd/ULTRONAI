@@ -76,6 +76,11 @@ class DashboardStaticTests(unittest.TestCase):
         self.assertIn("@media (max-width: 360px)", styles)
         self.assertIn("grid-template-columns: repeat(2, minmax(0, 1fr))", styles)
         self.assertIn("flex-direction: row", styles)
+        self.assertIn(".topbar-right { gap: 6px; }", styles)
+        self.assertIn("padding: 0 9px", styles)
+        self.assertIn("@media (max-width: 360px)", styles)
+        self.assertIn("padding-left: 10px; padding-right: 10px", styles)
+
 
 
     def test_all_static_javascript_id_references_exist(self):
