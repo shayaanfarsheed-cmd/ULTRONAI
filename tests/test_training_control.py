@@ -150,7 +150,7 @@ class TrainingControlSecurityContractTests(unittest.TestCase):
         self.assertIn("version 6", latest)
         self.assertIn("verify_jwt=true", latest)
         self.assertIn("source matches exactly", latest)
-        self.assertIn("Owner-only **Refresh status** still needs to succeed", latest)
+        self.assertIn("owner-only **Refresh status** from the signed-in owner's browser", latest)
 
     def test_training_control_rejects_non_object_and_malformed_request_bodies(self):
         source = (ROOT / "supabase/functions/training-control/index.ts").read_text()
@@ -177,7 +177,7 @@ class TrainingControlSecurityContractTests(unittest.TestCase):
         self.assertIn("PR [#92]", latest)
         self.assertIn("50ba963a3c47a6815b09a067a0d8bdefde03d9fe", latest)
         self.assertIn("Deno type-check", latest)
-        self.assertIn("Owner-only **Refresh status** still needs to succeed", latest)
+        self.assertIn("owner-only **Refresh status** from the signed-in owner's browser", latest)
         self.assertIn("Keep actual training disabled", readme)
 
     def test_supabase_edge_function_is_typechecked_in_preflight(self):

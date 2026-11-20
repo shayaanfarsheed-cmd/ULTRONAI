@@ -359,6 +359,15 @@ class DataLibraryDeletionTests(unittest.TestCase):
         self.assertIn('data-data-delete-folder=', javascript)
         self.assertIn('prefixes: objectPaths.slice(offset, offset + 1000)', javascript)
 
+    def test_readme_records_pr_94_browser_smoke_release_and_manual_gates(self):
+        readme = (ROOT / "README.md").read_text()
+        latest = readme.split("## Latest verified status", 1)[1].split("\n## ", 1)[0]
+        self.assertIn("PR [#94]", latest)
+        self.assertIn("9e0db29b9a186529fcc7da6de14daa53c47551e7", latest)
+        self.assertIn("all four required checks passed", latest)
+        self.assertIn("physical iPad/phone", latest)
+        self.assertIn("owner-only **Refresh status**", latest)
+
     def test_dashboard_browser_smoke_is_run_in_chromium_ci(self):
         workflow = (ROOT / ".github/workflows/dashboard-browser-smoke.yml").read_text()
         script = (ROOT / "tests/dashboard_browser_smoke.py").read_text()
