@@ -133,3 +133,13 @@ test("decimal addition and subtraction remain supported", () => {
     assert.equal(result.verified, true);
   }
 });
+
+test("conversation attaches the structured reasoning report when enabled", () => {
+  const reasoning = require("../dashboard/math-reasoning.js");
+  const chat = conversation.createConversation(agent, { reasoning });
+  const result = chat.reply("What is 12 + 5?");
+  assert.equal(result.kind, "solution");
+  assert.equal(result.answer, "17");
+  assert.equal(result.reasoning.problem.problemType, "integer_arithmetic");
+  assert.equal(result.reasoning.verification.finalAnswer, "passed");
+});

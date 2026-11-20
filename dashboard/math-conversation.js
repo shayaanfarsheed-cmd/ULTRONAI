@@ -52,6 +52,7 @@
       throw new TypeError("A compatible ULTRON math agent is required.");
     }
     const settings = options || {};
+    const reasoning = settings.reasoning || root.ULTRON_REASONING;
     const maxTurns = Number.isInteger(settings.maxTurns) ? Math.max(1, Math.min(settings.maxTurns, MAX_TURNS)) : MAX_TURNS;
     let history = [];
     let lastTopic = null;
@@ -143,8 +144,18 @@
         return response;
       }
       try {
-        const solved = agent.solve(topic, question);
-        const verified = agent.verify(topic, question, solved.answer);
+        const report = reasoning && typeof reasoning.reason === "function"
+          ? reasoning.reason(agent, topic, question)
+          : null;
+        if (report && report.kind === "abstain") {
+          const response = clarification(report.message, topic);
+          append({ role: "assistant", ...response, timestamp: Date.now() });
+          return response;
+        }
+        const solved = report
+          ? { answer: report.answer, knowledge: report.knowledge, steps: report.steps }
+          : agent.solve(topic, question);
+        const verified = report ? report.verified : agent.verify(topic, question, solved.answer);
         const response = {
           kind: verified ? "solution" : "unverified",
           topic,
@@ -152,6 +163,7 @@
           answer: solved.answer,
           knowledge: solved.knowledge,
           steps: solved.steps.slice(),
+          reasoning: report || null,
           verified: Boolean(verified),
           message: verified ? "The independent answer check passed." : "The independent answer check did not pass. Do not rely on this result."
         };

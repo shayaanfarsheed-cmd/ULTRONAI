@@ -34,6 +34,14 @@
           addText(message, "p", "conversation-copy", turn.message || "");
           if (turn.kind === "solution" || turn.kind === "unverified") {
             addText(message, "div", "conversation-topic", turn.topicLabel || turn.topic || "Mathematics");
+            if (turn.reasoning && turn.reasoning.problem) {
+              addText(
+                message,
+                "p",
+                "conversation-reasoning-summary",
+                "Structured problem · " + turn.reasoning.problem.problemType + " · domain: " + turn.reasoning.problem.domain
+              );
+            }
             addText(message, "p", "conversation-answer", turn.answer);
             if (turn.knowledge) {
               addText(message, "strong", "conversation-concept", turn.knowledge.concept);
