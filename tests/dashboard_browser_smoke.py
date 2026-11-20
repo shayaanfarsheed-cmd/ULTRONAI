@@ -3,6 +3,7 @@ from __future__ import annotations
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+import os
 from threading import Thread
 from playwright.sync_api import sync_playwright
 
@@ -50,10 +51,14 @@ def main() -> None:
 
     try:
         with sync_playwright() as playwright:
-            browser = playwright.chromium.launch()
+            browser_name = os.environ.get("ULTRON_BROWSER", "chromium").lower()
+            if browser_name not in {"chromium", "webkit"}:
+                raise ValueError(f"Unsupported browser: {browser_name}")
+            browser_type = getattr(playwright, browser_name)
+            browser = browser_type.launch()
             context = browser.new_context(
                 viewport={"width": 390, "height": 844},
-                is_mobile=True,
+                is_mobile=(browser_name == "chromium"),
                 has_touch=True,
             )
             page = context.new_page()
@@ -136,12 +141,52 @@ def main() -> None:
                 for width, height in VIEWPORTS:
                     page.set_viewport_size({"width": width, "height": height})
                     dimensions = page.evaluate(
-                        "() => ({ viewport: window.innerWidth, document: document.documentElement.scrollWidth })"
+                        """() => ({
+                            viewport: window.innerWidth,
+                            document: document.documentElement.scrollWidth,
+                            offenders: [...document.querySelectorAll("body *")].map((element) => {
+                                const rect = element.getBoundingClientRect();
+                                return {
+                                    tag: element.tagName,
+                                    id: element.id,
+                                    className: typeof element.className === "string" ? element.className : "",
+                                    left: Math.round(rect.left),
+                                    right: Math.round(rect.right),
+                                    width: Math.round(rect.width),
+                                    scrollWidth: element.scrollWidth,
+                                };
+                            }).filter((item) => item.right > window.innerWidth + 1 || item.left < -1).slice(0, 12),
+                        })"""
                     )
                     require(
                         dimensions["document"] <= dimensions["viewport"] + 1,
                         f"{view} overflows horizontally at {width}px: {dimensions}",
                     )
+                    if view == "settings":
+                        ram_geometry = page.evaluate(
+                            """() => {
+                                const panel = document.querySelector(".ram-panel");
+                                const slider = document.querySelector("#ramLimitSlider");
+                                if (!panel || !slider) return null;
+                                const panelRect = panel.getBoundingClientRect();
+                                const sliderRect = slider.getBoundingClientRect();
+                                return {
+                                    viewport: window.innerWidth,
+                                    panelLeft: Math.round(panelRect.left),
+                                    panelRight: Math.round(panelRect.right),
+                                    sliderLeft: Math.round(sliderRect.left),
+                                    sliderRight: Math.round(sliderRect.right),
+                                };
+                            }"""
+                        )
+                        require(
+                            ram_geometry is not None
+                            and ram_geometry["panelLeft"] >= -1
+                            and ram_geometry["panelRight"] <= width + 1
+                            and ram_geometry["sliderLeft"] >= -1
+                            and ram_geometry["sliderRight"] <= width + 1,
+                            f"Settings RAM controls exceed the {width}px viewport: {ram_geometry}",
+                        )
 
             require(not page_errors, f"Browser page errors: {page_errors}")
             require(not console_errors, f"Browser console errors: {console_errors}")
@@ -153,7 +198,7 @@ def main() -> None:
         server.server_close()
         server_thread.join(timeout=2)
 
-    print("Dashboard browser smoke passed: public Guest Mode, all navigation pages, RAM persistence, optional owner dialog, theme toggle, 44px touch targets, six viewport widths, no JS/console errors, and no external requests.")
+    print("Dashboard browser smoke passed: public Guest Mode, all navigation pages, RAM persistence, optional owner dialog, theme toggle, 44px touch targets, six viewport widths, RAM panel/slider fit checks, no JS/console errors, and no external requests.")
 
 
 if __name__ == "__main__":
