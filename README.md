@@ -1,3 +1,13 @@
+## PR #68 CI failure repair — expanded solver compatibility (2026-11-20)
+
+- Latest CI exposed Python agent regexes that matched a literal backslash instead of decimal digits for simple-interest, metric-conversion, and Pythagorean inputs. Corrected those patterns.
+- Aligned the Python median-and-range answer format with the canonical frozen fixture (`median=...; range=...`).
+- Added the four newly introduced topics to the browser math agent: median/range, simple interest, metric conversion, and Pythagorean hypotenuse. Added independent browser-side answer checks and deterministic generators for those topics.
+- Updated browser held-out tests to derive sample counts from the fixture rather than hard-code the former 14-example size.
+- CI rerun is required on the latest head. No merge, live Supabase recovery, dataset artifact build, or model training has been performed.
+
+---
+
 ## PR #68 review correction — held-out fixture and evaluator regression (2026-11-19)
 
 - Code review found that the four newly added frozen evaluation examples increased the fixture from 14 to 18, while evaluator tests still hard-coded the old total (14) and incorrect-score total (13). Updated these assertions to derive expected counts from the fixture length.
