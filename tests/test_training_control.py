@@ -171,6 +171,12 @@ class TrainingControlSecurityContractTests(unittest.TestCase):
         self.assertNotIn("body.action", source)
         self.assertNotIn("body.server_id", source)
 
+    def test_supabase_edge_function_is_typechecked_in_preflight(self):
+        workflow = (ROOT / ".github/workflows/preflight-tests.yml").read_text()
+        self.assertIn("uses: denoland/setup-deno@v2", workflow)
+        self.assertIn("deno-version: v2.9.8", workflow)
+        self.assertIn("deno check supabase/functions/training-control/index.ts", workflow)
+
     def test_github_token_secret_is_absent_from_all_dashboard_assets(self):
         for path in (
             ROOT / "dashboard" / "index.html",
