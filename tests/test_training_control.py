@@ -96,7 +96,7 @@ class TrainingControlSecurityContractTests(unittest.TestCase):
     def test_readme_documents_current_training_control_deployment_and_live_gate(self):
         readme = (ROOT / "README.md").read_text()
         self.assertIn("PR #80", readme)
-        self.assertIn("version **5**", readme)
+        self.assertIn("version 5", readme)
         self.assertIn("workflow_dispatch", readme)
         self.assertIn("deployed source matches GitHub main", readme)
         self.assertIn("No diagnostic was launched and no model training was started.", readme)
