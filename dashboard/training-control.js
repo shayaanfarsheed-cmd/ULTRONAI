@@ -6,6 +6,7 @@
   const $ = (id) => document.getElementById(id);
   let busy = false;
   let pollTimer = null;
+  let statusSequence = 0;
 
   function ownerSession() {
     try {
@@ -91,6 +92,7 @@
   }
 
   async function refreshStatus() {
+    const requestSequence = ++statusSequence;
     const startButton = $("trainingStartButton");
     const selectedServer = $("trainingServerSelect").value;
     const canRemoteLaunch = selectedServer === "github_actions_cpu";
@@ -111,10 +113,16 @@
     }
     try {
       const result = await callControl("status", selectedServer);
+      // A sign-out, owner-mode transition, or newer refresh invalidates this response.
+      // Never let an older private response repaint the dashboard after access changes.
+      if (requestSequence !== statusSequence || !ownerSession() ||
+          $("trainingServerSelect").value !== selectedServer) return;
       setStatus(result.run, selectedServer);
       message("", "");
     } catch (error) {
-      message(error.message, "error");
+      if (requestSequence === statusSequence && ownerSession()) {
+        message(error.message, "error");
+      }
     }
   }
 
@@ -205,7 +213,10 @@
       message(canLaunch ? "" : "Selected provider is manual-only; open its provider page from the Servers section.", canLaunch ? "" : "warn");
       refreshStatus();
     });
-    window.addEventListener("ultron:owner-mode-changed", refreshStatus);
+    window.addEventListener("ultron:owner-mode-changed", function () {
+      statusSequence += 1;
+      refreshStatus();
+    });
     loadServers().then(refreshStatus);
     if (pollTimer) window.clearInterval(pollTimer);
     pollTimer = window.setInterval(refreshStatus, 60000);

@@ -1,15 +1,22 @@
 # ULTRON — current project status (2026-11-20)
 
-## Latest verified status — owner health check passed; GitHub API permission check next
+## Latest verified status — PR #80 merged and production control function updated
 
-- The owner-only Check connection health request passed in the owner's browser: owner verification is active and the server-side GitHub token is present. This confirms configuration presence, not GitHub API authorization.
-- The next integration check is the owner-only Refresh status request, which must successfully read the repository's Actions workflow runs before a diagnostic can be launched.
-- A code audit identified a permission mismatch in the launch adapter: it used repository_dispatch, which requires repository Contents write, while the intended fine-grained token is deliberately limited to Actions read/write and Contents read-only.
-- This patch changes dispatch to GitHub's workflow_dispatch endpoint for cpu-diagnostic.yml, requiring Actions write without broadening Contents permissions. It also removes the obsolete repository_dispatch trigger so there is only one supported launch path.
-- Regression coverage verifies the endpoint, main ref, and workflow trigger. This change does not dispatch a workflow during tests or deployment.
-- Historical version 3 deployment notes below are retained as history; the latest live version 4 observation is recorded in the current operational handoff. Verify production source after merging this patch before claiming deployment.
-- No real model training has started; no weights or persistent checkpoints have been changed.
+- PR [#80](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/80) merged to `main` at `28d192221df13ff718dd273a58974d33f09c317e`; all three required checks passed: preflight, training-prototype validation, and the full test suite.
+- The production Supabase `training-control` Edge Function is **ACTIVE, version 5**, with `verify_jwt=true`.
+- The deployed function source was fetched after deployment and matched `supabase/functions/training-control/index.ts` on GitHub `main` exactly.
+- The launch adapter now calls GitHub's `workflow_dispatch` endpoint for `cpu-diagnostic.yml`. The obsolete `repository_dispatch` route is removed. This uses the intended Actions write permission without requiring Contents write.
+- Owner-only **Check connection** passed in the owner's browser: owner verification is active and the GitHub token is present. This confirms configuration presence, not successful GitHub API authorization.
+- The next live integration check is owner-only **Refresh status**. It must successfully read the CPU diagnostic workflow runs before any diagnostic dispatch is considered.
+- No diagnostic was launched and no model training was started. No weights or persistent checkpoints were changed.
 
+## Immediate next steps
+
+1. Verify owner-only **Refresh status** succeeds against GitHub Actions using the configured fine-grained token.
+2. If it succeeds, review the returned workflow status and run link; only then perform a separately confirmed CPU diagnostic dispatch/cancellation test.
+3. Complete the dashboard's responsive, accessibility, stale-response, and browser-console checks. The current patch adds a guard so a delayed private status response cannot repaint the page after sign-out or an owner-mode transition.
+4. Continue the security matrix: invalid/expired JWT, non-owner denial, public dispatch denial, and secret non-disclosure.
+5. Keep real training disabled until the complete readiness matrix passes and the owner separately authorizes a tiny overfit experiment.
 
 ## Authoritative model baseline correction
 
