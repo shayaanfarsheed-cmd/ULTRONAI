@@ -129,7 +129,7 @@ def main() -> None:
             require("HINT 1" in page.locator("#tutorHint").inner_text(), "Progressive tutor hint did not appear.")
             question = page.locator("#tutorQuestion").inner_text()
             topic_label = page.locator("#tutorTopic").inner_text()
-            topic = page.evaluate("(label) => Object.entries(ULTRON_MATH_AGENT.TOPICS).find(([, value]) => label.startsWith(value.label))?.[0]", topic_label)
+            topic = page.evaluate("(label) => Object.entries(ULTRON_MATH_AGENT.TOPICS).find(([, value]) => label.toLowerCase().startsWith(value.label.toLowerCase()))?.[0]", topic_label)
             expected = page.evaluate("({topic, question}) => ULTRON_MATH_AGENT.solve(topic, question).answer", {"topic": topic, "question": question})
             page.locator("#tutorAnswer").fill(expected)
             page.locator("#tutorAnswerForm button[type=submit]").click()
