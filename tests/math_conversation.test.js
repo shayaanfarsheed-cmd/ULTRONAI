@@ -104,3 +104,13 @@ test("ordinary English use of the word mean does not force statistics routing", 
   assert.equal(result.kind, "clarification");
   assert.match(result.message, /Which maths topic/);
 });
+
+test("returned solutions and history snapshots cannot mutate stored steps", () => {
+  const chat = conversation.createConversation(agent);
+  const result = chat.reply("What is 2 + 2?");
+  const originalStep = chat.getHistory()[1].steps[0];
+  result.steps[0] = "tampered result";
+  const snapshot = chat.getHistory();
+  snapshot[1].steps[0] = "tampered snapshot";
+  assert.equal(chat.getHistory()[1].steps[0], originalStep);
+});
