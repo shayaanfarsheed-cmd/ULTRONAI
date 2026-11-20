@@ -1,3 +1,27 @@
+## Early baseline, evaluation and compute-readiness plan — 2026-11-20
+
+This plan is approved for implementation on the follow-up branch `feat/early-baseline-and-ood-readiness`. It is deliberately separate from PR #68 and is stacked on PR #68's current head.
+
+- **Early tiny learning experiment:** add a bounded, manual-only CPU workflow that trains the approximately 4M baseline from random initialization on about 100 fixed examples until it substantially overfits. Record initial/final training loss, steps, elapsed time, model parameter count, and a held-out sanity check. Store artifacts only as short-lived workflow artifacts; do not write Supabase checkpoints, production run state, or release weights. This experiment proves the loop can fit a tiny sample, not general mathematical competence.
+- **Model order:** the 4M baseline is the first candidate for actual training. Candidate 5 is considered only after baseline evaluation shows a concrete reason to spend the additional compute/storage, and it must beat the baseline on identical frozen evaluations.
+- **Fresh training examples:** implement an on-the-fly training stream that derives fresh per-example seeds from a checkpointed RNG state and never samples from validation/test pools. Keep validation, canonical held-out, and test data on fixed versioned seeds/artifacts so comparisons remain repeatable. Preserve generator/RNG/sampler state in checkpoints for exact resume.
+- **Step-by-step targets:** training completions must include the generated solution steps followed by the final answer. The current `format_example` / `encode_example` path already targets both; add regression coverage to prevent accidental answer-only targets.
+- **Out-of-distribution evaluation:** add a frozen, independently checked test fixture using larger operands and different natural-language phrasings from the training templates. Keep it evaluation-only and prohibit it from training/curriculum sampling.
+- **Compute provider checks moved earlier:** before locking Stage 5 architecture/resource assumptions, validate the only currently configured remote training provider (GitHub Actions CPU): manual dispatch, runner startup, Python/PyTorch install, resource reporting, read-only backend connectivity, and safe preflight/abort. Colab remains manual-only. Do not assume provider availability or quotas; do not bypass limits.
+- **Security:** keep Supabase Edge Function JWT verification enabled. Add behavioral tests for missing/invalid JWT, authenticated non-owner, and owner access; verify the public dashboard cannot invoke owner-only start/stop operations. Static source-string checks are not sufficient evidence of deployed authorization. Deployment verification remains separate and must not change production secrets or Edge Function settings without explicit authorization.
+- **Ordering:** PR #68 review/approval first; then compute-provider/remote-start preflight; then the on-the-fly stream, frozen OOD fixture, and early 100-example baseline experiment; then finish the dashboard and production security validation; then full readiness review. Full training remains blocked until all gates pass and the owner explicitly authorizes it.
+- **No full training has started.** The tiny overfit experiment is a bounded diagnostic only and must be manually triggered after its PR is reviewed and merged. It must not update the production model or production checkpoint store.
+
+### Follow-up branch handoff
+
+1. Finish code review and obtain explicit approval before merging PR #68.
+2. Implement and test the compute-provider preflight before finalizing resource/architecture assumptions.
+3. Implement the seeded on-the-fly stream with checkpointable RNG/sampler state and deterministic fixed-seed evaluation datasets.
+4. Add frozen OOD examples with larger values and alternate phrasings; independently verify their answers and steps.
+5. Add a manual-only 4M baseline 100-example overfit workflow with bounded steps, isolated output and explicit no-production-storage assertions.
+6. Add behavioral JWT/owner authorization tests and public-dashboard denial tests; verify `verify_jwt = true` in the deployment configuration.
+7. Run CI and review the PR. Do not merge without explicit approval and do not start full training.
+
 ## Exponent tokenizer compatibility repair — PR #68 (2026-11-20)
 
 - The next CI run exposed that generated exponent examples contain the caret character `^`, which was also missing from the character tokenizer.
