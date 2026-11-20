@@ -146,7 +146,7 @@ class TrainingControlSecurityContractTests(unittest.TestCase):
     def test_readme_records_live_training_control_version_six(self):
         readme = (ROOT / "README.md").read_text()
         latest = readme.split("## Latest verified status", 1)[1].split("\n## ", 1)[0]
-        self.assertIn("PR #90", latest)
+        self.assertIn("PR [#90]", latest)
         self.assertIn("version 6", latest)
         self.assertIn("verify_jwt=true", latest)
         self.assertIn("source matches exactly", latest)
@@ -170,6 +170,12 @@ class TrainingControlSecurityContractTests(unittest.TestCase):
         self.assertIn('return safeError("Invalid server target.", 400, origin);', source)
         self.assertNotIn("body.action", source)
         self.assertNotIn("body.server_id", source)
+
+    def test_supabase_edge_function_is_typechecked_in_preflight(self):
+        workflow = (ROOT / ".github/workflows/preflight-tests.yml").read_text()
+        self.assertIn("uses: denoland/setup-deno@v2", workflow)
+        self.assertIn("deno-version: v2.9.8", workflow)
+        self.assertIn("deno check supabase/functions/training-control/index.ts", workflow)
 
     def test_github_token_secret_is_absent_from_all_dashboard_assets(self):
         for path in (

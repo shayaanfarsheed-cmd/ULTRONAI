@@ -1,11 +1,12 @@
 # ULTRON — current project status (2026-11-20)
 
-## Latest verified status — PR #90 merged; training-control version 6 deployed
+## Latest verified status — PR #91 merged; Supabase version 6 recorded
 
-- PR [#89](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/89) merged at `f2c09d500a6d9ef7b60e91e0df31dd506caf9b61`; all three required checks passed. Regression coverage asserts invalid/expired owner sessions return 401, non-owners return 403, origin/method restrictions are enforced, and the GitHub token secret name is absent from browser assets.
 - PR [#90](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/90) merged at `453667bfe79076d06c02c5172cebf30a471fdceb`; all three required checks and post-merge test, preflight and Pages deployment passed.
-- Supabase `training-control` is **ACTIVE, version 6**, with `verify_jwt=true`. The deployed `index.ts` was fetched and compared byte-for-byte with GitHub `main`; the source matches exactly.
-- Request parsing now rejects JSON null, arrays, primitives, missing/non-string actions, and non-string server IDs with safe HTTP 400 responses before action routing. The 4 KiB request limit remains enforced.
+- PR [#91](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/91) merged at `27bcb24cb9b321b4fc355bf9535b35c01682cb89`; all three required checks and post-merge test, preflight and Pages deployment passed.
+- Supabase `training-control` is **ACTIVE, version 6**, with `verify_jwt=true`. Its deployed `index.ts` was fetched and compared byte-for-byte with GitHub `main`; the source matches exactly.
+- Request parsing rejects JSON null, arrays, primitives, missing/non-string actions, and non-string server IDs with safe HTTP 400 responses before action routing. The 4 KiB request limit remains enforced.
+- Current CI improvement adds a pinned Deno 2.9.8 type-check for the Supabase Edge Function in preflight, so backend TypeScript errors are caught before merge.
 - Device access is browser-based remote control for iPadOS, iOS, Android, desktop and tablets. Compute runs on the selected remote provider; device pairing and local model runtime are not used.
 - The Settings RAM slider is a browser-local preference. It is not sent to a remote training process and does not cap hosted-runner RAM or GPU VRAM.
 - GitHub Actions remote controls remain limited to safe CPU diagnostics. Google Colab remains manual-only. Actual model training has not started.
