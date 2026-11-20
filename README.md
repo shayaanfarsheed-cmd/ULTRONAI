@@ -1,11 +1,13 @@
 # ULTRON — current project status (2026-11-20)
 
-## Latest verified status — PR #85 merged; remote device access clarified
+## Latest verified status — PR #86 merged; remote RAM preference wording aligned
 
-- PR [#84](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/84) merged at `47b0e4bd73d6db26944575c372fa2fd77fbe6ec1`; its compact-screen header fix passed the main-branch checks and Pages deployment.
-- PR [#85](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/85) merged at `312aa5c5673f6ea3ce4b99bdb10508ed663749d9`; all three required PR checks passed. Post-merge test suite, preflight and GitHub Pages deployment also passed.
-- Device access now describes the dashboard as a browser-based remote console for iPadOS, iOS, Android, desktop and tablets. Compute is remote; device pairing and local model runtime are not used.
-- The Settings RAM slider is a browser-local preference. It is not sent to a remote training process and does not cap hosted-runner RAM or GPU VRAM. PR #86 is aligning the Settings explanatory paragraph with this same behavior.
+- PR [#84](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/84) merged at `47b0e4bd73d6db26944575c372fa2fd77fbe6ec1`; compact-screen header layout passed post-merge checks and Pages deployment.
+- PR [#85](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/85) merged at `312aa5c5673f6ea3ce4b99bdb10508ed663749d9`; all three PR checks and post-merge test, preflight and Pages deployment passed.
+- PR [#86](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/86) merged at `951fef13eb2221d02d235a109eb6bfe8a6539e5f`; all three PR checks and post-merge test, preflight and Pages deployment passed.
+- Device access describes the dashboard as a browser-based remote console for iPadOS, iOS, Android, desktop and tablets. Compute is remote; device pairing and local model runtime are not used.
+- The Settings RAM slider is a browser-local preference. It is not sent to a remote training process and does not cap hosted-runner RAM or GPU VRAM. The Settings explanation now states this consistently.
+- Current work preserves a 44px minimum touch target for the mobile header's owner sign-in and theme controls.
 - GitHub Actions remote controls remain limited to safe CPU diagnostics. Google Colab remains manual-only. Actual model training has not started.
 - Supabase `training-control` remains **ACTIVE, version 5**, with `verify_jwt=true`.
 - No diagnostic was launched, no model training was started, and no weights or persistent checkpoints were changed.
