@@ -59,7 +59,7 @@ class TrainingControlSecurityContractTests(unittest.TestCase):
         self.assertIn("github_token_configured: Boolean(Deno.env.get(\"ULTRON_GITHUB_TOKEN\"))", health_block)
         self.assertNotIn("token:", health_block)
         self.assertIn('return safeError("GitHub integration is not configured.', source)
-        self.assertIn("}, 503, origin);", source)
+        self.assertIn('return safeError("GitHub integration is not configured. Add the server-side ULTRON_GITHUB_TOKEN secret.", 503, origin);', source)
 
     def test_upstream_failures_do_not_echo_upstream_details_to_clients(self):
         source = (ROOT / "supabase/functions/training-control/index.ts").read_text()
