@@ -79,3 +79,21 @@ test("history copies cannot mutate internal conversation state", () => {
   history[0].text = "tampered";
   assert.notEqual(chat.getHistory()[0].text, "tampered");
 });
+
+test("conversation supports every registered topic through its canonical topic prefix", () => {
+  for (const topic of agent.TOPIC_KEYS) {
+    const chat = conversation.createConversation(agent);
+    const sample = agent.generate(topic, 37);
+    const result = chat.reply(topic.replace(/_/g, " ") + ": " + sample);
+    assert.equal(result.kind, "solution", topic + " should route and solve");
+    assert.equal(result.verified, true, topic + " should pass independent verification");
+  }
+});
+
+test("simple integer division is routed as arithmetic rather than a fraction", () => {
+  const chat = conversation.createConversation(agent);
+  const result = chat.reply("What is 12 / 3?");
+  assert.equal(result.kind, "solution");
+  assert.equal(result.answer, "4");
+  assert.equal(result.verified, true);
+});
