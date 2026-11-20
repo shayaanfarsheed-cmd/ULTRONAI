@@ -359,7 +359,7 @@ def solve_question(topic: str, question: str) -> dict[str, Any]:
             raise AgentInputError("Median/range requires exactly five values")
         median, spread = values[2], values[-1] - values[0]
         rendered = ", ".join(str(value) for value in values)
-        answer = f"median={median}, range={spread}"
+        answer = f"median={median}; range={spread}"
         steps = [
             f"Step 1: Sort the five values: {rendered}.",
             f"Step 2: The middle value is {median}, and the range is {values[-1]} - {values[0]} = {spread}.",
