@@ -180,7 +180,8 @@ body[data-theme="light"] .topbar { background: rgba(255, 255, 255, .78); }
 .page-heading { margin-bottom: 24px; align-items: flex-end; }
 .page-heading h1 { margin: 7px 0 4px; font-size: clamp(25px, 3vw, 34px); letter-spacing: -.04em; }
 .page-heading p { margin: 0; }
-.view-section { display: grid; gap: 18px; }
+.view-section { display: grid; gap: 18px; min-width: 0; width: 100%; }
+.view-section > * { min-width: 0; max-width: 100%; }
 .next-action { padding: 24px; border-color: var(--line-strong); background: linear-gradient(125deg, var(--surface), rgba(75, 7, 22, .22)); }
 .next-action h2 { font-size: clamp(20px, 2.5vw, 27px); margin: 8px 0 6px; letter-spacing: -.035em; }
 .next-action p { color: var(--muted); margin: 0; font-size: 13px; line-height: 1.6; }
