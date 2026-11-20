@@ -1,5 +1,9 @@
 # ULTRON — current project status (2026-11-20)
 
+## Overall ULTRON completion estimate — 2026-11-20
+
+**Estimated whole-project completion: 25%.** This is a milestone-based engineering estimate, not a line-count or feature-count metric. It includes the website, security, data pipeline, model, evaluation, compute/recovery, testing and release readiness. The estimate is deliberately conservative: the dashboard and substantial foundations exist, but physical-device verification and live security checks remain open; conversational mathematics is only at Stage 1; the neural model has not been trained; production training readiness is not established. Increase this figure only when substantial work is implemented and independently validated. Report this estimate in every progress update and revise it when evidence changes.
+
 ## Legacy pull-request reconciliation — 2026-11-20
 
 The legacy PR backlog was reviewed against `main` at `346b36a940f5f662c07bc3b07e741c731be625a4`.
