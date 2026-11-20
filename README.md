@@ -2,6 +2,13 @@
 
 **Current phase:** Phase 2 compute diagnostics completed; production-safe remote-control function deployed for diagnostic-only operations. No real training is authorized or started.
 
+## Dashboard wording correction — diagnostic stop behavior
+
+- Corrected the Stop confirmation: it now accurately says it cancels the CPU diagnostic and does not create, modify, or delete checkpoints.
+- Removed the misleading suggestion that a training checkpoint may be retained; the remotely controlled workflow is diagnostic-only and never runs training.
+- Added a regression test to prevent this mismatch from returning.
+- This is a UI copy and test change only. No production function, secrets, database, checkpoints, model weights, or training state changed.
+
 ## Latest verified milestone — production Edge Function deployment
 
 - Supabase project: `ultron-memory` (`euhmejpaswmdpsutbtse`), status `ACTIVE_HEALTHY`.

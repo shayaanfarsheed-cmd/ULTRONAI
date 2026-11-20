@@ -118,7 +118,7 @@
 
   async function stop() {
     const selectedServer = $("trainingServerSelect").value;
-    const confirmation = "Cancel the currently queued or running ULTRON GitHub Actions workflow? The latest durable checkpoint will be retained if the training process has committed one.";
+    const confirmation = "Cancel the currently queued or running ULTRON CPU diagnostic? This diagnostic does not train the model or create, modify, or delete checkpoints.";
     if (busy || !window.confirm(confirmation)) return;
     busy = true;
     $("trainingStopButton").disabled = true;
