@@ -25,11 +25,11 @@ test("frozen held-out foundation set is independently solved and scored",()=>{
  const dataset=require("../evaluation/heldout_foundation_v1.json");
  const report=agent.evaluateHeldout(dataset);
  assert.equal(report.datasetId,"ultron-heldout-foundation-v1");
- assert.equal(report.total,14);
- assert.equal(report.passed,14);
+ assert.equal(report.total,dataset.examples.length);
+ assert.equal(report.passed,dataset.examples.length);
  assert.equal(report.failed,0);
  assert.equal(report.accuracy,1);
- assert.equal(new Set(report.cases.map(item=>item.sampleId)).size,14);
+ assert.equal(new Set(report.cases.map(item=>item.sampleId)).size,dataset.examples.length);
 });
 test("held-out evaluation rejects altered, duplicate, or non-test datasets",()=>{
  const dataset=require("../evaluation/heldout_foundation_v1.json");
