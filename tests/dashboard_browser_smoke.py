@@ -120,6 +120,30 @@ def main() -> None:
                 "Conversation reset did not clear the transcript.",
             )
 
+            # Stage 3 tutor: hints, independent checking, session mastery and axiom research.
+            require(page.locator("#tutorQuestion").is_visible(), "Guided practice panel did not load.")
+            require("foundation difficulty" in page.locator("#tutorTopic").inner_text(), "Tutor difficulty disclosure is missing.")
+            page.locator("#tutorHintButton").click()
+            require("HINT 1" in page.locator("#tutorHint").inner_text(), "Progressive tutor hint did not appear.")
+            question = page.locator("#tutorQuestion").inner_text()
+            topic_label = page.locator("#tutorTopic").inner_text()
+            topic = page.evaluate("(label) => Object.entries(ULTRON_MATH_AGENT.TOPICS).find(([, value]) => label.startsWith(value.label))?.[0]", topic_label)
+            expected = page.evaluate("({topic, question}) => ULTRON_MATH_AGENT.solve(topic, question).answer", {"topic": topic, "question": question})
+            page.locator("#tutorAnswer").fill(expected)
+            page.locator("#tutorAnswerForm button[type=submit]").click()
+            require("Correct" in page.locator("#tutorFeedback").inner_text(), "Tutor did not accept independently verified correct answer.")
+            require("100%" in page.locator("#tutorMastery").inner_text(), "Tutor mastery did not update after a correct attempt.")
+            page.locator("#tutorResetButton").click()
+            require("Session turn 0" in page.locator("#tutorSessionStatus").inner_text(), "Tutor reset did not clear session mastery.")
+
+            page.locator("#axiomSearch").fill("Kolmogorov")
+            require("3 /" in page.locator("#axiomCount").inner_text(), "Axiom bank search did not find the three probability axioms.")
+            page.locator("#axiomResults").get_by_role("button", name="PROB-03").click()
+            require("pairwise-disjoint" in page.locator("#axiomDetail").inner_text(), "Axiom detail omitted the disjointness condition.")
+            require("Research source" in page.locator("#axiomDetail").inner_text(), "Axiom research references are missing.")
+            page.locator("#axiomSearch").fill("not-a-real-axiom")
+            require("No matching axioms" in page.locator("#axiomResults").inner_text(), "Axiom bank empty search state is missing.")
+
             # RAM preference is local, persists after reload, and explicitly does not control hosted memory.
             page.locator('[data-view="settings"]').click()
             slider = page.locator("#ramLimitSlider")
