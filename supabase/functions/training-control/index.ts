@@ -36,9 +36,11 @@ function summarizeRun(run: Record<string, unknown> | undefined, fallbackName: st
     conclusion: run.conclusion, html_url: run.html_url, created_at: run.created_at,
     updated_at: run.updated_at, event: run.event };
 }
-async function dispatch(eventType: string, serverId: string, requestId: string) {
-  await githubRequest("/repos/" + REPOSITORY + "/dispatches", "POST", {
-    event_type: eventType, client_payload: { request_id: requestId, server_id: serverId, requested_at: new Date().toISOString() },
+async function dispatchWorkflow(workflowPath: string) {
+  // Use workflow_dispatch so the fine-grained token needs Actions: write only.
+  // repository_dispatch requires Contents: write, which is intentionally not granted.
+  await githubRequest("/repos/" + REPOSITORY + "/actions/workflows/" + workflowPath + "/dispatches", "POST", {
+    ref: "main",
   });
 }
 Deno.serve(async (req: Request) => {
@@ -86,13 +88,13 @@ Deno.serve(async (req: Request) => {
     }
     if (body.action === "start") {
       const id = body.server_id || CPU_SERVER_ID;
-      const eventType = id === CPU_SERVER_ID ? "ultron-cpu-diagnostic" : "";
-      if (!eventType) return safeError("That provider does not have a remote launch adapter.", 409, origin);
+      const workflowPath = id === CPU_SERVER_ID ? CPU_WORKFLOW_PATH : "";
+      if (!workflowPath) return safeError("That provider does not have a remote launch adapter.", 409, origin);
       const cpuRuns = await listRuns(CPU_WORKFLOW_PATH);
       const active = cpuRuns.find(run => run.status === "queued" || run.status === "in_progress");
       if (active) return response({ ok: false, error: "Another ULTRON remote launch workflow is already queued or running.", run: summarizeRun(active, "ULTRON CPU Diagnostic") }, 409, origin);
       const requestId = crypto.randomUUID();
-      await dispatch(eventType, id, requestId);
+      await dispatchWorkflow(workflowPath);
       return response({ ok: true, accepted: true, request_id: requestId, message: "GitHub Actions accepted the safe CPU diagnostic request. It measures runner resources and installs CPU PyTorch; it does not start training or touch checkpoints." }, 202, origin);
     }
     if (body.action === "stop") {
