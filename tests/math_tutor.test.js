@@ -119,5 +119,5 @@ test("submitted working is acknowledged but not assigned an unsupported misconce
   const result = tutor.diagnose("fractions", "Calculate: (1/3) + (1/6)", "2/3", ["1/3 + 1/6 = 2/3"]);
   assert.equal(result.status, "incorrect_work_submitted");
   assert.equal(result.misconception, null);
-  assert.match(result.diagnosisLimit, /not yet classify/);
+  assert.match(result.diagnosisLimit, /No misconception label is assigned/);
 });
