@@ -21,6 +21,12 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v5
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.9.8
+      - name: Type-check Supabase training control
+        run: deno check supabase/functions/training-control/index.ts
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
