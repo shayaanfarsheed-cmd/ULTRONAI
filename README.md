@@ -1,27 +1,28 @@
 # ULTRON — current project status (2026-11-20)
 
-## Latest verified status — PR #96 WebKit mobile overflow repair in progress
+## Latest verified status — PR #96 merged and deployed
 
-- PR [#95](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/95) merged at `c59195d260fa02b38ebbf0d97459d063ec05db53`; all four required checks passed and GitHub Pages deployed successfully.
-- PR [#96](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/96) adds Playwright WebKit coverage alongside Chromium for the browser engine used by iPad Safari. Chromium passed; the first WebKit run exposed a genuine Settings overflow at 320px.
-- Root cause: the RAM panel heading's non-wrapping status pill and the RAM value row's flex sizing imposed a minimum content width that expanded the panel to 387px on a 320px viewport.
-- The repair makes the RAM panel and its flex children shrinkable, allows the heading/status pill and value row to wrap, and adds explicit WebKit/Chromium geometry assertions for the RAM panel and slider at every responsive viewport.
-- The browser smoke suite still checks Guest Mode, all 11 navigation views, RAM preference persistence/disclosure, optional owner sign-in dialog, theme toggle, 44px touch targets, six viewport widths, browser/console errors and unexpected external requests.
-- The Settings RAM slider is a browser-local preference. It is not sent to a remote training process and does not cap hosted-runner RAM or GPU VRAM.
-- Supabase `training-control` is **ACTIVE, version 6**, with `verify_jwt=true`. Its deployed `index.ts` source matches exactly with GitHub `main` (previously verified byte-for-byte).
-- Preflight includes the Deno type-check with pinned Deno 2.9.8: `deno check supabase/functions/training-control/index.ts`.
-- GitHub Actions remote controls remain limited to safe CPU diagnostics. Google Colab remains manual-only. Actual model training has not started.
-- Still pending: all PR #96 checks passing, physical iPad/phone visual verification, and owner-only **Refresh status** from the signed-in owner's browser to verify GitHub API permissions.
-- No diagnostic was launched, no model training was started, and no weights or persistent checkpoints were changed.
+- PR [#96](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/96) merged to `main` at `397199389a1c829ff3107cff5560a2c27516fd9a`.
+- The PR adds Playwright WebKit coverage beside Chromium and fixes the genuine 320px Settings overflow: the RAM panel heading/status pill and value row now wrap without forcing a 387px minimum width.
+- Browser smoke checks passed in **Chromium and WebKit**, including all 11 navigation views, Guest Mode, optional owner sign-in dialog, local RAM preference persistence/disclosure, theme toggle, 44px touch targets, and no horizontal overflow at 320, 360, 390, 768, 1024 and 1366px. The RAM panel and slider receive explicit geometry assertions at every width.
+- The complete post-merge **ULTRON Test Suite** passed (236 unit tests, static JavaScript checks, JSON/notebook validation, secret scan, Python compilation, model/data/checkpoint/training smoke checks).
+- The complete post-merge **ULTRON preflight** passed, including Deno 2.9.8 type-check, 236 unit tests, model parameter-count verification, generated mathematics checks, checkpoint save/restore, training-loop smoke test and platform preflight.
+- The **GitHub Pages build and deployment succeeded** for the exact merge commit. Dashboard: [https://shayaanfarsheed-cmd.github.io/ULTRONAI/](https://shayaanfarsheed-cmd.github.io/ULTRONAI/).
+- The pre-merge **Training Prototype Validation** also passed: configuration, unit/recovery tests, and bounded data/checkpoint/optimizer smoke tests.
+- The dashboard contains 11 views: Overview, How ULTRON learns, Data library, Ask ULTRON, Math Agent, Activity, Training control, Device access, Servers, Checkpoints and Settings. Guest browsing is public; private owner operations remain separately gated.
+- The Settings RAM slider is a **browser-local preference**. It does not control hosted-runner RAM or GPU VRAM. Device access is browser-based; device pairing/local training agents are not used.
+- Supabase `training-control` remains **ACTIVE, version 6**, with `verify_jwt=true`; deployed source was previously compared byte-for-byte with GitHub `main`.
+- Remote launch remains limited to the owner-confirmed GitHub Actions CPU diagnostic. Google Colab remains manual-only. **Actual model training has not started.**
+- Remaining manual gates: open the deployed dashboard on a physical iPad/phone, use owner-only **Refresh status** from the signed-in owner's browser to verify GitHub API permissions, and complete live production security checks for invalid/expired JWTs, non-owner denial, public dispatch denial and secret non-disclosure.
+- No diagnostic was launched, no model training was started, and no weights or persistent checkpoints were modified during this work.
 
 ## Immediate next steps
 
-1. Run Chromium and WebKit browser smoke after the mobile layout repair; investigate and fix any remaining failure rather than relaxing assertions.
-2. Review the final PR #96 diff and merge only when every required check passes.
-3. Perform a manual visual smoke test on a real iPad and phone; browser emulation does not replace physical-device verification.
-4. Run owner-only **Refresh status** in the signed-in owner's browser to verify GitHub API permissions.
-5. Complete live production security checks for invalid/expired JWTs, non-owner denial, public dispatch denial and secret non-disclosure.
-6. Finish model, dataset, evaluation, checkpoint recovery and training-resource readiness audits. Keep actual training disabled until the owner separately authorizes a tiny overfit experiment.
+1. Perform the physical iPad and phone visual/accessibility smoke test; emulated WebKit is not a substitute for real-device verification.
+2. Run owner-only **Refresh status** in the signed-in owner's browser and verify the expected GitHub API permissions without exposing the token.
+3. Complete the production security matrix: invalid/expired JWT, non-owner, untrusted origin, public dispatch denial and secret non-disclosure.
+4. Finish model/dataset/evaluation/checkpoint recovery and training-resource readiness audits.
+5. Keep real training disabled until all readiness gates pass and the owner separately authorizes a tiny overfit experiment.
 
 ## Latest verified status — PR #83 merged; responsive navigation improved
 
