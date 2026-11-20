@@ -961,3 +961,27 @@ The tokenizer vocabulary is now 80 characters after adding the semicolon and exp
 - Secret values are not readable through the connected project tools. Their presence cannot be independently verified from this environment, and no secret was created, rotated, or exposed.
 - Once the owner configuration is corrected and the updated function is deployed, run Check connection again. A successful health response then separately reports whether ULTRON_GITHUB_TOKEN is present. Only after that should GitHub Status be tested for token permissions.
 - Do not weaken owner checks, place credentials in dashboard JavaScript, or start a compute workflow while configuration remains unverified. No model training or checkpoint changes occurred.
+
+
+## Stage 3 — Diagnosis, teaching and researched Axiom Bank (in progress)
+
+Branch: `feature/diagnosis-and-adaptive-teaching`, based on main commit `c14228c66f3ddbe2d6a3091259d8e21cc9eb7706`.
+
+Implemented in this branch:
+- Added `dashboard/math-tutor.js`: a session-only tutor with an 18-topic prerequisite graph, prerequisite readiness, weakest-topic selection, review-due prioritization, progressive hints from deterministic solver knowledge, independent final-answer checking, conservative mistake diagnosis, attempt/mastery/streak tracking and spaced review intervals of 1, 2, 4, 8 and 16 session turns.
+- Mistake diagnosis explicitly refuses to infer a misconception from a wrong final answer alone. Even when working is submitted, this first release does not classify step-level error patterns.
+- Adaptive practice selects topics only. Difficulty remains fixed at the existing foundation level; it is not represented as adaptive difficulty.
+- Mastery and review state are held in memory only. No questions, answers, mastery history or learner profile are written to localStorage, Supabase, account history or training data.
+- Added a searchable Axiom Bank in `dashboard/axiom-bank.js` with formal-system scope, domain, formal statement, explanation, teaching note and research references. Initial coverage includes Peano natural-number axioms, field axioms, ordered-field axioms, real completeness, Euclid's five postulates, Kolmogorov probability axioms and ZFC set theory (including schemas and Choice).
+- Added `docs/AXIOM_BANK_RESEARCH.md` describing sources, scope and limitations. The bank distinguishes axioms from definitions and theorems; it does not claim that the current rule-based solver derives its answers from formal axioms.
+- Added the dashboard tutor and axiom-bank panels, responsive styles, search/details UI, Node tests and CI syntax checks.
+
+Research sources used include University of Florida and Toho University Peano notes; UIC, Portland State and LibreTexts real-number/ordered-field notes; University of Glasgow and Euclid's Elements geometry references; Cambridge University Press and Boston University probability notes; and the Stanford Encyclopedia of Philosophy and TU Darmstadt ZFC notes. The detailed source URLs and findings are recorded in `docs/AXIOM_BANK_RESEARCH.md`.
+
+Important boundaries:
+- The Axiom Bank is a curated educational reference catalog, not yet a formal proof assistant.
+- A topic-to-axiom association is a teaching hint, not a machine-checked derivation.
+- The existing structured reasoning kernel independently verifies final answers and deterministic replay; it does not formally prove intermediate natural-language steps.
+- No model training, model-weight changes, dataset changes, checkpoint writes, Supabase deployment or external AI API use occurred.
+
+Next: run all Node/Python tests and Chromium/WebKit browser smoke tests; fix every failure; review the complete diff; open a PR; merge only if all required checks pass. Then continue with Stage 4 integration and proof-kernel planning. Keep the overall project completion estimate conservative; do not increase it until the complete Stage 3 implementation passes independent validation.
