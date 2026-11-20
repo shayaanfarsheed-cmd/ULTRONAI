@@ -1,0 +1,13 @@
+.axiom-bank-panel { display: grid; gap: 16px; }
+.axiom-bank-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.axiom-bank-toolbar input { flex: 1 1 220px; min-width: 0; min-height: 44px; padding: 10px 12px; color: var(--text); background: var(--bg); border: 1px solid var(--line-strong); border-radius: 10px; font: inherit; }
+.axiom-bank-layout { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 14px; }
+.axiom-results { display: grid; align-content: start; gap: 7px; max-height: 390px; overflow: auto; }
+.axiom-result { padding: 10px 12px; text-align: left; color: var(--text); background: var(--surface-2); border: 1px solid var(--line); border-radius: 9px; overflow-wrap: anywhere; font: inherit; font-size: .82rem; cursor: pointer; }
+.axiom-result:hover, .axiom-result:focus-visible { border-color: var(--red); outline: none; }
+.axiom-detail { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); overflow-wrap: anywhere; }
+.axiom-detail h3 { margin-top: 0; }
+.axiom-formal { padding: 12px; border-left: 3px solid var(--red); background: var(--surface-3); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; line-height: 1.6; }
+.axiom-source-list { padding-left: 20px; }
+.axiom-source-list a { color: var(--text); }
+@media (max-width: 760px) { .axiom-bank-layout { grid-template-columns: minmax(0, 1fr); } .axiom-results { max-height: 240px; } }
