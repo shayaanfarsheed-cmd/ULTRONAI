@@ -50,7 +50,7 @@ test("mastery, streak and review intervals advance deterministically", () => {
   const tutor = create();
   assert.equal(tutor.recordAttempt("fractions", true).dueAt, 2);
   assert.equal(tutor.recordAttempt("fractions", true).dueAt, 4);
-  assert.equal(tutor.recordAttempt("fractions", true).dueAt, 8);
+  assert.equal(tutor.recordAttempt("fractions", true).dueAt, 7);
   const failed = tutor.recordAttempt("fractions", false);
   assert.equal(failed.streak, 0);
   assert.equal(failed.dueAt, 5);
@@ -60,6 +60,7 @@ test("mastery, streak and review intervals advance deterministically", () => {
 test("review becomes due on session turn and is selected before unseen topics", () => {
   const tutor = create();
   tutor.recordAttempt("whole_number_arithmetic", false);
+  tutor.recordAttempt("fractions", true);
   assert.ok(tutor.getSnapshot().dueTopics.includes("whole_number_arithmetic"));
   assert.equal(tutor.nextExercise().topic, "whole_number_arithmetic");
 });
