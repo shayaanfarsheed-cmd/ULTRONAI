@@ -1,5 +1,9 @@
 # ULTRON — current project status (2026-11-20)
 
+## Overall ULTRON completion estimate — 2026-11-20
+
+**Estimated whole-project completion: 25%.** This is a milestone-based engineering estimate, not a line-count or feature-count metric. It includes the website, security, data pipeline, model, evaluation, compute/recovery, testing and release readiness. The estimate is deliberately conservative: the dashboard and substantial foundations exist, but physical-device verification and live security checks remain open; conversational mathematics is only at Stage 1; the neural model has not been trained; production training readiness is not established. Increase this figure only when substantial work is implemented and independently validated. Report this estimate in every progress update and revise it when evidence changes.
+
 ## Legacy pull-request reconciliation — 2026-11-20
 
 The legacy PR backlog was reviewed against `main` at `346b36a940f5f662c07bc3b07e741c731be625a4`.
@@ -10,14 +14,26 @@ The legacy PR backlog was reviewed against `main` at `346b36a940f5f662c07bc3b07e
 - Future code changes must start from current `main`, port only still-valid functionality, add regression tests, update this README, and require fresh CI plus exact-diff review before merge.
 
 
-## Combined reasoning and evaluation architecture — PR in progress
+## Combined reasoning and evaluation architecture — PR #99 merged
 
 - PR #54's conversational reasoning, formal axioms/proofs, structured problem pipeline, verifier-first response contract, teaching, memory and staged delivery design is being retained in `docs/CONVERSATIONAL_REASONING_ARCHITECTURE.md`.
 - PR #37's held-out evaluation goals are integrated into that architecture, but its older 42-question fixture and duplicate model-evaluation CLI are intentionally not copied.
 - Current `main` already has a frozen 18-example / 18-topic held-out fixture (`evaluation/heldout_foundation_v1.json`), independent dataset validation, and a read-only explicit-prediction scorer (`ultron_evaluation.py`). The missing integration is a separately versioned model-inference adapter feeding predictions to that scorer; the scorer must remain read-only.
-- This is architecture/evaluation planning only. No training, inference job, weight/checkpoint update, dataset mutation, production configuration change or Supabase deployment is authorized or performed.
-- Combined work is being developed on a fresh branch from the current `main`; the old PR branches are not merged.
+- The merged PR changed documentation only. No training, inference job, weight/checkpoint update, dataset mutation, production configuration change or Supabase deployment was performed.
+- PR [#99](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/99) merged to `main` at `d087a9bc564556709ee7b457124997da236bef5e`. The combined reasoning/evaluation architecture is now part of `main`.
 
+
+## Conversational mathematics shell — implementation in progress
+
+- The next implementation stage adds a browser-local conversational layer over the existing deterministic math solver. It does not claim that the untrained transformer powers these answers.
+- The conversation manager routes simple arithmetic, recognizes explicitly named foundation topics, asks a clarification when it cannot identify a supported question, and retains at most 20 user/assistant turns in memory.
+- Each supported solution is passed through the existing independent verifier. Unverified answers are labelled; unsupported formats receive a format example rather than a fabricated solution.
+- Conversation context is memory-only: it is not written to localStorage, Supabase, the Data Library, checkpoints or training datasets. Reset clears the session. No automatic chat ingestion or training is implemented.
+- Browser UI uses DOM text nodes rather than injecting user content as HTML. The existing single-question solver and bounded benchmark remain available separately.
+- The added WebKit run exposed 320px horizontal overflow from Math-view status labels; the labels now wrap at narrow widths and dashboard grid children have min-width constraints. Chromium and WebKit smoke must both pass on the final commit.
+- Regression tests cover arithmetic routing, all 18 registered topics, clarification, bounded history, reset, invalid/oversized input, independent verification and immutable history snapshots. The Test Suite workflow now runs the Node.js browser-module tests and syntax checks, rather than leaving the JavaScript test files outside CI.
+- This is Stage 1 only. It is not general natural-language mathematical parsing, formal proof checking, neural inference, or durable learner memory. Those require later independently tested stages.
+- No model weights, datasets, checkpoints, Supabase configuration, production secrets or training state are modified.
 
 ## Latest verified status — PR #96 merged and deployed
 

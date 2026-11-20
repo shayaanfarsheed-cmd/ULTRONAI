@@ -180,7 +180,8 @@ body[data-theme="light"] .topbar { background: rgba(255, 255, 255, .78); }
 .page-heading { margin-bottom: 24px; align-items: flex-end; }
 .page-heading h1 { margin: 7px 0 4px; font-size: clamp(25px, 3vw, 34px); letter-spacing: -.04em; }
 .page-heading p { margin: 0; }
-.view-section { display: grid; gap: 18px; }
+.view-section { display: grid; gap: 18px; min-width: 0; width: 100%; }
+.view-section > * { min-width: 0; max-width: 100%; }
 .next-action { padding: 24px; border-color: var(--line-strong); background: linear-gradient(125deg, var(--surface), rgba(75, 7, 22, .22)); }
 .next-action h2 { font-size: clamp(20px, 2.5vw, 27px); margin: 8px 0 6px; letter-spacing: -.035em; }
 .next-action p { color: var(--muted); margin: 0; font-size: 13px; line-height: 1.6; }
@@ -628,4 +629,114 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible) { outline: none; }
 @media (max-width: 360px) {
   .topbar { padding-left: 10px; padding-right: 10px; }
   .brand-copy small { letter-spacing: .1em; }
+}
+
+/* Conversational mathematics shell: bounded, local-only chat UI. */
+.conversation-transcript {
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  max-height:560px;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  padding:12px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:var(--surface-2);
+}
+.conversation-message {
+  max-width:min(100%,760px);
+  min-width:0;
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  overflow-wrap:anywhere;
+}
+.conversation-user { align-self:flex-end; background:var(--surface); }
+.conversation-assistant { align-self:flex-start; background:var(--surface-2); }
+.conversation-role,.conversation-topic {
+  color:var(--muted);
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.12em;
+}
+.conversation-copy,.conversation-detail { margin:8px 0; color:var(--text); line-height:1.55; }
+.conversation-answer { margin:10px 0; font-size:clamp(20px,4vw,28px); font-weight:800; color:var(--text); overflow-wrap:anywhere; }
+.conversation-concept { display:block; margin-top:12px; color:var(--soft); }
+.conversation-steps { padding-left:22px; color:var(--text); line-height:1.65; }
+.conversation-verification {
+  display:inline-block;
+  margin-top:8px;
+  padding:6px 9px;
+  border:1px solid var(--line);
+  border-radius:999px;
+  color:var(--muted);
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.08em;
+}
+.conversation-verification.is-verified { color:var(--success,var(--soft)); }
+.conversation-form { display:grid; gap:10px; margin-top:14px; }
+.conversation-form textarea { width:100%; min-height:84px; resize:vertical; }
+.conversation-example { min-height:40px; margin-top:8px; }
+@media(max-width:520px) {
+  .conversation-transcript { max-height:460px; padding:8px; }
+  .conversation-message { padding:11px; }
+  .conversation-form .control-row { flex-wrap:wrap; }
+  .conversation-form .control-row button { flex:1 1 130px; min-height:44px; }
+}
+
+/* Keep the math view heading and conversation panel inside narrow phone viewports. */
+@media (max-width: 520px) {
+  #view-math > .section-intro {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+  #view-math > .section-intro > div {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  #view-math > .section-intro > .status-pill {
+    max-width: 100%;
+    white-space: normal;
+  }
+  #view-math > .conversation-panel .section-heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+  #view-math > .conversation-panel .section-heading > div {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  #view-math > .conversation-panel .small-pill {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
+
+/* Keep compact status labels from forcing horizontal scrolling on 320px devices. */
+@media (max-width: 380px) {
+  #view-math .section-heading,
+  #view-math .section-intro {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    min-width: 0;
+  }
+  #view-math .section-heading > div,
+  #view-math .section-intro > div {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  #view-math .section-heading .small-pill,
+  #view-math .section-intro .status-pill {
+    display: inline-flex;
+    max-width: 100%;
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
 }
