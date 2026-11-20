@@ -28,6 +28,15 @@ class TrainingControlSecurityContractTests(unittest.TestCase):
         self.assertIn('session.user.id === config.ownerUserId', script)
         self.assertNotIn("ULTRON_GITHUB_TOKEN", script)
 
+    def test_dashboard_exposes_owner_only_health_diagnostic(self):
+        script = (ROOT / "dashboard/training-control.js").read_text()
+        self.assertIn('healthButton.id = "trainingHealthButton"', script)
+        self.assertIn('healthButton.addEventListener("click", runHealthCheck)', script)
+        self.assertIn('callControl("health"', script)
+        self.assertIn("github_token_configured", script)
+        self.assertIn("Refresh status next to test GitHub API permissions", script)
+        self.assertNotIn("ULTRON_GITHUB_TOKEN", script)
+
     def test_launch_refreshes_status_after_busy_flag_is_cleared(self):
         script = (ROOT / "dashboard/training-control.js").read_text()
         launch = script.split("async function launch()", 1)[1].split("async function stop()", 1)[0]
