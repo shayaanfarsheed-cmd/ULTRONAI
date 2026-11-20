@@ -37,7 +37,7 @@
     },
     fractions: {
       type: "fraction_arithmetic", domain: "rational_numbers",
-      pattern: /^Calculate: \((-?\d+\/\d+)\) ([+*/-]) \((-?\d+\/\d+)\)$/,
+      pattern: /^Calculate: \((\d+\/\d+)\) ([+*/-]) \((\d+\/\d+)\)$/,
       fields: m => ({ left: m[1], operator: m[2], right: m[3] }),
       assumptions: ["Denominators are non-zero", "Fractions are reduced exactly"]
     },
@@ -140,6 +140,22 @@
     return value;
   }
 
+  deepFreeze(PARSERS);
+  deepFreeze(STEP_KINDS);
+  const SUPPORTED_TOPICS = Object.freeze(Object.keys(PARSERS));
+
+  function isPerfectSquare(value) {
+    if (value < 0n) return false;
+    let low = 0n;
+    let high = value + 1n;
+    while (low + 1n < high) {
+      const middle = (low + high) / 2n;
+      if (middle * middle <= value) low = middle;
+      else high = middle;
+    }
+    return low * low === value;
+  }
+
   function parseProblem(topic, question) {
     const parser = PARSERS[topic];
     if (!parser || typeof question !== "string" || !question.trim() || question.length > 1000) return null;
@@ -148,11 +164,33 @@
     if (!match) return null;
     const operands = parser.fields(match);
     if (operands.values && (operands.values.length === 0 || operands.values.some(value => !/^\d+$/.test(value)))) return null;
+    if (topic === "whole_number_arithmetic" || topic === "integers") {
+      if (operands.operator === "/") {
+        const left = BigInt(operands.left);
+        const right = BigInt(operands.right);
+        if (right === 0n || left % right !== 0n) return null;
+      }
+    }
     if (topic === "fractions") {
       for (const key of ["left", "right"]) {
-        const denominator = operands[key].split("/")[1];
+        const [numerator, denominator] = operands[key].split("/");
         if (denominator === "0") return null;
+        if (key === "right" && operands.operator === "/" && numerator === "0") return null;
       }
+    }
+    if (topic === "linear_equations") {
+      const coefficient = BigInt(operands.coefficient);
+      if (coefficient === 0n || (BigInt(operands.result) - BigInt(operands.constant)) % coefficient !== 0n) return null;
+    }
+    if (topic === "inequalities") {
+      const coefficient = BigInt(operands.coefficient);
+      if (coefficient <= 0n || (BigInt(operands.boundary) - BigInt(operands.constant)) % coefficient !== 0n) return null;
+    }
+    if (topic === "exponents_and_roots" && operands.operation === "square_root" && !isPerfectSquare(BigInt(operands.value))) return null;
+    if (topic === "pythagorean_theorem") {
+      const first = BigInt(operands.firstLeg);
+      const second = BigInt(operands.secondLeg);
+      if (!isPerfectSquare(first * first + second * second)) return null;
     }
     if (topic === "ratios_and_proportions" && operands.first === "0" && operands.second === "0") return null;
     if (topic === "basic_probability" && (operands.total === "0" || BigInt(operands.favorable) > BigInt(operands.total))) return null;
@@ -233,9 +271,13 @@
     if (replayed.kind !== "solution" && replayed.kind !== "unverified") {
       return { valid: false, reason: "The original problem no longer reproduces as a supported problem." };
     }
-    const same = JSON.stringify(replayed.problem) === JSON.stringify(report.problem) &&
+    const same = replayed.kind === report.kind &&
+      replayed.verified === report.verified &&
+      JSON.stringify(replayed.problem) === JSON.stringify(report.problem) &&
       JSON.stringify(replayed.plan) === JSON.stringify(report.plan) &&
       replayed.answer === report.answer &&
+      JSON.stringify(replayed.knowledge) === JSON.stringify(report.knowledge) &&
+      JSON.stringify(replayed.steps) === JSON.stringify(report.steps) &&
       JSON.stringify(replayed.verification) === JSON.stringify(report.verification);
     return {
       valid: same,
@@ -245,7 +287,7 @@
     };
   }
 
-  const api = { PARSERS, STEP_KINDS, parseProblem, reason, verifyReport };
+  const api = { SUPPORTED_TOPICS, parseProblem, reason, verifyReport };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.ULTRON_REASONING = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);
