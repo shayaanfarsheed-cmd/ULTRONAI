@@ -716,3 +716,27 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible) { outline: none; }
     overflow-wrap: anywhere;
   }
 }
+
+/* Keep compact status labels from forcing horizontal scrolling on 320px devices. */
+@media (max-width: 380px) {
+  #view-math .section-heading,
+  #view-math .section-intro {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    min-width: 0;
+  }
+  #view-math .section-heading > div,
+  #view-math .section-intro > div {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  #view-math .section-heading .small-pill,
+  #view-math .section-intro .status-pill {
+    display: inline-flex;
+    max-width: 100%;
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+}
