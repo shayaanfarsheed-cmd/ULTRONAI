@@ -29,7 +29,11 @@
     const match = /^(?:(?:what is|calculate|compute|evaluate)\s+)?([+-]?\d+(?:\.\d+)?(?:\s*\/\s*\d+)?\s*[+*/-]\s*[+-]?\d+(?:\.\d+)?(?:\s*\/\s*\d+)?)$/i.exec(cleaned);
     if (!match) return null;
     const expression = match[1].replace(/\s+/g, " ");
-    if (/\d+\.\d+/.test(expression)) return { topic: "decimals", question: "Calculate: " + expression };
+    if (/\d+\.\d+/.test(expression)) {
+      const operation = /\s([+*/-])\s/.exec(expression);
+      if (!operation || !["+", "-"].includes(operation[1])) return null;
+      return { topic: "decimals", question: "Calculate: " + expression };
+    }
     if (/\d+\s*\/\s*\d+/.test(expression)) {
       const fractionMatch = /^\(?([+-]?\d+\s*\/\s*\d+)\)?\s*([+*/-])\s*\(?([+-]?\d+\s*\/\s*\d+)\)?$/.exec(expression);
       if (fractionMatch) return { topic: "fractions", question: "Calculate: (" + fractionMatch[1].replace(/\s/g, "") + ") " + fractionMatch[2] + " (" + fractionMatch[3].replace(/\s/g, "") + ")" };
