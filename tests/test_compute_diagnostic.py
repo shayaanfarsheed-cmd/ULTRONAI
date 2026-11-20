@@ -51,7 +51,7 @@ class ComputeDiagnosticTests(unittest.TestCase):
         html = (ROOT / "dashboard/index.html").read_text()
         script = (ROOT / "dashboard/training-control.js").read_text()
         self.assertIn("Run compute diagnostic", html)
-        self.assertIn("Start a safe CPU diagnostic", script)
+        self.assertIn("Start a safe CPU compute diagnostic", script)
         self.assertNotIn("Start ULTRON neural training", script)
 
 
