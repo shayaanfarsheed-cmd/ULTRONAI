@@ -28,7 +28,6 @@ class TrainingControlSecurityContractTests(unittest.TestCase):
         self.assertIn('session.user.id === config.ownerUserId', script)
         self.assertNotIn("ULTRON_GITHUB_TOKEN", script)
 
-
     def test_launch_refreshes_status_after_busy_flag_is_cleared(self):
         script = (ROOT / "dashboard/training-control.js").read_text()
         launch = script.split("async function launch()", 1)[1].split("async function stop()", 1)[0]
@@ -49,6 +48,24 @@ class TrainingControlSecurityContractTests(unittest.TestCase):
         self.assertEqual([item["id"] for item in servers["servers"]], ["github_actions_cpu", "google_colab"])
         self.assertEqual(servers["servers"][0]["role"], "primary_cpu_runtime")
         self.assertFalse(servers["servers"][1]["remote_control_allowed"])
+
+    def test_health_diagnostic_is_owner_gated_and_never_returns_secret_values(self):
+        source = (ROOT / "supabase/functions/training-control/index.ts").read_text()
+        owner_check = source.index("if (user.id !== ownerId)")
+        health_route = source.index('if (body.action === "health")')
+        health_end = source.index("// Report missing integration configuration", health_route)
+        health_block = source[health_route:health_end]
+        self.assertLess(owner_check, health_route)
+        self.assertIn("github_token_configured: Boolean(Deno.env.get(\"ULTRON_GITHUB_TOKEN\"))", health_block)
+        self.assertNotIn("token:", health_block)
+        self.assertIn('return safeError("GitHub integration is not configured.', source)
+        self.assertIn("}, 503, origin);", source)
+
+    def test_upstream_failures_do_not_echo_upstream_details_to_clients(self):
+        source = (ROOT / "supabase/functions/training-control/index.ts").read_text()
+        self.assertIn('console.error("training-control request failed:", message);', source)
+        self.assertIn("The control service could not complete the request.", source)
+        self.assertNotIn("safeError(message.slice", source)
 
 
 if __name__ == "__main__":
