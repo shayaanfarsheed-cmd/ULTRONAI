@@ -143,6 +143,15 @@ class TrainingControlSecurityContractTests(unittest.TestCase):
         self.assertIn('"Access-Control-Allow-Methods": "POST, OPTIONS"', source)
         self.assertNotIn('"Access-Control-Allow-Origin": "*"', source)
 
+    def test_readme_records_live_training_control_version_six(self):
+        readme = (ROOT / "README.md").read_text()
+        latest = readme.split("## Latest verified status", 1)[1].split("\n## ", 1)[0]
+        self.assertIn("PR #90", latest)
+        self.assertIn("version 6", latest)
+        self.assertIn("verify_jwt=true", latest)
+        self.assertIn("source matches exactly", latest)
+        self.assertIn("Owner-only **Refresh status** still needs to succeed", latest)
+
     def test_training_control_rejects_non_object_and_malformed_request_bodies(self):
         source = (ROOT / "supabase/functions/training-control/index.ts").read_text()
         size_guard = source.index("byteLength > MAX_BODY_BYTES")
