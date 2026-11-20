@@ -1,3 +1,41 @@
+# Phase 2 — safe compute-provider validation (2026-11-20)
+
+**Current phase:** implementation in review on branch `phase2/safe-compute-diagnostics`. No training is authorized or started.
+
+## Phase 1 result
+- PR #68 merged to `main` at `f7dbd1b9e692d1fa12870372187a37533046b2e9`.
+- The live Candidate 5 recovery workflow was reported by the owner as passed.
+- Dataset workflow run [44655730066](https://github.com/shayaanfarsheed-cmd/ULTRONAI/actions/runs/44655730066) passed: 110,000 examples (100,000 train / 5,000 validation / 5,000 test), 18 topics, fixed-seed reproducibility, quality audit, and artifact upload.
+- The dataset artifact is retained for 30 days. Dataset audit success is not proof of model capability.
+
+## Phase 2 scope
+- Add a read-only GitHub Actions CPU diagnostic that measures visible CPU, memory/cgroup limits, root disk, Python, PyTorch and installed package versions.
+- The diagnostic does not import or call the training loop, does not modify model weights, and does not access Supabase or persistent checkpoints.
+- Route the dashboard's owner-only Start/Status/Stop control to the diagnostic workflow rather than the real training workflow.
+- Keep the actual `cpu-training.yml` workflow separate and unchanged in behavior.
+- Upgrade GitHub Actions used by the repository to Node.js 24-compatible major versions.
+- Add regression tests for diagnostic output and ensure the workflow cannot start training or access secrets.
+
+## Critical deployment boundary
+The source change to `supabase/functions/training-control/index.ts` is **not live until that Edge Function is separately deployed**. The currently deployed function may still point to `cpu-training.yml`, whose job runs real training. Do not use the production dashboard's existing Start control until the diagnostic-only Edge Function has been deployed and verified. No Edge Function deployment, Supabase configuration change, schema/RLS/policy change, or secret change is performed by this PR. Deployment requires separate explicit approval.
+
+## Phase 2 validation sequence
+1. Review this PR and pass CI.
+2. Merge only after explicit owner approval.
+3. Manually run **ULTRON Safe CPU Compute Diagnostic** from GitHub Actions; inspect its JSON report and artifact.
+4. Separately approve and deploy the diagnostic-only `training-control` Edge Function; verify missing/invalid/expired JWT, non-owner denial, owner status/start/stop, and public dashboard denial.
+5. Test cancellation of a diagnostic run and verify no training or checkpoint writes occur.
+6. Document actual runner resources and free-tier limits. GitHub-hosted runner resources are provider-managed; the dashboard RAM preference is not a hard cap.
+7. Do not begin the 100-example overfit experiment until the user separately approves the tiny diagnostic training test and all safety gates are satisfied.
+
+## Current safety status
+- No model training started.
+- No model weights or production checkpoints changed.
+- No Supabase schema, RLS, Storage bucket, persistent checkpoint, or secret changed.
+- No paid compute, payment method, quota bypass, pretrained weights, external AI API, or externally generated training data.
+
+---
+
 ## PR #68 review correction — unsorted median inputs (2026-11-20)
 
 - Review found the median-and-range generator sorted values before presenting the question, which made the median task easier than intended and did not require sorting.
