@@ -23,7 +23,7 @@
 2. Run owner-only **Refresh status** in the signed-in owner's browser and verify the expected GitHub API permissions without exposing the token.
 3. Complete the production security matrix: invalid/expired JWT, non-owner, untrusted origin, public dispatch denial and secret non-disclosure.
 4. Finish model/dataset/evaluation/checkpoint recovery and training-resource readiness audits.
-5. Keep real training disabled until all readiness gates pass and the owner separately authorizes a tiny overfit experiment.
+5. Keep actual training disabled until all readiness gates pass and the owner separately authorizes a tiny overfit experiment.
 
 ## Latest verified status — PR #83 merged; responsive navigation improved
 
