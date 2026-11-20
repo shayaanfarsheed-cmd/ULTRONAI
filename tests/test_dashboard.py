@@ -78,6 +78,8 @@ class DashboardStaticTests(unittest.TestCase):
         self.assertIn("flex-direction: row", styles)
         self.assertIn(".topbar-right { gap: 6px; }", styles)
         self.assertIn("padding: 0 9px", styles)
+        self.assertIn("min-height: 44px", styles)
+        self.assertIn(".topbar-right .icon-button { width: 44px; min-height: 44px; }", styles)
         self.assertIn("@media (max-width: 360px)", styles)
         self.assertIn("padding-left: 10px; padding-right: 10px", styles)
 
