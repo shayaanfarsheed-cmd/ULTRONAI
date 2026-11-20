@@ -972,14 +972,14 @@ Implemented in this branch:
 - Mistake diagnosis explicitly refuses to infer a misconception from a wrong final answer alone. The tutor accepts optional written working, but this first release does not classify step-level error patterns and does not assign a misconception label.
 - Adaptive practice selects topics only. Difficulty remains fixed at the existing foundation level; it is not represented as adaptive difficulty.
 - Mastery and review state are held in memory only. No questions, answers, mastery history or learner profile are written to localStorage, Supabase, account history or training data.
-- Added a searchable Axiom Bank in `dashboard/axiom-bank.js` with formal-system scope, domain, formal statement, explanation, teaching note and research references. Initial coverage includes Peano natural-number axioms, field axioms, ordered-field axioms, real completeness, Euclid's five postulates, Kolmogorov probability axioms and ZFC set theory (including schemas and Choice).
+- Added a searchable 37-entry Axiom Bank in `dashboard/axiom-bank.js` with formal-system scope, domain, formal statement, explanation, teaching note and research references. Initial coverage includes Peano natural-number axioms, field axioms, ordered-field axioms, real completeness, Euclid's five postulates, Kolmogorov probability axioms and ZFC set theory (including schemas and Choice).
 - Added `docs/AXIOM_BANK_RESEARCH.md` describing sources, scope and limitations. The bank distinguishes axioms from definitions and theorems; it does not claim that the current rule-based solver derives its answers from formal axioms.
 - Added the dashboard tutor and axiom-bank panels, responsive styles, search/details UI, Node tests and CI syntax checks. The tutor also surfaces up to three directly tagged axioms for each selected topic, with an explicit no-association state when none is catalogued.
 
 Research sources used include University of Florida and Toho University Peano notes; UIC, Portland State and LibreTexts real-number/ordered-field notes; University of Glasgow and Euclid's Elements geometry references; Cambridge University Press and Boston University probability notes; and the Stanford Encyclopedia of Philosophy and TU Darmstadt ZFC notes. The detailed source URLs and findings are recorded in `docs/AXIOM_BANK_RESEARCH.md`.
 
 Important boundaries:
-- The Axiom Bank is a curated educational reference catalog, not yet a formal proof assistant.
+- The Axiom Bank is a curated educational reference catalog, not yet a formal proof assistant. Its entries are accessible to the browser tutor as topic-scoped references; they are not used to train the neural model.
 - A topic-to-axiom association is a teaching hint, not a machine-checked derivation.
 - The existing structured reasoning kernel independently verifies final answers and deterministic replay; it does not formally prove intermediate natural-language steps.
 - No model training, model-weight changes, dataset changes, checkpoint writes, Supabase deployment or external AI API use occurred.
