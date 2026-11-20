@@ -2,13 +2,14 @@
 
 ## Latest verified status — PR #96 WebKit mobile overflow repair in progress
 
-- PR [#95](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/95) is merged at `c59195d260fa02b38ebbf0d97459d063ec05db53`; its required CI checks and GitHub Pages deployment passed.
+- PR [#95](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/95) merged at `c59195d260fa02b38ebbf0d97459d063ec05db53`; all four required checks passed and GitHub Pages deployed successfully.
 - PR [#96](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/96) adds Playwright WebKit coverage alongside Chromium for the browser engine used by iPad Safari. Chromium passed; the first WebKit run exposed a genuine Settings overflow at 320px.
 - Root cause: the RAM panel heading's non-wrapping status pill and the RAM value row's flex sizing imposed a minimum content width that expanded the panel to 387px on a 320px viewport.
 - The repair makes the RAM panel and its flex children shrinkable, allows the heading/status pill and value row to wrap, and adds explicit WebKit/Chromium geometry assertions for the RAM panel and slider at every responsive viewport.
 - The browser smoke suite still checks Guest Mode, all 11 navigation views, RAM preference persistence/disclosure, optional owner sign-in dialog, theme toggle, 44px touch targets, six viewport widths, browser/console errors and unexpected external requests.
 - The Settings RAM slider is a browser-local preference. It is not sent to a remote training process and does not cap hosted-runner RAM or GPU VRAM.
-- Supabase `training-control` is **ACTIVE, version 6**, with `verify_jwt=true`. Its deployed source was previously compared byte-for-byte with GitHub `main`.
+- Supabase `training-control` is **ACTIVE, version 6**, with `verify_jwt=true`. Its deployed `index.ts` source matches exactly with GitHub `main` (previously verified byte-for-byte).
+- Preflight includes the pinned Deno 2.9.8 type-check: `deno check supabase/functions/training-control/index.ts`.
 - GitHub Actions remote controls remain limited to safe CPU diagnostics. Google Colab remains manual-only. Actual model training has not started.
 - Still pending: all PR #96 checks passing, physical iPad/phone visual verification, and owner-only **Refresh status** from the signed-in owner's browser to verify GitHub API permissions.
 - No diagnostic was launched, no model training was started, and no weights or persistent checkpoints were changed.
@@ -21,6 +22,7 @@
 4. Run owner-only **Refresh status** in the signed-in owner's browser to verify GitHub API permissions.
 5. Complete live production security checks for invalid/expired JWTs, non-owner denial, public dispatch denial and secret non-disclosure.
 6. Finish model, dataset, evaluation, checkpoint recovery and training-resource readiness audits. Keep actual training disabled until the owner separately authorizes a tiny overfit experiment.
+
 ## Latest verified status — PR #83 merged; responsive navigation improved
 
 - PR [#81](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/81) merged to `main` at `6866ddb91d8380bea2050c685d8fca589bfd0496`.
