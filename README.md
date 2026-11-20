@@ -1,5 +1,23 @@
 # ULTRON — current project status (2026-11-20)
 
+## Latest verified status — PR #84 merged; compact header layout fixed
+
+- PR [#81](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/81) merged to `main`; owner-only workflow status responses are invalidated after sign-out and provider changes.
+- PR [#82](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/82) merged at `a2dbf433ad23d8d781f2c8f6a69fa802ab6c014d`; a runtime regression test now verifies late private status responses cannot repaint Guest Mode.
+- PR [#83](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/83) merged at `1b1f04825353996d56569c2e47b961ce8c5e627c`; all three required checks passed and the GitHub Pages deployment completed successfully.
+- PR [#84](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/84) merged at `47b0e4bd73d6db26944575c372fa2fd77fbe6ec1`; all three required checks passed. Compact-screen header spacing is reduced to avoid crowding the brand and owner controls.
+- Current work aligns the Device access page and RAM preference wording with the remote-compute architecture. The RAM slider remains a browser-local preference and is not yet connected to a remote training process or hosted-runner memory limits.
+- The production Supabase `training-control` Edge Function remains **ACTIVE, version 5**, with `verify_jwt=true`.
+- No diagnostic was launched, no model training was started, and no weights or persistent checkpoints were changed.
+
+## Immediate next steps
+
+1. Validate the remote Device access page wording and RAM preference disclosures.
+2. Verify the GitHub Pages deployment after PR #84.
+3. Complete responsive, accessibility, browser-console, and owner-only live status checks.
+4. Continue the security matrix: invalid/expired JWT, non-owner denial, public dispatch denial, and secret non-disclosure.
+5. Keep real training disabled until the full readiness matrix passes and the owner separately authorizes a tiny overfit experiment.
+
 ## Latest verified status — PR #83 merged; responsive navigation improved
 
 - PR [#81](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/81) merged to `main` at `6866ddb91d8380bea2050c685d8fca589bfd0496`.

@@ -83,6 +83,24 @@ class DashboardStaticTests(unittest.TestCase):
 
 
 
+    def test_device_access_page_matches_remote_compute_architecture(self):
+        html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
+        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
+
+        self.assertIn('data-view="devices"><span>▣</span> Device access', html)
+        self.assertIn('id="view-devices"', html)
+        self.assertIn("REMOTE CONTROL CONSOLE", html)
+        self.assertIn("compute runs on the selected remote provider", html)
+        self.assertIn("Google Colab remains manual-only", html)
+        self.assertIn("No device credentials, agents, or remote device commands are used.", html)
+        self.assertNotIn("LOCAL TRAINING RUNTIME", html)
+        self.assertNotIn("WINDOWS / MACOS / LINUX", html)
+        self.assertIn("This preference is not connected to remote training", html)
+        self.assertIn("does not cap the memory available to a hosted runner", html)
+        self.assertIn("deviceRamLimitValue", html)
+        self.assertIn("not sent to a remote training process", javascript)
+        self.assertNotIn("future local runtime", html.lower())
+
     def test_all_static_javascript_id_references_exist(self):
         html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
