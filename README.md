@@ -1,3 +1,11 @@
+## Tokenizer vocabulary compatibility repair — PR #68 (2026-11-20)
+
+- CI exposed that the canonical median-and-range answer uses a semicolon, but the character tokenizer alphabet did not include it. This caused generated examples to fail tokenization before training.
+- Added the semicolon to the project character vocabulary and updated the configured vocabulary size from 78 to 79.
+- Updated the baseline model parameter-count expectation to 4,038,991 and Candidate 5 to 25,399,375 because the untied input embedding and output projection each grow with the vocabulary (including the output bias).
+- This is an architecture compatibility change. Existing checkpoints created with the old vocabulary shape are not interchangeable with the updated model and must not be restored as if compatible.
+- CI must be rerun on the latest PR head. No training has started; do not merge until all required checks pass and the diff is reviewed.
+
 ## PR #68 CI failure repair — expanded solver compatibility (2026-11-20)
 
 - Latest CI exposed Python agent regexes that matched a literal backslash instead of decimal digits for simple-interest, metric-conversion, and Pythagorean inputs. Corrected those patterns.
