@@ -29,6 +29,12 @@ class TrainingControlSecurityContractTests(unittest.TestCase):
         self.assertNotIn("ULTRON_GITHUB_TOKEN", script)
 
 
+    def test_stop_confirmation_describes_diagnostic_without_checkpoint_claims(self):
+        script = (ROOT / "dashboard/training-control.js").read_text()
+        self.assertIn("Cancel the currently queued or running ULTRON CPU diagnostic?", script)
+        self.assertIn("does not train the model or create, modify, or delete checkpoints", script)
+        self.assertNotIn("latest durable checkpoint will be retained", script)
+
     def test_registry_exposes_only_github_actions_remote_and_manual_colab(self):
         import json
         servers = json.loads((ROOT / "servers.json").read_text())
