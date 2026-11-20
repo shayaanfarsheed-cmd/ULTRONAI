@@ -146,7 +146,7 @@ class TrainingControlSecurityContractTests(unittest.TestCase):
     def test_readme_records_live_training_control_version_six(self):
         readme = (ROOT / "README.md").read_text()
         latest = readme.split("## Latest verified status", 1)[1].split("\n## ", 1)[0]
-        self.assertIn("PR #90", latest)
+        self.assertIn("PR [#90]", latest)
         self.assertIn("version 6", latest)
         self.assertIn("verify_jwt=true", latest)
         self.assertIn("source matches exactly", latest)
