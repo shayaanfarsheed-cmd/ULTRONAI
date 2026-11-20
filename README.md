@@ -974,7 +974,7 @@ Implemented in this branch:
 - Mastery and review state are held in memory only. No questions, answers, mastery history or learner profile are written to localStorage, Supabase, account history or training data.
 - Added a searchable Axiom Bank in `dashboard/axiom-bank.js` with formal-system scope, domain, formal statement, explanation, teaching note and research references. Initial coverage includes Peano natural-number axioms, field axioms, ordered-field axioms, real completeness, Euclid's five postulates, Kolmogorov probability axioms and ZFC set theory (including schemas and Choice).
 - Added `docs/AXIOM_BANK_RESEARCH.md` describing sources, scope and limitations. The bank distinguishes axioms from definitions and theorems; it does not claim that the current rule-based solver derives its answers from formal axioms.
-- Added the dashboard tutor and axiom-bank panels, responsive styles, search/details UI, Node tests and CI syntax checks.
+- Added the dashboard tutor and axiom-bank panels, responsive styles, search/details UI, Node tests and CI syntax checks. The tutor also surfaces up to three directly tagged axioms for each selected topic, with an explicit no-association state when none is catalogued.
 
 Research sources used include University of Florida and Toho University Peano notes; UIC, Portland State and LibreTexts real-number/ordered-field notes; University of Glasgow and Euclid's Elements geometry references; Cambridge University Press and Boston University probability notes; and the Stanford Encyclopedia of Philosophy and TU Darmstadt ZFC notes. The detailed source URLs and findings are recorded in `docs/AXIOM_BANK_RESEARCH.md`.
 
