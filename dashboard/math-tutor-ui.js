@@ -13,6 +13,7 @@
     const hintNode = document.getElementById("tutorHint");
     const masteryNode = document.getElementById("tutorMastery");
     const topicNode = document.getElementById("tutorTopic");
+    const axiomContext = document.getElementById("tutorAxiomContext");
     let exercise = null;
     let hints = [];
     let hintIndex = 0;
@@ -55,6 +56,24 @@
         hintIndex = 0;
         answered = false;
         topicNode.textContent = agent.TOPICS[exercise.topic].label + " · fixed foundation difficulty";
+        axiomContext.replaceChildren();
+        const relatedAxioms = window.ULTRON_AXIOM_BANK ? window.ULTRON_AXIOM_BANK.forTopic(exercise.topic) : [];
+        const axiomHeading = document.createElement("strong");
+        axiomHeading.textContent = "Related axioms";
+        axiomContext.appendChild(axiomHeading);
+        if (!relatedAxioms.length) {
+          const empty = document.createElement("p");
+          empty.textContent = "No direct axiom association is currently catalogued for this topic.";
+          axiomContext.appendChild(empty);
+        } else {
+          const list = document.createElement("ul");
+          relatedAxioms.slice(0, 3).forEach(item => {
+            const entry = document.createElement("li");
+            entry.textContent = item.id + " · " + item.name + " (" + item.systemLabel + ")";
+            list.appendChild(entry);
+          });
+          axiomContext.appendChild(list);
+        }
         questionNode.textContent = exercise.question;
         answerNode.value = "";
         feedback.textContent = "Try the question. Your answer is checked independently.";
@@ -100,6 +119,7 @@
       hints = [];
       hintIndex = 0;
       topicNode.textContent = "No active question";
+      axiomContext.textContent = "Related axioms appear when a question is active.";
       questionNode.textContent = "Choose New question to begin.";
       answerNode.value = "";
       feedback.textContent = "Session mastery and review schedule reset. Nothing was saved.";
