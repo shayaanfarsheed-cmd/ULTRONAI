@@ -16,6 +16,13 @@ class DashboardStaticTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def test_training_control_status_race_behaviour(self):
+        result = subprocess.run(
+            ["node", "--test", str(ROOT / "tests" / "dashboard_training_control.test.js")],
+            cwd=ROOT, capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_browser_math_agent_behaviour(self):
         result = subprocess.run(
             ["node", "--test", str(ROOT / "tests" / "math_agent.test.js")],
