@@ -107,13 +107,15 @@
     try {
       const result = await callControl("start", serverId);
       message(result.message || "Diagnostic request accepted.", "success");
-      await refreshStatus();
     } catch (error) {
       message(error.message, "error");
     } finally {
       busy = false;
       $("trainingStartButton").disabled = !ownerSession() || $("trainingServerSelect").value !== "github_actions_cpu";
     }
+    // Refresh only after clearing busy; refreshStatus intentionally exits while a
+    // control request is active.
+    await refreshStatus();
   }
 
   async function stop() {
