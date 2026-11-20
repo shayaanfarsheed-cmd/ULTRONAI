@@ -9,7 +9,7 @@
 - The browser smoke suite still checks Guest Mode, all 11 navigation views, RAM preference persistence/disclosure, optional owner sign-in dialog, theme toggle, 44px touch targets, six viewport widths, browser/console errors and unexpected external requests.
 - The Settings RAM slider is a browser-local preference. It is not sent to a remote training process and does not cap hosted-runner RAM or GPU VRAM.
 - Supabase `training-control` is **ACTIVE, version 6**, with `verify_jwt=true`. Its deployed `index.ts` source matches exactly with GitHub `main` (previously verified byte-for-byte).
-- Preflight includes the pinned Deno 2.9.8 type-check: `deno check supabase/functions/training-control/index.ts`.
+- Preflight includes the Deno type-check with pinned Deno 2.9.8: `deno check supabase/functions/training-control/index.ts`.
 - GitHub Actions remote controls remain limited to safe CPU diagnostics. Google Colab remains manual-only. Actual model training has not started.
 - Still pending: all PR #96 checks passing, physical iPad/phone visual verification, and owner-only **Refresh status** from the signed-in owner's browser to verify GitHub API permissions.
 - No diagnostic was launched, no model training was started, and no weights or persistent checkpoints were changed.
