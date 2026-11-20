@@ -64,6 +64,32 @@
     return data;
   }
 
+  async function runHealthCheck() {
+    const button = $("trainingHealthButton");
+    if (busy) return;
+    if (!ownerSession()) {
+      message("Sign in with the configured owner account before running the private health check.", "warn");
+      return;
+    }
+    busy = true;
+    if (button) button.disabled = true;
+    message("Checking owner verification and server-side GitHub token configuration…", "");
+    try {
+      const result = await callControl("health", $("trainingServerSelect").value);
+      const checks = result.checks || {};
+      if (!checks.github_token_configured) {
+        message("Owner verification is configured, but ULTRON_GITHUB_TOKEN is missing from Supabase Edge Function secrets. Add it in Supabase Dashboard; never paste it into this page or chat.", "error");
+      } else {
+        message("Health check passed: owner verification is active and the GitHub token is present. Refresh status next to test GitHub API permissions.", "success");
+      }
+    } catch (error) {
+      message(error.message, "error");
+    } finally {
+      busy = false;
+      if (button) button.disabled = !ownerSession();
+    }
+  }
+
   async function refreshStatus() {
     const startButton = $("trainingStartButton");
     const selectedServer = $("trainingServerSelect").value;
@@ -160,6 +186,16 @@
     $("trainingStartButton").addEventListener("click", launch);
     $("trainingStopButton").addEventListener("click", stop);
     $("trainingRefreshButton").addEventListener("click", refreshStatus);
+    const actions = $("trainingRefreshButton").parentElement;
+    const healthButton = document.createElement("button");
+    healthButton.id = "trainingHealthButton";
+    healthButton.type = "button";
+    healthButton.className = "quiet-button";
+    healthButton.textContent = "Check connection";
+    healthButton.disabled = !ownerSession();
+    actions.insertBefore(healthButton, $("trainingRefreshButton"));
+    healthButton.addEventListener("click", runHealthCheck);
+
     $("trainingServerSelect").addEventListener("change", function () {
       const canLaunch = $("trainingServerSelect").value === "github_actions_cpu" && Boolean(ownerSession());
       $("trainingStartButton").disabled = !canLaunch;
