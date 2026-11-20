@@ -1,6 +1,6 @@
 const ALLOWED_ORIGIN = "https://shayaanfarsheed-cmd.github.io";
 const REPOSITORY = "shayaanfarsheed-cmd/ULTRONAI";
-const CPU_WORKFLOW_PATH = "cpu-training.yml";
+const CPU_WORKFLOW_PATH = "cpu-diagnostic.yml";
 const CPU_SERVER_ID = "github_actions_cpu";
 const MAX_BODY_BYTES = 4096;
 function response(body: unknown, status = 200, origin = ALLOWED_ORIGIN) {
@@ -67,18 +67,18 @@ Deno.serve(async (req: Request) => {
       const id = body.server_id || CPU_SERVER_ID;
       if (id !== CPU_SERVER_ID) return safeError("Unsupported server status target.", 400, origin);
       const runs = await listRuns(CPU_WORKFLOW_PATH);
-      return response({ ok: true, run: summarizeRun(runs[0], "ULTRON CPU Training") }, 200, origin);
+      return response({ ok: true, run: summarizeRun(runs[0], "ULTRON CPU Diagnostic") }, 200, origin);
     }
     if (body.action === "start") {
       const id = body.server_id || CPU_SERVER_ID;
-      const eventType = id === CPU_SERVER_ID ? "ultron-cpu-start" : "";
+      const eventType = id === CPU_SERVER_ID ? "ultron-cpu-diagnostic" : "";
       if (!eventType) return safeError("That provider does not have a remote launch adapter.", 409, origin);
       const cpuRuns = await listRuns(CPU_WORKFLOW_PATH);
       const active = cpuRuns.find(run => run.status === "queued" || run.status === "in_progress");
-      if (active) return response({ ok: false, error: "Another ULTRON remote launch workflow is already queued or running.", run: summarizeRun(active, "ULTRON Training") }, 409, origin);
+      if (active) return response({ ok: false, error: "Another ULTRON remote launch workflow is already queued or running.", run: summarizeRun(active, "ULTRON CPU Diagnostic") }, 409, origin);
       const requestId = crypto.randomUUID();
       await dispatch(eventType, id, requestId);
-      return response({ ok: true, accepted: true, request_id: requestId, message: "GitHub Actions accepted the CPU launch request. The workflow may take a short time to appear." }, 202, origin);
+      return response({ ok: true, accepted: true, request_id: requestId, message: "GitHub Actions accepted the safe CPU diagnostic request. It measures runner resources and installs CPU PyTorch; it does not start training or touch checkpoints." }, 202, origin);
     }
     if (body.action === "stop") {
       const id = body.server_id || CPU_SERVER_ID;

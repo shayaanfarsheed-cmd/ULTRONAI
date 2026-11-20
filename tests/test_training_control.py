@@ -16,7 +16,7 @@ class TrainingControlSecurityContractTests(unittest.TestCase):
         source = (ROOT / "supabase/functions/training-control/index.ts").read_text()
         self.assertIn('const CPU_SERVER_ID = "github_actions_cpu"', source)
         self.assertIn('id === CPU_SERVER_ID', source)
-        self.assertIn('"ultron-cpu-start"', source)
+        self.assertIn('"ultron-cpu-diagnostic"', source)
         self.assertNotIn("lightning", source.lower())
 
     def test_dashboard_has_explicit_owner_confirmed_controls(self):
@@ -34,6 +34,7 @@ class TrainingControlSecurityContractTests(unittest.TestCase):
         servers = json.loads((ROOT / "servers.json").read_text())
         self.assertEqual([item["id"] for item in servers["servers"]], ["github_actions_cpu", "google_colab"])
         self.assertEqual(servers["servers"][0]["role"], "primary_cpu_runtime")
+        self.assertFalse(servers["servers"][1]["remote_control_allowed"])
 
 
 if __name__ == "__main__":
