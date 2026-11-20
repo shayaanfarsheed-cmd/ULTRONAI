@@ -367,7 +367,7 @@ def solve_question(topic: str, question: str) -> dict[str, Any]:
         ]
 
     elif topic == "simple_interest":
-        match = re.fullmatch(r"Simple interest: principal (\\d+), rate (\\d+)%, time (\\d+) years", question)
+        match = re.fullmatch(r"Simple interest: principal (\d+), rate (\d+)%, time (\d+) years", question)
         if not match:
             raise AgentInputError("Invalid simple-interest question")
         principal, rate, years = map(int, match.groups())
@@ -378,7 +378,7 @@ def solve_question(topic: str, question: str) -> dict[str, Any]:
         ]
 
     elif topic == "unit_conversion":
-        match = re.fullmatch(r"Convert: (\\d+) (m|cm|kg) to (cm|mm|g)", question)
+        match = re.fullmatch(r"Convert: (\d+) (m|cm|kg) to (cm|mm|g)", question)
         if not match:
             raise AgentInputError("Invalid unit-conversion question")
         amount_text, unit_from, unit_to = match.groups()
@@ -394,7 +394,7 @@ def solve_question(topic: str, question: str) -> dict[str, Any]:
         ]
 
     elif topic == "pythagorean_theorem":
-        match = re.fullmatch(r"Hypotenuse of right triangle: legs (\\d+), (\\d+)", question)
+        match = re.fullmatch(r"Hypotenuse of right triangle: legs (\d+), (\d+)", question)
         if not match:
             raise AgentInputError("Invalid Pythagorean question")
         left, right = map(int, match.groups())
