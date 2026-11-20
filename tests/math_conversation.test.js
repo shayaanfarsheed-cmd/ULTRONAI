@@ -97,3 +97,10 @@ test("simple integer division is routed as arithmetic rather than a fraction", (
   assert.equal(result.answer, "4");
   assert.equal(result.verified, true);
 });
+
+test("ordinary English use of the word mean does not force statistics routing", () => {
+  const chat = conversation.createConversation(agent);
+  const result = chat.reply("What does this mean?");
+  assert.equal(result.kind, "clarification");
+  assert.match(result.message, /Which maths topic/);
+});
