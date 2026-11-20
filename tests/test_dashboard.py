@@ -96,7 +96,7 @@ class DashboardStaticTests(unittest.TestCase):
         self.assertNotIn("LOCAL TRAINING RUNTIME", html)
         self.assertNotIn("WINDOWS / MACOS / LINUX", html)
         self.assertIn("This preference is not connected to remote training", html)
-        self.assertIn("does not cap hosted-runner memory", html)
+        self.assertIn("does not cap the memory available to a hosted runner", html)
         self.assertIn("deviceRamLimitValue", html)
         self.assertIn("not sent to a remote training process", javascript)
         self.assertNotIn("future local runtime", html.lower())
