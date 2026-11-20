@@ -808,7 +808,7 @@
       $("ramLimitValue").textContent = state.ramLimitGb + " GB";
       const localRamValue = $("deviceRamLimitValue");
       if (localRamValue) localRamValue.textContent = state.ramLimitGb + " GB";
-      $("ramLimitStatus").textContent = "Saved on this browser only. It does not enforce a memory cap or control a training process.";
+      $("ramLimitStatus").textContent = "Saved in this browser only. This preference is not connected to remote training or hosted-runner memory controls.";
     }
     const review = state.projectConfig.terms_review || {};
     const intervalDays = Number(review.reminder_interval_days || 90);
@@ -1464,7 +1464,7 @@
       const localRamValue = $("deviceRamLimitValue");
       if (localRamValue) localRamValue.textContent = state.ramLimitGb + " GB";
       try { localStorage.setItem(RAM_LIMIT_KEY, String(state.ramLimitGb)); } catch (_) {}
-      $("ramLimitStatus").textContent = "Saved as " + state.ramLimitGb + " GB on this browser only. This is a preference only; it does not enforce a memory cap.";
+      $("ramLimitStatus").textContent = "Saved as " + state.ramLimitGb + " GB in this browser only. It is not sent to a remote training process and does not cap hosted-runner memory.";
     });
 
 
@@ -1552,7 +1552,7 @@
       await refreshData();
     } else {
       $("lastUpdated").textContent = "Public system information · no personal training history";
-      showNotice("Guest Mode is active. Public information is available without an account. Private training status, history, checkpoints and device controls are not loaded in Guest Mode. Training remains disabled until local device controls and resource safeguards are validated.", "info");
+      showNotice("Guest Mode is active. Public information is available without an account. Private training status, history, checkpoints and device controls are not loaded in Guest Mode. Training remains disabled until the remote training runtime and resource safeguards are validated.", "info");
     }
     renderAll();
   }
