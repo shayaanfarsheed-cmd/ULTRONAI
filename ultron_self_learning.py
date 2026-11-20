@@ -73,7 +73,7 @@ def run_generation_dry_run(
     for sample_index in range(attempt_limit):
         topic_index = sample_index % len(topic_list)
         topic = topic_list[topic_index]
-        difficulty = 1 + (sample_index % 3)
+        difficulty = 1 + ((sample_index // len(topic_list)) % 3)
         rng = random.Random(seed + sample_index * 1000003 + topic_index * 7919)
 
         try:

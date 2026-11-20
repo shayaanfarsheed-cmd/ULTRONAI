@@ -1,3 +1,61 @@
+## PR #68 review correction — unsorted median inputs (2026-11-20)
+
+- Review found the median-and-range generator sorted values before presenting the question, which made the median task easier than intended and did not require sorting.
+- The generator now presents the original unsorted values while independently calculating the median/range from a sorted copy. The solution target explicitly shows the sorted sequence.
+- Added regression coverage requiring unsorted examples and independent verification of all generated solution steps.
+- This is a data-quality correction only. No model weights, training configuration, remote storage, or production checkpoints were changed. PR #68 remains unmerged; rerun CI on the updated head before considering merge.
+
+## Exponent tokenizer compatibility repair — PR #68 (2026-11-20)
+
+- The next CI run exposed that generated exponent examples contain the caret character `^`, which was also missing from the character tokenizer.
+- Added `^` alongside the previously added semicolon; vocabulary size is now 80.
+- Updated expected parameter counts: baseline 4,039,504; Candidate 5 25,400,400.
+- This is another model-shape change. Checkpoints made with earlier vocabularies are shape-incompatible and must be rejected, not silently loaded.
+- Re-run all CI checks on the latest PR head. No training has started.
+
+## Tokenizer vocabulary compatibility repair — PR #68 (2026-11-20)
+
+- CI exposed that the canonical median-and-range answer uses a semicolon, but the character tokenizer alphabet did not include it. This caused generated examples to fail tokenization before training.
+- Added the semicolon to the project character vocabulary and updated the configured vocabulary size from 78 to 79.
+- Updated the baseline model parameter-count expectation to 4,038,991 and Candidate 5 to 25,399,375 because the untied input embedding and output projection each grow with the vocabulary (including the output bias).
+- This is an architecture compatibility change. Existing checkpoints created with the old vocabulary shape are not interchangeable with the updated model and must not be restored as if compatible.
+- CI must be rerun on the latest PR head. No training has started; do not merge until all required checks pass and the diff is reviewed.
+
+## PR #68 CI failure repair — expanded solver compatibility (2026-11-20)
+
+- Latest CI exposed Python agent regexes that matched a literal backslash instead of decimal digits for simple-interest, metric-conversion, and Pythagorean inputs. Corrected those patterns.
+- Aligned the Python median-and-range answer format with the canonical frozen fixture (`median=...; range=...`).
+- Added the four newly introduced topics to the browser math agent: median/range, simple interest, metric conversion, and Pythagorean hypotenuse. Added independent browser-side answer checks and deterministic generators for those topics.
+- Updated browser held-out tests to derive sample counts from the fixture rather than hard-code the former 14-example size.
+- CI rerun is required on the latest head. No merge, live Supabase recovery, dataset artifact build, or model training has been performed.
+
+---
+
+## PR #68 review correction — held-out fixture and evaluator regression (2026-11-19)
+
+- Code review found that the four newly added frozen evaluation examples increased the fixture from 14 to 18, while evaluator tests still hard-coded the old total (14) and incorrect-score total (13). Updated these assertions to derive expected counts from the fixture length.
+- The new median-and-range held-out example used a comma-separated answer while the independent verifier and generator use the canonical `median=...; range=...` format. Corrected the fixture answer and final solution step to the canonical format.
+- Added a regression test that independently verifies every frozen held-out answer and solution-step sequence, not just the generated training examples.
+- These are pre-merge code-review corrections. Required CI is rerunning on the latest PR head; no merge, live Supabase test, dataset build, or training run has been performed by this correction.
+
+---
+
+# ULTRON recovery and mathematical data-quality milestone — implementation in review (2026-11-19)
+
+- Active branch: `feat/ultron-recovery-and-math-data-quality`. PR #68 contains one combined pull request covering recovery fault testing and a reproducible mathematics dataset pipeline.
+- PR #67 was merged at `19ece113483a01c963c28ef84d398890dfa38af7`; its three required CI workflows passed. The live Candidate 5 Supabase interrupted-resume workflow is still a separate post-merge manual test and must be run before claiming live recovery is validated.
+- Recovery implementation now fault-injects a corrupted tensor component and a missing tensor component inside the unique temporary Supabase checkpoint prefix. It requires both faults to be rejected, restores the original temporary component, verifies the valid checkpoint again, and then proceeds to the exact uninterrupted-vs-resumed next-update comparison. Cleanup remains scoped to the unique temporary prefix and is verified in a finally block.
+- The live recovery entrypoint now requires explicit passing flags for corruption rejection, missing-component rejection, repaired-checkpoint acceptance, exact model/optimizer/scheduler/data-stream/curriculum/scaler continuation, and optimizer parameter binding. CI fake-storage coverage is not live Supabase evidence.
+- The mathematical generator now covers 18 topics and rotates each topic through all three difficulty levels rather than coupling difficulty to topic index. Four new topics were added: median and range, simple interest, unit conversion, and the Pythagorean theorem. Each has independent answer and solution-step verification in `ultron_verify.py`. Generator inputs now reject invalid difficulty, seed, count, topic duplicates and invalid attempt limits rather than silently accepting them.
+- Added `ultron_dataset_quality.py` for independent answer verification, normalized exact duplicate detection, deterministic split-assignment checks, cross-split exact and high-similarity near-duplicate rejection, structural-template overlap reporting, topic/difficulty/split counts, and a deterministic dataset digest. Structural-template overlap is reported separately because distinct numeric questions using the same mathematical method are not automatically leakage; the report must be reviewed.
+- Added `scripts/build_math_dataset.py` to build 100,000 training + 5,000 validation + 5,000 test examples (110,000 total), independently verify every example, audit quality, check all topics and all three difficulty levels per topic in training plus split coverage, and verify fixed-seed reproducibility on a bounded independent slice. The builder reserves and includes all examples from the canonical frozen held-out evaluation fixture in the test split, then audits the combined data for leakage. It writes JSONL split files and a manifest with SHA-256 hashes. This is an initial foundation corpus, not proof that the model has enough data to achieve any target competence.
+- Added manual-only workflow `.github/workflows/math-dataset-build.yml`. After this PR is merged, manually run **ULTRON Build and Audit Mathematics Dataset** from GitHub Actions. It builds the 110,000-example dataset and uploads the versioned files and audit manifest as a 30-day artifact. This is a dataset-build job, not model training.
+- Current status: PR #68 is open; required CI checks are running on the current head. Do not mark the recovery or dataset gates as passed until CI and the post-merge manual workflows complete successfully.
+- Next: finish regression tests and code review; run required PR checks; fix failures; merge only after checks pass and explicit owner approval. After merge, run the live Candidate 5 Supabase recovery workflow and the dataset-build workflow, inspect their structured reports and artifacts, then report any remaining quality limitations.
+- Safety: no real training has started; no production model weights/configuration were changed; no Supabase schema, RLS, bucket, Edge Function, secret, or persistent checkpoint was modified. No external AI API, pretrained weights, existing model, or externally generated training data is used.
+
+---
+
 ## Candidate 5 live Supabase checkpoint test — implementation in review (2026-11-19)
 
 - Branch: `test/candidate5-live-supabase-checkpoint`.
@@ -600,3 +658,26 @@ All earlier pairing implementation notes later in this README are historical onl
 3. Manually run `ULTRON Candidate 5 Live Interrupted Recovery` from GitHub Actions.
 4. Inspect the structured report and verify every recovery assertion plus temporary-object cleanup.
 5. Continue with math-data quality, duplicate/leakage controls, and held-out evaluation. Keep real training disabled until the full readiness checklist passes and the owner explicitly authorizes a first run.
+
+## Recovery fault injection and mathematics dataset — PR #68
+
+- PR #68 combines isolated Candidate 5 live-Supabase interrupted-recovery validation with a from-scratch mathematics dataset quality pipeline.
+- Recovery tests are intentionally run after merge. The manual-only workflow injects a corrupted tensor component and a missing component under one unique temporary checkpoint prefix, requires both failures to be rejected, restores the valid component, and compares the next update from a fresh runtime against an uninterrupted reference. It checks model, optimizer, scheduler, data-stream/RNG, curriculum, scaler and optimizer-parameter binding, then verifies temporary-object cleanup.
+- The mathematics generator covers 18 foundation topics. The deterministic generator rotates each topic through difficulty levels 1–3, and the independent verifier checks answers and solution steps. The deterministic solving agent and frozen evaluation fixture now cover all 18 topics.
+- The dataset builder targets 110,000 examples: 100,000 train, 5,000 validation and 5,000 test. It reserves the canonical frozen evaluation examples in the test split, independently verifies examples, audits exact and near duplicates and cross-split leakage, checks topic/difficulty/split coverage, runs a fixed-seed reproducibility probe, and writes SHA-256 manifests.
+- The manual-only dataset workflow builds the artifact and uploads it to GitHub Actions artifacts for 30 days. It does not start model training.
+- Structural-template overlap is reported separately from near-duplicate leakage: the same problem form with different numeric values is not automatically treated as a leaked example.
+- The 110,000-example corpus is an initial foundation dataset, not proof of target competence. It must be generated and its artifact/report inspected after merge before it is considered established.
+- Pull-request CI does not use Supabase secrets. The live recovery test is manual-only and limited to a unique prefix in the existing private `checkpoints` bucket. No bucket, schema, RLS, Edge Function, secret or persistent production checkpoint is changed.
+- No external AI API, pretrained weights, existing model, externally generated training data, or real training session is used.
+
+### Post-merge actions
+
+1. Run **ULTRON Candidate 5 Live Interrupted Recovery** and inspect every structured assertion, including corruption rejection, missing-component rejection, exact continuation and cleanup.
+2. Run **ULTRON Build and Audit Mathematics Dataset** with the fixed seed. Inspect the manifest, all split counts, topic/difficulty coverage, duplicate/leakage report and held-out reservation.
+3. Only after both post-merge tests pass, continue the separate readiness review. Keep real training disabled until the full readiness gates pass and the owner explicitly authorizes it.
+
+
+## PR #68 review correction — Candidate 5 parameter count (2026-11-20)
+
+The tokenizer vocabulary is now 80 characters after adding the semicolon and exponent caret required by generated mathematics examples. Candidate 5 therefore has **25,400,400 parameters** (dimension 512, 8 layers, 16 heads, feed-forward multiplier 4). The live Supabase interrupted-recovery script previously retained the pre-tokenizer-expansion expectation of 25,398,350, which would have caused the workflow to reject the correct model. Updated `scripts/verify_candidate5_supabase_recovery.py` to expect 25,400,400. This is a validation-only correction: it does not alter the architecture, weights, checkpoints, or training state. PR #68 remains unmerged pending fresh CI and review. No real training has started.

@@ -8,9 +8,9 @@ from typing import Any, Mapping
 
 import torch
 
-from ultron_checkpoint import LocalCheckpointStore
+from ultron_checkpoint import CheckpointError, LocalCheckpointStore
 from ultron_model import CharTokenizer, ULTRONTransformer
-from ultron_storage import RemoteCheckpointStore
+from ultron_storage import RemoteCheckpointStore, SupabaseStorageError
 from ultron_training import CurriculumController, MathBatchStream, make_grad_scaler, train_steps
 
 
@@ -144,6 +144,43 @@ def run_checkpoint_recovery_test(
             if int(remote_manifest["step"]) != 2 or not uploaded.get("verified"):
                 raise RuntimeError("Remote checkpoint verification did not confirm step 2")
 
+            # Fault-inject only inside this unique temporary checkpoint prefix.
+            # A corrupt or missing component must be rejected before any restore.
+            component_name = next(
+                (name for name in remote_manifest["files"] if name.endswith(".safetensors")),
+                None,
+            )
+            if component_name is None:
+                raise RuntimeError("Checkpoint manifest contains no tensor component")
+            component_path = f"{owner_id}/{test_run_id}/{checkpoint_id}/{component_name}"
+            original_component = storage.download(bucket, component_path)
+            if not original_component:
+                raise RuntimeError("Checkpoint tensor component is unexpectedly empty")
+
+            storage.remove(bucket, [component_path])
+            corrupted_component = bytes([original_component[0] ^ 1]) + original_component[1:]
+            storage.upload(bucket, component_path, corrupted_component, "application/octet-stream")
+            try:
+                remote.verify_remote_checkpoint(owner_id, test_run_id, checkpoint_id)
+            except CheckpointError:
+                corrupted_checkpoint_rejected = True
+            else:
+                raise RuntimeError("Remote recovery accepted a corrupted checkpoint component")
+            storage.remove(bucket, [component_path])
+            storage.upload(bucket, component_path, original_component, "application/octet-stream")
+
+            storage.remove(bucket, [component_path])
+            try:
+                remote.verify_remote_checkpoint(owner_id, test_run_id, checkpoint_id)
+            except SupabaseStorageError as error:
+                if error.status_code != 404:
+                    raise
+                missing_checkpoint_rejected = True
+            else:
+                raise RuntimeError("Remote recovery accepted a checkpoint with a missing component")
+            storage.upload(bucket, component_path, original_component, "application/octet-stream")
+            remote.verify_remote_checkpoint(owner_id, test_run_id, checkpoint_id)
+
             # Continue the original process once to establish the uninterrupted reference.
             train_steps(
                 model,
@@ -264,6 +301,9 @@ def run_checkpoint_recovery_test(
                 "resumed_step": int(restored["step"]) + 1,
                 "checks": {
                     "remote_upload_and_manifest_verified": True,
+                    "corrupted_checkpoint_rejected": corrupted_checkpoint_rejected,
+                    "missing_checkpoint_component_rejected": missing_checkpoint_rejected,
+                    "valid_checkpoint_accepted_after_fault_repair": True,
                     "fresh_runtime_download_and_integrity_verified": True,
                     "model_weights_match_uninterrupted_run": model_exact,
                     "optimizer_state_matches_uninterrupted_run": optimizer_exact,

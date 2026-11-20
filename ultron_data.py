@@ -10,6 +10,9 @@ from typing import Any, Iterable
 from ultron_verify import verify_example
 
 
+DATA_GENERATOR_VERSION = "2.0.0"
+
+
 class InvalidGeneratedExampleError(ValueError):
     """Raised when a generated example fails its independent verification."""
 
@@ -29,6 +32,10 @@ SUPPORTED_TOPICS = (
     "basic_geometry",
     "basic_statistics",
     "basic_probability",
+    "median_and_range",
+    "simple_interest",
+    "unit_conversion",
+    "pythagorean_theorem",
 )
 
 
@@ -64,14 +71,20 @@ def _make_example(topic: str, question: str, steps: list[str], answer: str, diff
 def generate_example(topic: str, rng: random.Random, difficulty: int = 1, sample_index: int = 0) -> dict[str, Any]:
     if topic not in SUPPORTED_TOPICS:
         raise ValueError(f"Unsupported topic: {topic}")
-    level = max(1, min(3, int(difficulty)))
+    if not isinstance(rng, random.Random):
+        raise ValueError("rng must be an instance of random.Random")
+    if type(difficulty) is not int or difficulty not in (1, 2, 3):
+        raise ValueError("difficulty must be an integer from 1 to 3")
+    if type(sample_index) is not int or sample_index < 0:
+        raise ValueError("sample_index must be a non-negative integer")
+    level = difficulty
     upper = (12, 99, 999)[level - 1]
 
     if topic == "whole_number_arithmetic":
         operation = rng.choice(("+", "-", "*", "/"))
         if operation == "/":
-            divisor = rng.randint(2, max(3, min(20, upper)))
-            quotient = rng.randint(2, max(3, min(20, upper)))
+            divisor = rng.randint(2, max(3, min(200, upper)))
+            quotient = rng.randint(2, max(3, min(200, upper)))
             left, right = divisor * quotient, divisor
             result = quotient
         else:
@@ -83,15 +96,16 @@ def generate_example(topic: str, rng: random.Random, difficulty: int = 1, sample
                     left, right = right, left
                 result = left - right
             else:
-                left, right = rng.randint(2, min(30, upper)), rng.randint(2, min(30, upper))
+                left, right = rng.randint(2, min(200, upper)), rng.randint(2, min(200, upper))
                 result = left * right
         question = f"Calculate: {left} {operation} {right}"
         steps = [f"Step 1: {left} {operation} {right} = {result}."]
         return _make_example(topic, question, steps, str(result), level, sample_index)
 
     if topic == "fractions":
-        left = Fraction(rng.randint(1, 9), rng.randint(2, 12))
-        right = Fraction(rng.randint(1, 9), rng.randint(2, 12))
+        fraction_scale = (6, 18, 36)[level - 1]
+        left = Fraction(rng.randint(1, fraction_scale), rng.randint(2, fraction_scale))
+        right = Fraction(rng.randint(1, fraction_scale), rng.randint(2, fraction_scale))
         operation = rng.choice(("+", "-", "*", "/"))
         if operation == "/":
             result = left / right
@@ -204,12 +218,20 @@ def generate_example(topic: str, rng: random.Random, difficulty: int = 1, sample
 
     if topic == "exponents_and_roots":
         if rng.choice((True, False)):
-            base = rng.randint(2, min(20, upper))
-            result = base * base
-            question = f"Calculate: {base} ** 2"
-            steps = [f"Step 1: Multiply {base} by itself.", f"Step 2: {base} ** 2 = {result}."]
+            maximum_exponent = (3, 5, 8)[level - 1]
+            exponent = rng.randint(2, maximum_exponent)
+            base = rng.randint(2, min(200, upper))
+            result = base ** exponent
+            question = f"Calculate: {base} ** {exponent}"
+            if exponent == 2:
+                steps = [f"Step 1: Multiply {base} by itself.", f"Step 2: {base} ** 2 = {result}."]
+            else:
+                steps = [
+                    f"Step 1: Multiply {base} by itself {exponent} times.",
+                    f"Step 2: {base} ** {exponent} = {result}.",
+                ]
         else:
-            root = rng.randint(2, min(20, upper))
+            root = rng.randint(2, min(200, upper))
             result = root
             question = f"Calculate: sqrt({root * root})"
             steps = [f"Step 1: Find the exact square root.", f"Step 2: sqrt({root * root}) = {result}."]
@@ -236,12 +258,76 @@ def generate_example(topic: str, rng: random.Random, difficulty: int = 1, sample
         return _make_example(topic, question, steps, answer, level, sample_index)
 
     if topic == "basic_probability":
-        total = rng.randint(2, max(3, min(upper, 30)))
+        total = rng.randint(2, max(3, min(upper, 200)))
         favorable = rng.randint(1, total)
         result = Fraction(favorable, total)
         answer = _format_fraction(result)
         question = f"Probability: {favorable} favorable, {total} total"
         steps = [f"Step 1: Divide favorable outcomes by total outcomes.", f"Step 2: The probability is {answer}."]
+        return _make_example(topic, question, steps, answer, level, sample_index)
+
+    if topic == "median_and_range":
+        values = [rng.randint(1, upper) for _ in range(5)]
+        ordered = sorted(values)
+        median = ordered[2]
+        spread = ordered[-1] - ordered[0]
+        rendered = ", ".join(str(value) for value in values)
+        sorted_rendered = ", ".join(str(value) for value in ordered)
+        answer = f"median={median}; range={spread}"
+        question = f"Median and range of: {rendered}"
+        steps = [
+            f"Step 1: Sort the five values: {sorted_rendered}.",
+            f"Step 2: The middle value is {median}, and the range is {ordered[-1]} - {ordered[0]} = {spread}.",
+            f"Step 3: {answer}.",
+        ]
+        return _make_example(topic, question, steps, answer, level, sample_index)
+
+    if topic == "simple_interest":
+        principal = rng.randint(20, max(30, upper * 10))
+        rate = rng.choice((2, 3, 4, 5, 6, 8, 10, 12))
+        years = rng.randint(1, level + 2)
+        interest = Fraction(principal * rate * years, 100)
+        answer = _format_fraction(interest)
+        question = f"Simple interest: principal {principal}, rate {rate}%, time {years} years"
+        steps = [
+            f"Step 1: Use I = P * r * t / 100.",
+            f"Step 2: I = {principal} * {rate} * {years} / 100 = {answer}.",
+        ]
+        return _make_example(topic, question, steps, answer, level, sample_index)
+
+    if topic == "unit_conversion":
+        factor, unit_from, unit_to = rng.choice((
+            (100, "m", "cm"),
+            (10, "cm", "mm"),
+            (1000, "kg", "g"),
+        ))
+        amount = rng.randint(1, upper)
+        result = amount * factor
+        question = f"Convert: {amount} {unit_from} to {unit_to}"
+        steps = [
+            f"Step 1: 1 {unit_from} = {factor} {unit_to}.",
+            f"Step 2: {amount} * {factor} = {result} {unit_to}.",
+        ]
+        return _make_example(topic, question, steps, str(result), level, sample_index)
+
+    if topic == "pythagorean_theorem":
+        maximum_m = (5, 15, 50)[level - 1]
+        while True:
+            m = rng.randint(2, maximum_m)
+            n = rng.randint(1, m - 1)
+            if math.gcd(m, n) == 1 and (m - n) % 2 == 1:
+                break
+        left = m * m - n * n
+        right = 2 * m * n
+        hypotenuse = m * m + n * n
+        if rng.choice((True, False)):
+            left, right = right, left
+        question = f"Hypotenuse of right triangle: legs {left}, {right}"
+        answer = str(hypotenuse)
+        steps = [
+            f"Step 1: Use c * c = a * a + b * b = {left}^2 + {right}^2.",
+            f"Step 2: c = sqrt({left * left + right * right}) = {hypotenuse}.",
+        ]
         return _make_example(topic, question, steps, answer, level, sample_index)
 
     raise ValueError(f"Unsupported topic: {topic}")
@@ -276,22 +362,35 @@ def generate_dataset(
     topics: Iterable[str] = SUPPORTED_TOPICS,
     maximum_attempts: int | None = None,
 ) -> list[dict[str, Any]]:
-    if count < 1:
-        raise ValueError("Dataset count must be positive")
+    if type(count) is not int or count < 1:
+        raise ValueError("Dataset count must be a positive integer")
+    if type(seed) is not int:
+        raise ValueError("Dataset seed must be an integer")
     split_buckets = {"train": set(range(8)), "validation": {8}, "test": {9}}
-    if split not in split_buckets:
+    if not isinstance(split, str) or split not in split_buckets:
         raise ValueError("Split must be train, validation or test")
-    topic_list = tuple(topics)
-    if not topic_list or any(topic not in SUPPORTED_TOPICS for topic in topic_list):
-        raise ValueError("Topic list is empty or contains an unsupported topic")
+    if topics is None or isinstance(topics, (str, bytes)):
+        raise ValueError("Topics must be an iterable of unique supported topic names")
+    try:
+        topic_list = tuple(topics)
+    except TypeError as error:
+        raise ValueError("Topics must be an iterable of unique supported topic names") from error
+    if (
+        not topic_list
+        or any(not isinstance(topic, str) or topic not in SUPPORTED_TOPICS for topic in topic_list)
+        or len(set(topic_list)) != len(topic_list)
+    ):
+        raise ValueError("Topic list is empty, duplicated, or contains an unsupported topic")
     attempt_limit = maximum_attempts if maximum_attempts is not None else count * 30 + 300
+    if type(attempt_limit) is not int or attempt_limit < 1:
+        raise ValueError("Maximum attempts must be a positive integer")
     examples: list[dict[str, Any]] = []
     seen: set[str] = set()
 
     for index in range(attempt_limit):
         topic_index = index % len(topic_list)
         topic = topic_list[topic_index]
-        difficulty = 1 + (index % 3)
+        difficulty = 1 + ((index // len(topic_list)) % 3)
         rng = random.Random(seed + index * 1000003 + topic_index * 7919)
         example = generate_example(topic, rng, difficulty, index)
         question_key = example["question"]

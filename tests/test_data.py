@@ -52,6 +52,34 @@ class DataPipelineTests(unittest.TestCase):
         second = generate_dataset(80, seed=20261117, split="train")
         self.assertEqual(first, second)
 
+    def test_median_and_range_examples_require_sorting(self):
+        examples = [
+            generate_example(
+                "median_and_range",
+                random.Random(seed),
+                sample_index=seed,
+            )
+            for seed in range(1, 40)
+        ]
+        unsorted_examples = [
+            example for example in examples
+            if [int(value.strip()) for value in example["question"].split(":", 1)[1].split(",")]
+            != sorted(int(value.strip()) for value in example["question"].split(":", 1)[1].split(","))
+        ]
+        self.assertTrue(unsorted_examples, "Median examples should include unsorted inputs")
+        for example in examples:
+            self.assertTrue(verify_example(example), example["question"])
+
+    def test_every_topic_cycles_through_all_three_difficulty_levels(self):
+        examples = generate_dataset(600, seed=20261119, split="train")
+        topic_levels = {topic: set() for topic in SUPPORTED_TOPICS}
+        for example in examples:
+            topic_levels[example["topic"]].add(example["difficulty"])
+        self.assertEqual(set(topic_levels), set(SUPPORTED_TOPICS))
+        for topic, levels in topic_levels.items():
+            with self.subTest(topic=topic):
+                self.assertEqual(levels, {1, 2, 3})
+
     def test_train_validation_and_test_questions_do_not_overlap(self):
         training = generate_dataset(300, seed=20261117, split="train")
         validation = generate_dataset(100, seed=20261117, split="validation")
@@ -66,6 +94,28 @@ class DataPipelineTests(unittest.TestCase):
     def test_invalid_topic_is_rejected(self):
         with self.assertRaises(ValueError):
             generate_example("advanced_calculus", random.Random(1))
+
+    def test_dataset_generator_rejects_invalid_arguments(self):
+        invalid_calls = (
+            lambda: generate_dataset(True, seed=1),
+            lambda: generate_dataset(1, seed=True),
+            lambda: generate_dataset(1, seed=1, split=[]),
+            lambda: generate_dataset(1, seed=1, topics="fractions"),
+            lambda: generate_dataset(1, seed=1, topics=None),
+            lambda: generate_dataset(1, seed=1, topics=("fractions", "fractions")),
+            lambda: generate_dataset(1, seed=1, maximum_attempts=True),
+            lambda: generate_dataset(1, seed=1, maximum_attempts=0),
+        )
+        for call in invalid_calls:
+            with self.subTest(call=call):
+                with self.assertRaises(ValueError):
+                    call()
+
+    def test_invalid_difficulty_is_rejected_instead_of_silently_clamped(self):
+        for difficulty in (0, 4, True, 1.5):
+            with self.subTest(difficulty=difficulty):
+                with self.assertRaises(ValueError):
+                    generate_example("whole_number_arithmetic", random.Random(1), difficulty=difficulty)
 
     def test_ratio_verifier_rejects_wrong_simplification(self):
         example = generate_example("ratios_and_proportions", random.Random(88), sample_index=88)

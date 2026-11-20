@@ -226,6 +226,47 @@ def _verify_example_answer_detailed(example: Mapping[str, Any]) -> tuple[bool, s
             observed = _parse_number(answer)
             return expected == observed, "Probability result matches" if expected == observed else "Probability result does not match"
 
+        if topic == "median_and_range":
+            match = re.fullmatch(r"Median and range of: ([0-9, ]+)", question)
+            if not match:
+                return False, "Median/range question format is invalid"
+            values = sorted(int(item.strip()) for item in match.group(1).split(","))
+            if len(values) != 5:
+                return False, "Median/range requires exactly five values"
+            expected = f"median={values[2]}; range={values[-1] - values[0]}"
+            return answer == expected, "Median and range match" if answer == expected else "Median or range does not match"
+
+        if topic == "simple_interest":
+            match = re.fullmatch(r"Simple interest: principal (\d+), rate (\d+)%, time (\d+) years", question)
+            if not match:
+                return False, "Simple-interest question format is invalid"
+            principal, rate, years = map(int, match.groups())
+            expected = _normalize(principal * rate * years, 100)
+            observed = _parse_number(answer)
+            return expected == observed, "Simple interest matches" if expected == observed else "Simple interest does not match"
+
+        if topic == "unit_conversion":
+            match = re.fullmatch(r"Convert: (\d+) (m|cm|kg) to (cm|mm|g)", question)
+            if not match:
+                return False, "Unit-conversion question format is invalid"
+            amount, unit_from, unit_to = match.groups()
+            factors = {("m", "cm"): 100, ("cm", "mm"): 10, ("kg", "g"): 1000}
+            factor = factors.get((unit_from, unit_to))
+            if factor is None:
+                return False, "Unsupported unit conversion"
+            expected = str(int(amount) * factor)
+            return answer == expected, "Unit conversion matches" if answer == expected else "Unit conversion does not match"
+
+        if topic == "pythagorean_theorem":
+            match = re.fullmatch(r"Hypotenuse of right triangle: legs (\d+), (\d+)", question)
+            if not match:
+                return False, "Pythagorean question format is invalid"
+            left, right = map(int, match.groups())
+            square = left * left + right * right
+            root = math.isqrt(square)
+            expected = str(root) if root * root == square else None
+            return answer == expected, "Pythagorean hypotenuse matches" if answer == expected else "Pythagorean hypotenuse does not match"
+
         return False, f"Unsupported topic: {topic}"
     except (ArithmeticError, InvalidOperation, KeyError, TypeError, ValueError, SyntaxError):
         return False, "Verification error"
@@ -368,14 +409,21 @@ def _expected_solution_steps(example: Mapping[str, Any]) -> list[str]:
         ]
 
     if topic == "exponents_and_roots":
-        square = re.fullmatch(r"Calculate: (\d+) \*\* 2", question)
+        power = re.fullmatch(r"Calculate: (\d+) \*\* (\d+)", question)
         root = re.fullmatch(r"Calculate: sqrt\((\d+)\)", question)
-        if square:
-            base = int(square.group(1))
-            result = base * base
+        if power:
+            base, exponent = map(int, power.groups())
+            if not 2 <= exponent <= 8:
+                raise ValueError("Exponent must be between 2 and 8")
+            result = base ** exponent
+            if exponent == 2:
+                return [
+                    f"Step 1: Multiply {base} by itself.",
+                    f"Step 2: {base} ** 2 = {result}.",
+                ]
             return [
-                f"Step 1: Multiply {base} by itself.",
-                f"Step 2: {base} ** 2 = {result}.",
+                f"Step 1: Multiply {base} by itself {exponent} times.",
+                f"Step 2: {base} ** {exponent} = {result}.",
             ]
         if root:
             radicand = int(root.group(1))
@@ -425,6 +473,62 @@ def _expected_solution_steps(example: Mapping[str, Any]) -> list[str]:
         return [
             "Step 1: Divide favorable outcomes by total outcomes.",
             f"Step 2: The probability is {answer}.",
+        ]
+
+    if topic == "median_and_range":
+        match = re.fullmatch(r"Median and range of: ([0-9, ]+)", question)
+        if not match:
+            raise ValueError("Invalid median/range question")
+        values = sorted(int(item.strip()) for item in match.group(1).split(","))
+        if len(values) != 5:
+            raise ValueError("Median/range requires five values")
+        median, spread = values[2], values[-1] - values[0]
+        rendered = ", ".join(str(value) for value in values)
+        answer = f"median={median}; range={spread}"
+        return [
+            f"Step 1: Sort the five values: {rendered}.",
+            f"Step 2: The middle value is {median}, and the range is {values[-1]} - {values[0]} = {spread}.",
+            f"Step 3: {answer}.",
+        ]
+
+    if topic == "simple_interest":
+        match = re.fullmatch(r"Simple interest: principal (\d+), rate (\d+)%, time (\d+) years", question)
+        if not match:
+            raise ValueError("Invalid simple-interest question")
+        principal, rate, years = map(int, match.groups())
+        answer = _format_pair(_normalize(principal * rate * years, 100))
+        return [
+            "Step 1: Use I = P * r * t / 100.",
+            f"Step 2: I = {principal} * {rate} * {years} / 100 = {answer}.",
+        ]
+
+    if topic == "unit_conversion":
+        match = re.fullmatch(r"Convert: (\d+) (m|cm|kg) to (cm|mm|g)", question)
+        if not match:
+            raise ValueError("Invalid unit-conversion question")
+        amount, unit_from, unit_to = match.groups()
+        factors = {("m", "cm"): 100, ("cm", "mm"): 10, ("kg", "g"): 1000}
+        factor = factors.get((unit_from, unit_to))
+        if factor is None:
+            raise ValueError("Unsupported unit conversion")
+        result = int(amount) * factor
+        return [
+            f"Step 1: 1 {unit_from} = {factor} {unit_to}.",
+            f"Step 2: {amount} * {factor} = {result} {unit_to}.",
+        ]
+
+    if topic == "pythagorean_theorem":
+        match = re.fullmatch(r"Hypotenuse of right triangle: legs (\d+), (\d+)", question)
+        if not match:
+            raise ValueError("Invalid Pythagorean question")
+        left, right = map(int, match.groups())
+        square = left * left + right * right
+        root = math.isqrt(square)
+        if root * root != square:
+            raise ValueError("Triangle legs do not produce an integer hypotenuse")
+        return [
+            f"Step 1: Use c * c = a * a + b * b = {left}^2 + {right}^2.",
+            f"Step 2: c = sqrt({square}) = {root}.",
         ]
 
     raise ValueError(f"Unsupported topic: {topic}")
