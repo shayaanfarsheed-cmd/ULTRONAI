@@ -1,16 +1,17 @@
 # ULTRON — current project status (2026-11-20)
 
-## Latest verified status — PR #87 merged; mobile touch targets corrected
+## Latest verified status — PR #88 merged; mobile release documented
 
-- PR [#85](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/85) merged at `312aa5c5673f6ea3ce4b99bdb10508ed663749d9`; remote device access and RAM preference copy aligned with the remote-compute design.
+- PR [#85](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/85) merged at `312aa5c5673f6ea3ce4b99bdb10508ed663749d9`; remote device access and RAM preference copy align with the remote-compute design.
 - PR [#86](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/86) merged at `951fef13eb2221d02d235a109eb6bfe8a6539e5f`; Settings no longer describes a future local training runtime.
-- PR [#87](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/87) merged at `3bad4870586e583807de19d4f033c42f4001a359`; all three required checks passed. Compact mobile owner sign-in and theme controls now meet a 44px minimum touch target.
-- Post-merge test suite, preflight and GitHub Pages deployment for PR #87 all completed successfully.
+- PR [#87](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/87) merged at `3bad4870586e583807de19d4f033c42f4001a359`; all three required checks and post-merge checks passed. Mobile owner sign-in and theme controls meet a 44px minimum touch target.
+- PR [#88](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/88) merged at `286a1c836d0a8698f6d486a298e8899714693f1b`; all three required checks and post-merge test, preflight and Pages deployment passed. README now records the verified release state and manual-browser-test limitation.
 - Device access describes the dashboard as a browser-based remote console for iPadOS, iOS, Android, desktop and tablets. Compute is remote; device pairing and local model runtime are not used.
 - The Settings RAM slider is a browser-local preference. It is not sent to a remote training process and does not cap hosted-runner RAM or GPU VRAM.
 - GitHub Actions remote controls remain limited to safe CPU diagnostics. Google Colab remains manual-only. Actual model training has not started.
 - Supabase `training-control` remains **ACTIVE, version 5**, with `verify_jwt=true`.
-- The GitHub Pages deployment workflow succeeded. An external page reader could not fetch the hosted dashboard for a manual browser smoke test; do not treat that as a verified visual browser test.
+- GitHub Pages deployment workflow succeeded. The hosted dashboard still needs a real visual smoke test in a browser; an external page reader could not fetch it.
+- Current work adds explicit regression checks for invalid/expired owner sessions, non-owner denial, origin/method restrictions, and absence of the GitHub secret from browser assets.
 - No diagnostic was launched, no model training was started, and no weights or persistent checkpoints were changed.
 
 ## Immediate next steps
