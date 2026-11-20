@@ -28,7 +28,8 @@ class TrainingControlSecurityContractTests(unittest.TestCase):
         source = (ROOT / "supabase/functions/training-control/index.ts").read_text()
         self.assertIn('const CPU_SERVER_ID = "github_actions_cpu"', source)
         self.assertIn('id === CPU_SERVER_ID', source)
-        self.assertIn('"ultron-cpu-diagnostic"', source)
+        self.assertIn('const CPU_WORKFLOW_PATH = "cpu-diagnostic.yml"', source)
+        self.assertIn('"/actions/workflows/" + workflowPath + "/dispatches"', source)
         self.assertNotIn("lightning", source.lower())
 
     def test_dashboard_has_explicit_owner_confirmed_controls(self):
@@ -69,6 +70,16 @@ class TrainingControlSecurityContractTests(unittest.TestCase):
         self.assertEqual([item["id"] for item in servers["servers"]], ["github_actions_cpu", "google_colab"])
         self.assertEqual(servers["servers"][0]["role"], "primary_cpu_runtime")
         self.assertFalse(servers["servers"][1]["remote_control_allowed"])
+
+
+    def test_remote_dispatch_uses_actions_write_without_contents_write(self):
+        source = (ROOT / "supabase/functions/training-control/index.ts").read_text()
+        workflow = (ROOT / ".github/workflows/cpu-diagnostic.yml").read_text()
+        self.assertIn('"/actions/workflows/" + workflowPath + "/dispatches"', source)
+        self.assertIn('ref: "main"', source)
+        self.assertIn("Actions: write only", source)
+        self.assertIn("workflow_dispatch:", workflow)
+        self.assertNotIn("repository_dispatch:", workflow)
 
     def test_health_diagnostic_is_owner_gated_and_never_returns_secret_values(self):
         source = (ROOT / "supabase/functions/training-control/index.ts").read_text()

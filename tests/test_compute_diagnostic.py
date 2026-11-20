@@ -33,7 +33,7 @@ class ComputeDiagnosticTests(unittest.TestCase):
 
     def test_diagnostic_workflow_never_invokes_training_or_uses_secrets(self):
         workflow = (ROOT / ".github/workflows/cpu-diagnostic.yml").read_text()
-        self.assertIn("ultron-cpu-diagnostic", workflow)
+        self.assertIn("workflow_dispatch:", workflow)
         self.assertIn("scripts/diagnose_cpu_runner.py", workflow)
         self.assertNotIn("train.py --train", workflow)
         self.assertNotIn("SUPABASE_SECRET_KEY", workflow)
@@ -65,7 +65,7 @@ class ComputeDiagnosticTests(unittest.TestCase):
     def test_owner_control_targets_safe_diagnostic_workflow(self):
         source = (ROOT / "supabase/functions/training-control/index.ts").read_text()
         self.assertIn('const CPU_WORKFLOW_PATH = "cpu-diagnostic.yml"', source)
-        self.assertIn('"ultron-cpu-diagnostic"', source)
+        self.assertIn('"/actions/workflows/" + workflowPath + "/dispatches"', source)
         self.assertNotIn('const CPU_WORKFLOW_PATH = "cpu-training.yml"', source)
 
     def test_dashboard_labels_start_as_diagnostic_not_training(self):

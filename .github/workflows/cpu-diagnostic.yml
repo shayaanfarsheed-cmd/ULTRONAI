@@ -1,11 +1,8 @@
 name: ULTRON Safe CPU Compute Diagnostic
-run-name: ULTRON CPU diagnostic · ${{ github.event.client_payload.request_id || github.event_name }}
+run-name: ULTRON CPU diagnostic · ${{ github.event_name }}
 
 on:
   workflow_dispatch:
-  repository_dispatch:
-    types:
-      - ultron-cpu-diagnostic
 
 permissions:
   contents: read
