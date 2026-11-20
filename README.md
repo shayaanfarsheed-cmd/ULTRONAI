@@ -1,22 +1,22 @@
 # ULTRON — current project status (2026-11-20)
 
-## Latest verified status — PR #84 merged; compact header layout fixed
+## Latest verified status — PR #85 merged; remote device access clarified
 
-- PR [#81](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/81) merged to `main`; owner-only workflow status responses are invalidated after sign-out and provider changes.
-- PR [#82](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/82) merged at `a2dbf433ad23d8d781f2c8f6a69fa802ab6c014d`; a runtime regression test now verifies late private status responses cannot repaint Guest Mode.
-- PR [#83](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/83) merged at `1b1f04825353996d56569c2e47b961ce8c5e627c`; all three required checks passed and the GitHub Pages deployment completed successfully.
-- PR [#84](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/84) merged at `47b0e4bd73d6db26944575c372fa2fd77fbe6ec1`; all three required checks passed. Compact-screen header spacing is reduced to avoid crowding the brand and owner controls.
-- Current work aligns the Device access page and RAM preference wording with the remote-compute architecture. The RAM slider remains a browser-local preference and is not yet connected to a remote training process or hosted-runner memory limits.
-- The production Supabase `training-control` Edge Function remains **ACTIVE, version 5**, with `verify_jwt=true`.
+- PR [#84](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/84) merged at `47b0e4bd73d6db26944575c372fa2fd77fbe6ec1`; its compact-screen header fix passed the main-branch checks and Pages deployment.
+- PR [#85](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/85) merged at `312aa5c5673f6ea3ce4b99bdb10508ed663749d9`; all three required PR checks passed. Post-merge test suite, preflight and GitHub Pages deployment also passed.
+- Device access now describes the dashboard as a browser-based remote console for iPadOS, iOS, Android, desktop and tablets. Compute is remote; device pairing and local model runtime are not used.
+- The Settings RAM slider is a browser-local preference. It is not sent to a remote training process and does not cap hosted-runner RAM or GPU VRAM. PR #86 is aligning the Settings explanatory paragraph with this same behavior.
+- GitHub Actions remote controls remain limited to safe CPU diagnostics. Google Colab remains manual-only. Actual model training has not started.
+- Supabase `training-control` remains **ACTIVE, version 5**, with `verify_jwt=true`.
 - No diagnostic was launched, no model training was started, and no weights or persistent checkpoints were changed.
 
 ## Immediate next steps
 
-1. Validate the remote Device access page wording and RAM preference disclosures.
-2. Verify the GitHub Pages deployment after PR #84.
-3. Complete responsive, accessibility, browser-console, and owner-only live status checks.
-4. Continue the security matrix: invalid/expired JWT, non-owner denial, public dispatch denial, and secret non-disclosure.
-5. Keep real training disabled until the full readiness matrix passes and the owner separately authorizes a tiny overfit experiment.
+1. Merge the Settings RAM wording correction only after all required checks pass.
+2. Continue dashboard accessibility, iPad/phone responsive and browser-console audits.
+3. Verify owner-only **Refresh status** in the signed-in owner's browser; configuration presence alone does not prove GitHub API authorization.
+4. Complete the security matrix: invalid/expired JWT, non-owner denial, public dispatch denial, and secret non-disclosure.
+5. Audit model, dataset, evaluation, checkpoint recovery and training resource controls before requesting separate authorization for any training.
 
 ## Latest verified status — PR #83 merged; responsive navigation improved
 
