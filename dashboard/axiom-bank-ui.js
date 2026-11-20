@@ -14,7 +14,7 @@
       heading.textContent = entry.id + " · " + entry.name;
       detail.appendChild(heading);
       const system = document.createElement("p");
-      system.textContent = "Formal system: " + entry.systemLabel + " · Domain: " + entry.domain;
+      system.textContent = "Category: " + entry.category + " · Formal system: " + entry.systemLabel + " · Domain: " + entry.domain;
       detail.appendChild(system);
       const formal = document.createElement("p");
       formal.className = "axiom-formal";
