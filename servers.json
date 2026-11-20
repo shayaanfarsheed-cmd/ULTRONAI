@@ -69,7 +69,7 @@
         "standard_runner_minutes_for_public_repository": "unlimited",
         "artifact_storage_mb_in_account_plan": 500,
         "quota_period": "public_repository_standard_runner",
-        "quota_notes": "Standard GitHub-hosted runners are free and unlimited for public repositories. Each workflow job can execute for up to 6 hours. Avoid storing checkpoints as Actions artifacts; use the configured checkpoint storage.",
+        "quota_notes": "This public repository can use standard GitHub-hosted runners free and unlimited. ubuntu-latest is documented as 4 CPUs, 16 GB RAM and 14 GB SSD; each job has a 6-hour execution limit. These are published baselines, not a guarantee of future runner availability. Avoid storing checkpoints as Actions artifacts; use configured checkpoint storage.",
         "training_session_target_hours": 5.5
       },
       "automatic_start": "yes",
@@ -88,7 +88,7 @@
         "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
         "https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#workflow_dispatch"
       ],
-      "last_reviewed": "2026-11-17",
+      "last_reviewed": "2026-11-20",
       "automatic_start_enabled_by_default": false
     },
     {
@@ -114,7 +114,7 @@
         "weekly_gpu_hours": null,
         "monthly_gpu_hours": null,
         "quota_period": "dynamic_not_published",
-        "quota_notes": "Free runtimes can run for at most 12 hours, depending on availability and usage patterns. GPU types, usage limits, idle timeout and VM lifetime vary and are not published as a fixed quota.",
+        "quota_notes": "Free GPU access is not guaranteed. Hardware and usage limits are dynamic and not published as fixed quotas. Free notebooks can run for at most 12 hours depending on availability and usage patterns. Google disallows remote control or bypassing the notebook UI on managed free runtimes.",
         "training_session_target_hours": 11.5
       },
       "automatic_start": "no",
@@ -131,8 +131,10 @@
         "https://developers.google.com/colab/api/reference/rest",
         "https://research.google.com/colaboratory/tos.html"
       ],
-      "last_reviewed": "2026-11-17",
-      "automatic_start_enabled_by_default": false
+      "last_reviewed": "2026-11-20",
+      "automatic_start_enabled_by_default": false,
+      "remote_control_allowed": false,
+      "remote_control_reason": "Google Colab's managed free runtimes disallow remote control or bypassing the notebook UI; use Colab manually in its notebook interface."
     }
   ],
   "status_values": [
