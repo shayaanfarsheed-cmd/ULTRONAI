@@ -1,5 +1,24 @@
 # ULTRON — current project status (2026-11-20)
 
+## Latest verified status — PR #83 merged; responsive navigation improved
+
+- PR [#81](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/81) merged to `main` at `6866ddb91d8380bea2050c685d8fca589bfd0496`.
+- PR [#82](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/82) merged to `main` at `a2dbf433ad23d8d781f2c8f6a69fa802ab6c014d`; all three required checks passed.
+- PR [#83](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/83) merged to `main` at `1b1f04825353996d56569c2e47b961ce8c5e627c`; all three required checks passed.
+- Narrow phone layouts now use three navigation columns, with two columns on very narrow screens; the existing tablet/iPad and desktop layouts are preserved.
+- The runtime regression test verifies a delayed owner-only status response cannot restore private details or links after sign-out.
+- The production Supabase `training-control` Edge Function remains **ACTIVE, version 5**, with `verify_jwt=true`.
+- The GitHub Pages deployment for PR #82 completed successfully. PR #83's Pages deployment is being verified; do not claim its live CSS is deployed until that workflow succeeds.
+- No diagnostic was launched, no model training was started, and no weights or persistent checkpoints were changed.
+
+## Immediate next steps
+
+1. Finish the compact-screen header layout fix and validate the complete CI suite.
+2. Verify the Pages deployment after PR #83.
+3. Complete responsive, accessibility, browser-console, and owner-only live status checks.
+4. Continue the security matrix: invalid/expired JWT, non-owner denial, public dispatch denial, and secret non-disclosure.
+5. Keep real training disabled until the full readiness matrix passes and the owner separately authorizes a tiny overfit experiment.
+
 ## Latest verified status — PR #82 merged; runtime owner-status race test added
 
 - PR [#81](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/81) merged to `main` at `6866ddb91d8380bea2050c685d8fca589bfd0496`.
