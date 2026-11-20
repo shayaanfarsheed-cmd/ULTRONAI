@@ -1,5 +1,15 @@
 # ULTRON — current project status (2026-11-20)
 
+## Legacy pull-request reconciliation — 2026-11-20
+
+The legacy PR backlog was reviewed against current `main` at `346b36a940f5f662c07bc3b07e741c731be625a4`.
+
+- **Closed as obsolete/superseded:** PR #4 (device-control/pairing contract; pairing and remote-device control are no longer part of the product), PR #25 (local CLI dummy worker; not the iPad-first website-controlled workflow and no verified RAM enforcement), PR #29 (stale README-only correction), and PR #26 (older learning architecture note superseded by the newer reasoning architecture work and current implementation).
+- **Retained as draft for selective port/review:** PR #37 (held-out evaluation foundation) and PR #54 (conversational reasoning architecture). Both branches are substantially behind current `main`; their old CI successes do not validate compatibility with today's code. PR #37 overlaps newer evaluation/training modules now on `main`, so its unique tests/data must be compared before any port. PR #54 contains useful design material but its README edits must not overwrite the current handoff.
+- No legacy PR was merged. No training, compute diagnostic, model-weight update, checkpoint mutation, Supabase deployment, or production configuration change was performed.
+
+Future work must be recreated on a fresh branch from current `main`, selectively port only still-valid functionality, add regression tests, update this README, and require fresh CI plus exact-diff review before merge.
+
 ## Latest verified status — PR #96 merged and deployed
 
 - PR [#96](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/96) merged to `main` at `397199389a1c829ff3107cff5560a2c27516fd9a`.
