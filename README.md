@@ -1,6 +1,37 @@
-# Phase 2 — safe compute-provider validation (2026-11-20)
+# ULTRON — current project status (2026-11-20)
 
-**Current phase:** implementation in review on branch `phase2/safe-compute-diagnostics`. No training is authorized or started.
+**Current phase:** Phase 2 compute diagnostics completed; production-safe remote-control function deployed for diagnostic-only operations. No real training is authorized or started.
+
+## Latest verified milestone — production Edge Function deployment
+
+- Supabase project: `ultron-memory` (`euhmejpaswmdpsutbtse`), status `ACTIVE_HEALTHY`.
+- Deployed `training-control` Edge Function, version 1, status `ACTIVE`, with platform JWT verification enabled (`verify_jwt = true`).
+- Deployed source matches `supabase/functions/training-control/index.ts` from `main` at deployment time.
+- The function is restricted to the GitHub Pages origin and validates the caller's Supabase user against server-side `ULTRON_OWNER_USER_ID`. It requires a server-side `ULTRON_GITHUB_TOKEN` for GitHub operations.
+- **Start dispatches only `ultron-cpu-diagnostic` / `cpu-diagnostic.yml`**, never `cpu-training.yml`. Status and stop are scoped to the CPU diagnostic workflow. Colab remains manual-only.
+- Supabase's function inventory confirms `training-control` is active with JWT verification enabled. The production endpoint's unauthenticated HTTP response and owner/non-owner action tests have not yet been exercised from this environment; outbound DNS/network access was unavailable. Do not treat the end-to-end authorization test as complete.
+- Runtime configuration must include `ULTRON_OWNER_USER_ID` and `ULTRON_GITHUB_TOKEN`. The handler fails closed if owner configuration is missing, and GitHub operations fail if the token is missing. Do not expose or commit either secret.
+- Do not press dashboard Start until the owner identity and GitHub token are configured securely and the complete unauthorized/owner test matrix passes.
+- Supabase Security Advisor currently reports leaked-password protection disabled (warning) and three legacy pairing tables with RLS enabled but no policies (informational). The tables are retired and policy-less RLS denies access; do not add permissive policies. Auth leaked-password protection should be enabled after confirming the supported Auth setting.
+- No schema, RLS, Storage policy, database data, model weights, checkpoints, or training state was changed during deployment.
+
+## Phase 2 compute diagnostic results
+
+- GitHub Actions CPU diagnostic passed on run [44669274325](https://github.com/shayaanfarsheed-cmd/ULTRONAI/actions/runs/44669274325): 4 logical CPUs, approximately 15.6 GiB available RAM, approximately 92.3 GB free disk, Python 3.11.18, PyTorch 2.15.0+cpu, no CUDA.
+- Google Colab manual diagnostic passed on 2026-11-20: 2 logical CPUs, approximately 12.67 GiB system RAM (11.08 GiB available), approximately 112.5 GiB free root disk, Python 3.13.16, PyTorch 2.14.1+cu130, NVIDIA Tesla T4 with 15 GiB GPU memory and CUDA 13.0.
+- Colab diagnostic explicitly reported `training_started=false`, `model_weights_modified=false`, and `persistent_checkpoints_touched=false`.
+- Colab Free is manual-only; GPU access is temporary and not guaranteed. GitHub Actions is the CPU fallback. Neither provider is a guaranteed always-on GPU service.
+
+## Immediate next steps
+
+1. Configure/verify the two required Edge Function secrets without exposing their values.
+2. Exercise missing/invalid JWT, non-owner denial, owner status/start/stop, origin rejection, and ensure Start dispatches only the diagnostic workflow.
+3. Confirm a diagnostic can be cancelled and verify no training/checkpoint writes occur.
+4. Review and enable Auth leaked-password protection using the supported project Auth configuration.
+5. Keep real training disabled until all readiness gates pass and the owner separately authorizes the tiny overfit diagnostic.
+
+---
+
 
 ## Phase 1 result
 - PR #68 merged to `main` at `f7dbd1b9e692d1fa12870372187a37533046b2e9`.
@@ -23,8 +54,8 @@
 - Upgrade GitHub Actions used by the repository to Node.js 24-compatible major versions.
 - Add regression tests for diagnostic output and ensure the workflow cannot start training or access secrets.
 
-## Critical deployment boundary
-The source change to `supabase/functions/training-control/index.ts` is **not live until that Edge Function is separately deployed**. The currently deployed function may still point to `cpu-training.yml`, whose job runs real training. Do not use the production dashboard's existing Start control until the diagnostic-only Edge Function has been deployed and verified. No Edge Function deployment, Supabase configuration change, schema/RLS/policy change, or secret change is performed by this PR. Deployment requires separate explicit approval.
+## Critical deployment boundary (superseded by deployment milestone above)
+The diagnostic-only `training-control` Edge Function is now deployed with JWT verification enabled. Its source dispatches only `cpu-diagnostic.yml`. However, end-to-end owner/non-owner authorization and runtime-secret configuration still require verification. Do not use production dashboard Start until those checks pass. The deployed function does not authorize or invoke real model training.
 
 ## Phase 2 validation sequence
 1. Review this PR and pass CI.
