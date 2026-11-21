@@ -126,3 +126,8 @@ For COMPLETE-01, the non-strict comparisons are expanded as the negation of the 
 The ZFC context enables the exact Axiom Bank identifier ZFC-10. Its formula is universally quantified over an index set and a family; if the typed `familyOfNonemptySets(family, indexSet)` relation holds, there exists a set satisfying `choiceFunction(choice, indexSet, family)`. The two public constructors expand into ordinary quantified first-order formulas over Set membership and equality. The expansion defines Kuratowski ordered pairs as {{a},{a,b}}, defines a function graph as a set of such pairs with domain exactly I and a unique output for every index, requires each indexed family value to be nonempty, and requires the choice graph to select an element from each indexed value. The axiom is replayed only in ZFC.
 
 The checker validates this finite formula expansion; it does not execute a choice-function constructor or produce a witness for arbitrary families. No constructive selection algorithm is claimed.
+
+
+## Binder-environment safety
+
+Variable-sort lookup uses own-property checks only, and nested quantifier environments are copied onto null-prototype objects. This prevents names such as `__proto__`, `constructor`, `toString` and `hasOwnProperty` from being mistaken for inherited bindings or changing the environment prototype. Empty variable and binder names are rejected. The test suite exercises these reserved-name cases and verifies that an actual bound sort mismatch remains invalid.
