@@ -72,6 +72,14 @@ These are formula-schema instances, not a general meta-logic. Predicate paramete
 
 These are finite axiom formulas. They do not add a general set-construction evaluator or a set-theory decision procedure.
 
+## ZFC-10 — Axiom of Choice: representation boundary
+
+ZFC-10 is registered as the first-order statement that every indexed family of non-empty sets admits a choice function. Its syntax uses the typed primitive relations `familyOfNonemptySets(family, indexSet)` and `choiceFunction(choice, indexSet, family)`. The axiom formula is universally quantified over the index set and family and existentially quantifies the choice-function witness.
+
+**Important implementation boundary:** these two relations are currently primitive symbols in the object language. The kernel checks their arity, closed AST shape, `Set` sorts, exact ZFC-10 formula and ZFC-only axiom availability. It does not yet define or evaluate their internal set-theoretic meaning. In particular, it does not currently encode that a family is a function with domain I, that every indexed value is non-empty, or that a choice function has domain I and selects an element from each corresponding set. Those semantics require a later function/ordered-pair and indexed-membership representation (or an explicitly specified conservative definitional extension).
+
+Accordingly, ZFC-10 is a registered axiom representation, not an executable choice-function constructor or a complete formalization of indexed families. Proofs that use this primitive axiom inherit the declared ZFC assumption; they must not be described as independently deriving the semantics of choice. Regression tests establish typed syntax, exact axiom binding, formula integrity and context isolation only.
+
 ## Audited inference rules
 
 The replayed rules are assumption, axiom, equality reflexivity/symmetry/transitivity, conjunction introduction/elimination, implication elimination/introduction, universal elimination/introduction, existential introduction/elimination and the schema-gated induction rule.
