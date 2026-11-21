@@ -510,7 +510,7 @@ function verify(p){
   available.set(s.id,{formula:s.formula,origin:s.rule,dependencies});
  }
  const last=available.get(p.conclusion);if(!last||!p.steps.some(x=>x.id===p.conclusion))return err("MISSING_CONCLUSION","Conclusion must reference a derived step.");
- return {valid:true,system:p.system,conclusion:clone(last.formula),openAssumptions:[...last.dependencies].sort(),usedAxioms:[...new Set(used)],usedAxiomSchemas:[...new Set(usedSchemas)],checkedSteps:p.steps.length,trace:p.steps.map(x=>clone(x))};
+ return {valid:true,system:p.system,proof:clone(p),conclusion:clone(last.formula),openAssumptions:[...last.dependencies].sort(),usedAxioms:[...new Set(used)],usedAxiomSchemas:[...new Set(usedSchemas)],checkedSteps:p.steps.length,trace:p.steps.map(x=>clone(x))};
 }
 function verifyWorkingTrace(trace){
  if(!boundedProofData(trace))return err("RESOURCE_LIMIT","Trace contains unsupported, cyclic, accessor-backed, or oversized data.");
