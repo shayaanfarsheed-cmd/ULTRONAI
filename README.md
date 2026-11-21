@@ -305,7 +305,7 @@ Acceptance criteria: every accepted expression has a deterministic typed represe
 
 ## Stage 4 — finish and audit the formal proof kernel
 
-**Known in-progress follow-up at the last repository inspection:** branch `fix/complete-real-strict-order-encoding` updates COMPLETE-01 to express non-strict comparison through ORDER-01 trichotomy. Its regression checks that COMPLETE-01 contains strict-order nodes and no standalone `le` nodes. Validation was pending at that point. Reinspect the branch and current PR/CI state before continuing; do not assume it is still open or current.
+**Verified recent formal-kernel milestones:** PR #129 merged the COMPLETE-01 strict-order encoding, with regression coverage and the required test, preflight, training-prototype, Chromium and WebKit checks passing at that milestone. ZFC-10 is now registered in the ZFC context using typed primitive family/choice-function relations, with exact axiom replay and context-isolation tests. Its function-graph, indexed-membership and choice-selection semantics remain unimplemented; consult `docs/FORMAL_PROOF_KERNEL.md` before claiming broader support. Recheck current main and CI before extending this work.
 
 
 **Purpose:** make proof traces trustworthy enough to support later mistake diagnosis and verified training examples.
@@ -353,7 +353,7 @@ Work in small domain-specific increments:
 
 ### 4G. Set theory
 - Audit ZFC axiom mappings and separation/replacement schema-instance rules.
-- Formalize Choice only after indexed families, non-empty conditions and choice functions have precise representations.
+- ZFC-10 is currently represented by typed primitive relations and exact axiom replay. Do not describe this as a complete set-theoretic formalization: function graphs, indexed membership, non-empty indexed-value semantics and choice selection remain future work. Extend those semantics only with explicit representations and adversarial tests.
 - Keep schema parameters explicit in proof traces.
 - Test capture, variable collisions, invalid source sets, forged schema IDs and cross-context inference.
 - State which axioms are executable, represented only in the Axiom Bank, or unsupported.
