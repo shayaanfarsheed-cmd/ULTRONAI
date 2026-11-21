@@ -55,7 +55,17 @@ def main() -> None:
                 is_mobile=(browser_name == "chromium"),
                 has_touch=True,
             )
+            context.add_init_script("""
+                (() => {
+                    try {
+                        sessionStorage.setItem("ultron_training_session", JSON.stringify({access_token: "stale-token"}));
+                        localStorage.setItem("ultron_training_cache_legacy-owner", JSON.stringify({status: {state: "running"}}));
+                    } catch (_) {}
+                })();
+            """)
             page = context.new_page()
+            requested_urls: list[str] = []
+            page.on("request", lambda request: requested_urls.append(request.url))
             page.on("pageerror", lambda error: page_errors.append(str(error)))
             page.on(
                 "console",
@@ -88,6 +98,18 @@ def main() -> None:
             require(page.locator("#trainingStartButton").count() == 0, "Remote training launch must not exist.")
             require(page.locator("#trainingStopButton").count() == 0, "Remote training stop must not exist.")
             require(page.locator('script[src="./training-control.js"]').count() == 0, "Remote control client must not load.")
+            require(page.locator('script[src="./config.js"]').count() == 0, "Unused Supabase config must not load.")
+            legacy_storage = page.evaluate("""() => ({
+                session: sessionStorage.getItem("ultron_training_session"),
+                caches: Object.keys(localStorage).filter((key) => key.startsWith("ultron_training_cache_")),
+            })""")
+            require(legacy_storage["session"] is None and legacy_storage["caches"] == [],
+                    "Legacy owner credentials or account cache were not cleared on startup.")
+            require(page.locator("#serverList .server-card").count() >= 1, "Public provider directory did not render.")
+            require("usage not measured" in page.locator("#serverList").inner_text().lower(),
+                    "Provider quota display must not invent live usage.")
+            require("NEXT" not in page.locator("#serverList").inner_text(),
+                    "Static provider registry must not imply a live next-server recommendation.")
 
             # Every navigation item must reveal its matching page and update aria-current.
             for view in VIEW_NAMES:
@@ -170,6 +192,12 @@ def main() -> None:
             require(stored_ram == "7.5", "RAM preference was not saved in browser storage.")
             page.reload(wait_until="networkidle")
             require(page.locator("#ramLimitSlider").input_value() == "7.5", "RAM preference did not persist.")
+            legacy_storage = page.evaluate("""() => ({
+                session: sessionStorage.getItem("ultron_training_session"),
+                caches: Object.keys(localStorage).filter((key) => key.startsWith("ultron_training_cache_")),
+            })""")
+            require(legacy_storage["session"] is None and legacy_storage["caches"] == [],
+                    "Legacy owner storage was restored after reload.")
 
             # Account-free dashboard has no sign-in, sign-out, or remote execution controls.
             require(page.locator("#ownerSignInButton").count() == 0, "Account sign-in unexpectedly exists.")
@@ -238,6 +266,14 @@ def main() -> None:
                             f"Settings RAM controls exceed the {width}px viewport: {ram_geometry}",
                         )
 
+            private_requests = [
+                url for url in requested_urls
+                if any(fragment in url.lower() for fragment in (
+                    ".supabase.co", "/auth/v1/", "/rest/v1/", "/storage/v1/",
+                    "training-control.js", "/functions/v1/training-control",
+                ))
+            ]
+            require(not private_requests, f"Public dashboard made private backend requests: {private_requests}")
             require(not page_errors, f"Browser page errors: {page_errors}")
             require(not console_errors, f"Browser console errors: {console_errors}")
             require(not external_requests, f"Public mode made unexpected external requests: {external_requests}")
@@ -248,7 +284,7 @@ def main() -> None:
         server.server_close()
         server_thread.join(timeout=2)
 
-    print("Dashboard browser smoke passed: account-free public mode, supported navigation pages, no sign-in or remote training controls, RAM persistence, theme toggle, 44px touch target, six viewport widths, RAM panel/slider fit checks, no JS/console errors, and no external requests.")
+    print("Dashboard browser smoke passed: account-free public mode, legacy session/cache cleanup, no private backend requests, supported navigation pages, no sign-in or remote training controls, honest provider status/quota, RAM persistence, theme toggle, 44px touch target, six viewport widths, RAM panel/slider fit checks, no JS/console errors, and no external requests.")
 
 
 if __name__ == "__main__":
