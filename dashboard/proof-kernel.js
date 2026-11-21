@@ -8,7 +8,7 @@ const SYSTEMS=deepFreeze({
  COMPLETE_REAL:{label:"Complete real field",sorts:["Field"],enabledAxioms:[],enabledAxiomSchemas:[]},
  EUCLID_GEOMETRY:{label:"Euclidean geometry",sorts:["Point","Line"],enabledAxioms:["EUCLID-01"],enabledAxiomSchemas:[]},
  KOLMOGOROV:{label:"Kolmogorov probability",sorts:["Event","Real"],enabledAxioms:["PROB-01","PROB-02"],enabledAxiomSchemas:[]},
- ZFC:{label:"Zermelo–Fraenkel set theory with Choice",sorts:["Set"],enabledAxioms:["ZFC-01","ZFC-02"],enabledAxiomSchemas:[]}
+ ZFC:{label:"Zermelo–Fraenkel set theory with Choice",sorts:["Set"],enabledAxioms:["ZFC-01","ZFC-02","ZFC-03","ZFC-04","ZFC-05"],enabledAxiomSchemas:[]}
 });
 const T=Object.freeze({
  variable:(name,sort)=>({kind:"var",name,sort}), numeral:value=>({kind:"nat",value}),
