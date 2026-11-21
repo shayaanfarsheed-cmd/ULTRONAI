@@ -231,7 +231,7 @@ If a test cannot be run, mark it **not run** or **blocked** and explain why. Nev
 - Generate training examples using project-owned generators and verify them independently. Do not use externally generated synthetic training data.
 - Keep the held-out evaluation set isolated. Never train on it, tune curriculum against it, or leak its answers into training examples.
 - Keep the project within the approved free-compute budget. Do not add paid services, payment methods or surprise costs. Respect provider terms, quotas, idle limits and session limits; never evade restrictions or create accounts to bypass limits.
-- The website is the control surface and must remain usable on iPad, mobile and desktop browsers. Do not make the owner depend on a laptop for ordinary project control.
+- The website is the control surface and must remain usable on iPad, mobile and desktop browsers. Do not make the owner depend on a laptop for ordinary project control. The public experience is account-free; do not add login, sign-up, account-specific history or pairing.
 - The public website must remain account-free: no login/sign-up, account-specific training history or pairing controls. Do not expose remote execution or training actions through the public UI while training is disabled. Any future remote execution capability requires a separately reviewed server-side authorization design.
 - The RAM/resource slider must be labelled honestly. A browser preference is not a remote process memory limit or GPU-VRAM control. Show actual runner limits only when the runner reports them.
 - Do not start real training, update model weights, mutate production checkpoints or launch a long-running training job until the final readiness gate passes and the owner separately authorizes the run.
@@ -505,7 +505,7 @@ Every gate must pass:
 | Gate | Required evidence |
 |---|---|
 | Website | Required dashboard flows pass; mobile/iPad and Chromium/WebKit status documented |
-| Security | Owner-only endpoints deny unauthorized users; no public secret exposure |
+| Security | Account-free public UI exposes no privileged controls; no public secret exposure; any future privileged endpoint has a separately reviewed fail-closed boundary |
 | Math correctness | Typed parser and supported deterministic solvers pass regression/adversarial tests |
 | Proof kernel | Enabled rules and axiom mappings are documented and tested; limitations are explicit |
 | Diagnosis | Only validated steps produce confirmed error classifications |
@@ -514,7 +514,7 @@ Every gate must pass:
 | Model | Architecture, tokenizer, parameter count, initialization and resource profile are verified |
 | Training code | Dry-run, tiny smoke test, checkpoint integrity and resume tests pass |
 | Compute | At least one approved free runner passes bounded environment and recovery tests |
-| Operations | Monitoring, cancellation, failure handling, logs and owner controls work |
+| Operations | Monitoring, cancellation, failure handling and logs work; any future remote controls remain disabled until separately reviewed and authorized |
 | Cost and policy | $0 path verified; provider terms and quotas respected |
 | Documentation | README, runbook, model card and dataset manifest match exact code/config versions |
 
