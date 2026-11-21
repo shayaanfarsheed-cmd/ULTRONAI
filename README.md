@@ -1024,3 +1024,12 @@ The Stage 4 first implementation adds:
 - The initial JavaScript test run exposed two cross-context axiom error-code assertions. The checker was tightened to reject/report an unavailable axiom before attempting to type-check its foreign-system formula; the final run passed.
 - The final proof checker also freezes the trusted context/axiom registries, enforces context-specific sorts, tracks open assumptions, rejects variable capture and keeps traces evidence-only until linked to the exercise's exact steps.
 - The Stage 4 implementation is merged and deployed. Continue expanding the formal language and validated diagnostic mapping in separately reviewed PRs; do not overstate this first slice as a complete theorem prover.
+
+
+## Stage 4 proof-kernel soundness follow-up — in progress (2026-11-21)
+
+- Review of the merged proof kernel found that implication introduction checked the discharged assumption's formula but did not require that assumption to occur in the derived premise's dependency set. This could accept an invalid derivation of an implication from an unrelated assumption.
+- The fix requires the discharged assumption ID to be present in the premise's tracked dependencies before implication introduction succeeds.
+- Added a negative regression (unrelated assumption must be rejected) and a positive control (a genuinely used assumption may be discharged).
+- Branch: `fix/proof-kernel-assumption-discharge`. Do not merge until the complete required CI suite and exact-diff review pass.
+- Next: continue adversarial soundness review for strict AST shape validation, assumption scoping, substitution, premise arity, and dependency propagation. No training or checkpoint changes.
