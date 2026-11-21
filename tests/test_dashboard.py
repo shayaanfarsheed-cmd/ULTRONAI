@@ -218,7 +218,7 @@ class DashboardStaticTests(unittest.TestCase):
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
         self.assertIn("ULTRON is not training", javascript)
         self.assertIn("account-free website provides the public mathematics-learning interface", javascript)
-        self.assertIn("Public browser access · training disabled", javascript)
+        self.assertIn("Public browser access · neural model untrained · training disabled", javascript)
         self.assertIn('class="connection-badge">PUBLIC</span>', html)
         for label in ("NEURAL MODEL", "MATH AGENT", "PROOF CHECKER", "TRAINING"):
             self.assertIn(label, html)
