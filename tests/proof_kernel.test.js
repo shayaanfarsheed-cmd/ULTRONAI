@@ -2,6 +2,22 @@
 const test=require("node:test"),assert=require("node:assert/strict"),K=require("../dashboard/proof-kernel.js");
 const {T,F}=K, mk=(system,assumptions,steps,conclusion)=>({version:1,system,assumptions,steps,conclusion});
 test("typed expression and formula validation",()=>{assert.equal(K.validFormula(F.eq(T.numeral(1),T.numeral(1))),true);assert.equal(K.validFormula(F.eq(T.numeral(1),T.rational(1,1))),false);assert.equal(K.validFormula(F.eq(T.add(T.numeral(1),T.numeral(2)),T.numeral(3))),true);assert.equal(K.validFormula({kind:"evil"}),false);});
+test("binder environments safely handle prototype-sensitive and empty variable names",()=>{
+ const sorts=new Set(["Nat"]);
+ for(const name of ["__proto__","constructor","toString","hasOwnProperty"]){
+  const variable=T.variable(name,"Nat");
+  const formula=F.forall(name,"Nat",F.eq(variable,variable));
+  assert.equal(K.termSort(variable,{}),"Nat",name);
+  assert.equal(K.validFormula(formula,{},sorts),true,name);
+ }
+ assert.equal(K.termSort(T.variable("","Nat")),null);
+ assert.equal(K.termSort(T.variable("x","")),null);
+ assert.equal(K.validFormula(F.forall("","Nat",F.eq(T.variable("","Nat"),T.variable("","Nat"))),{},sorts),false);
+ assert.equal(K.validFormula(F.forall("x","Nat",F.eq(T.variable("x","Field"),T.variable("x","Field"))),{},sorts),false);
+ assert.equal(K.termSort(T.variable("constructor","Nat"),{constructor:"Field"}),null);
+ assert.equal(K.termSort(T.variable("constructor","Field"),{constructor:"Field"}),"Field");
+});
+
 test("formal contexts are separate and conservative",()=>{assert.deepEqual(K.SYSTEMS.PEANO_N.enabledAxioms,["PEANO-02","PEANO-03"]);assert.deepEqual(K.SYSTEMS.PEANO_N.enabledAxiomSchemas,["PEANO-04"]);assert.deepEqual(K.SYSTEMS.REAL_FIELD.enabledAxioms,["FIELD-01","FIELD-02","FIELD-03","FIELD-04","FIELD-05","FIELD-06","FIELD-07","FIELD-08","FIELD-09"]);assert.deepEqual(K.SYSTEMS.REAL_FIELD.enabledAxiomSchemas,[]);assert.deepEqual(K.SYSTEMS.ORDERED_FIELD.enabledAxioms,["FIELD-01","FIELD-02","FIELD-03","FIELD-04","FIELD-05","FIELD-06","FIELD-07","FIELD-08","FIELD-09","ORDER-01","ORDER-02","ORDER-03","ORDER-04"]);assert.deepEqual(K.SYSTEMS.COMPLETE_REAL.sorts,["Field","RealSet"]);assert.deepEqual(K.SYSTEMS.COMPLETE_REAL.enabledAxioms,["FIELD-01","FIELD-02","FIELD-03","FIELD-04","FIELD-05","FIELD-06","FIELD-07","FIELD-08","FIELD-09","ORDER-01","ORDER-02","ORDER-03","ORDER-04","COMPLETE-01"]);for(const s of ["ORDERED_FIELD","COMPLETE_REAL"])assert.deepEqual(K.SYSTEMS[s].enabledAxiomSchemas,[]);assert.deepEqual(K.SYSTEMS.EUCLID_GEOMETRY.enabledAxioms,["EUCLID-01","EUCLID-02","EUCLID-03","EUCLID-04","EUCLID-05"]);assert.deepEqual(K.SYSTEMS.KOLMOGOROV.enabledAxioms,["PROB-01","PROB-02","PROB-03"]);assert.deepEqual(K.SYSTEMS.ZFC.enabledAxioms,["ZFC-01","ZFC-02","ZFC-03","ZFC-04","ZFC-05","ZFC-06","ZFC-09","ZFC-10"]);for(const s of ["EUCLID_GEOMETRY","KOLMOGOROV"])assert.deepEqual(K.SYSTEMS[s].enabledAxiomSchemas,[]);assert.deepEqual(K.SYSTEMS.ZFC.enabledAxiomSchemas,["ZFC-07","ZFC-08"]);});
 test("reflexivity replays and forged conclusion fails",()=>{const x=T.variable("x","Nat"),p=mk("PEANO_N",[],[{id:"r",rule:"eq_refl",term:x,formula:F.eq(x,x)}],"r");assert.equal(K.verify(p).valid,true);p.steps[0].formula=F.eq(x,T.numeral(2));assert.equal(K.verify(p).code,"RULE_MISMATCH");});
 test("assumptions, conjunction and implication introduction",()=>{const a=F.predicate("A"),b=F.predicate("B"),p=mk("PEANO_N",[{id:"ha",formula:a},{id:"hb",formula:b}],[{id:"a",rule:"assumption",assumption:"ha",formula:a},{id:"b",rule:"assumption",assumption:"hb",formula:b},{id:"ab",rule:"and_intro",premises:["a","b"],formula:F.and(a,b)},{id:"imp",rule:"imp_intro",premises:["b"],discharge:"hb",formula:F.implies(b,b)}],"imp");assert.equal(K.verify(p).valid,true);});
