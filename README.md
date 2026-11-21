@@ -1113,3 +1113,16 @@ The Stage 4 first implementation adds:
 - The current feature branch adds exact initial statements for EUCLID-01, PROB-01/02 and ZFC-01/02. PROB-03 countable additivity and remaining geometric/set-theoretic axioms remain disabled pending suitable sequence, union, construction and schema operators.
 - Branch: `feature/geometry-probability-set-foundations`. Do not merge until all required checks pass.
 - No model training, weight/checkpoint mutation, dataset generation or production configuration change.
+
+
+## Stage 4 — geometry, probability and set-theory foundation increment (2026-11-21)
+
+- The current branch `feature/geometry-probability-set-foundations` adds exact, context-isolated formulas for `EUCLID-01`, `PROB-01`, `PROB-02`, `ZFC-01` and `ZFC-02`.
+- Geometry adds a typed Line term and `incident(Point, Line)`; the Euclidean first postulate requires two distinct points and states existence of a common incident line.
+- Probability adds a dedicated Real sort, sample-space and measure terms, nonnegativity and normalization. The Real sort is deliberately not treated as a full real field.
+- ZFC adds extensionality and empty-set existence. The empty set is expressed as an existential set with no members.
+- Regression tests cover exact axiom replay, context isolation, forged formulas, incompatible sorts, malformed real literals and the explicit deferral of countable additivity.
+- `PROB-03` and the remaining geometry/ZFC entries remain disabled. Sequence, countable-union, infinite-sum and set-construction/schema operators must be formalized before those axioms can safely become executable.
+- This increment is pending full Test Suite, preflight, Training Prototype Validation, Chromium and WebKit checks. It has not been merged.
+- No model training, weight/checkpoint mutation, dataset generation, Supabase change or production configuration change.
+
