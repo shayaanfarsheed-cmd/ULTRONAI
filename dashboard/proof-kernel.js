@@ -88,6 +88,8 @@ function validFormula(f,bound={},allowedSorts=null) {
  case "angleSumLessThanTwoRightAngles":return exactKeys(f,["kind","firstAngle","secondAngle"])&&termSort(f.firstAngle,bound)==="Angle"&&termSort(f.secondAngle,bound)==="Angle"&&(!allowedSorts||allowedSorts.has("Angle"));
  case "linesMeetOnSameSide":return exactKeys(f,["kind","firstLine","secondLine","transversal"])&&termSort(f.firstLine,bound)==="Line"&&termSort(f.secondLine,bound)==="Line"&&termSort(f.transversal,bound)==="Line"&&(!allowedSorts||allowedSorts.has("Line"));
  case "pairwiseDisjoint":return exactKeys(f,["kind","sequence"])&&termSort(f.sequence,bound)==="EventSequence"&&(!allowedSorts||allowedSorts.has("EventSequence"));
+ case "familyOfNonemptySets":return exactKeys(f,["kind","family","indexSet"])&&termSort(f.family,bound)==="Set"&&termSort(f.indexSet,bound)==="Set"&&(!allowedSorts||allowedSorts.has("Set"));
+ case "choiceFunction":return exactKeys(f,["kind","choice","indexSet","family"])&&termSort(f.choice,bound)==="Set"&&termSort(f.indexSet,bound)==="Set"&&termSort(f.family,bound)==="Set"&&(!allowedSorts||allowedSorts.has("Set"));
  case "predicate":return exactKeys(f,["kind","name","args"])&&typeof f.name==="string"&&!!f.name&&denseArray(f.args)&&f.args.every(x=>{const sort=termSort(x,bound);return !!sort&&(!allowedSorts||allowedSorts.has(sort));});
  default:return false;
  }
