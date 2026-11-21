@@ -130,6 +130,7 @@ function verify(p){
    case "induction":{
     const goal=s.formula,variable=s.variable;
     if(goal.kind!=="forall"||goal.sort!=="Nat"||variable===goal.name||allVariableNames(goal.body).has(variable))return err("INVALID_INDUCTION_VARIABLE","Induction variable must be fresh and distinct from every variable and binder in the property.",s.id);
+    for(const ref of refs){for(const assumptionId of ref.dependencies){const assumption=available.get(assumptionId);if(assumption&&freeVariableNames(assumption.formula).has(variable))return err("INDUCTION_VARIABLE_IN_ASSUMPTION","Induction variable must not occur free in any undischarged assumption used by the base or successor step.",s.id);}}
     const base=substitute(goal.body,goal.name,T.numeral(0));
     const inductionVariable=T.variable(variable,"Nat");
     const before=substitute(goal.body,goal.name,inductionVariable);
