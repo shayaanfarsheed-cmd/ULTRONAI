@@ -264,6 +264,8 @@ test("existential formulas are typed and their binders scope variables",()=>{
  assert.equal(K.validFormula(valid,{},new Set(K.SYSTEMS.REAL_FIELD.sorts)),true);
  const wrongSort=F.exists("x","Nat",F.eq(T.variable("x","Nat"),T.numeral(0)));
  assert.equal(K.validFormula(wrongSort,{},new Set(K.SYSTEMS.REAL_FIELD.sorts)),false);
+ const lyingBoundSort=F.exists("x","Field",F.eq(T.variable("x","Nat"),T.numeral(0)));
+ assert.equal(K.validFormula(lyingBoundSort,{},new Set(K.SYSTEMS.REAL_FIELD.sorts)),false);
  const unbound=F.exists("x","Field",F.eq(T.variable("y","Field"),T.rational(0,1)));
  assert.equal(K.validFormula(unbound,{},new Set(K.SYSTEMS.REAL_FIELD.sorts)),true);
 });
@@ -299,4 +301,14 @@ test("existential quantification is syntax only; unregistered inference rules st
   {id:"fake",rule:"exists_intro",premises:[],formula:F.exists("x","Field",F.predicate("P",[T.variable("x","Field")]))}
  ],"fake");
  assert.equal(K.verify(proof).code,"UNKNOWN_RULE");
+});
+
+test("universal introduction treats existential binders as variable-name collisions",()=>{
+ const body=F.exists("k","Nat",F.predicate("P",[T.variable("n","Nat")]));
+ const goal=F.forall("n","Nat",body);
+ const proof=mk("PEANO_N",[],[
+  {id:"premise",rule:"eq_refl",term:T.numeral(1),formula:F.eq(T.numeral(1),T.numeral(1))},
+  {id:"generalized",rule:"forall_intro",variable:"k",premises:["premise"],formula:goal}
+ ],"generalized");
+ assert.equal(K.verify(proof).code,"INVALID_EIGENVARIABLE");
 });
