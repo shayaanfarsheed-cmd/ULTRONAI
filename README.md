@@ -11,6 +11,16 @@
 - **Axiom Bank research:** [docs/AXIOM_BANK_RESEARCH.md](docs/AXIOM_BANK_RESEARCH.md)
 
 
+## Current website product contract — account-free baseline
+
+The GitHub Pages dashboard is an account-free public website. No sign-in, sign-up, owner session, account pairing, personal training history, checkpoint browser, or remote training Start/Stop control is part of the current public interface. The browser must not restore an old owner session or display stale account-specific cached data.
+
+The website may expose the public math-learning interface, verified deterministic math tools, the provider directory, theme preferences, and the browser-local RAM preference. The RAM slider is only a local preference and does not cap remote runner memory. Any future remote execution design requires a separate architecture and security review; do not reintroduce account features by assumption.
+
+**Training safety:** Keep actual training disabled. Do not dispatch diagnostic or training workflows from the public website. No model training, checkpoint writes, or training-data generation is authorized by this frontend milestone.
+
+The existing owner-authenticated Supabase function and legacy training-control client are not made public by this change. The dashboard no longer loads the legacy client or exposes its controls. Backend credentials must remain server-side; do not weaken existing origin, owner, or request validation.
+
 ## Latest verified status — preserved deployment and control evidence
 
 The following is historical deployment evidence retained from the previous README. It is not a substitute for rechecking the live service during a new deployment.
