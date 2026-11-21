@@ -101,7 +101,7 @@
       state.session = null;
       state.user = null;
       try { sessionStorage.removeItem(SESSION_KEY); } catch (_) {}
-      throw new Error("This browser cannot retain the sign-in session. Enable session storage or use Guest Mode.");
+      throw new Error("Account sign-in is not available on this public dashboard.");
     }
     state.session = session;
     state.user = session.user || null;
@@ -191,7 +191,7 @@
     const password = passwordInput.value;
     passwordInput.value = "";
     if (!isConfigured()) {
-      showAuthMessage("Authentication is not configured yet. Guest Mode remains available.", "warn");
+      showAuthMessage("Account authentication is not available on this public dashboard.", "warn");
       return;
     }
     if (!OWNER_USER_ID) {
@@ -239,7 +239,7 @@
     }
     saveSession(null);
     setAccessMode(false);
-    showNotice("Signed out locally. You are now using Guest Mode.", "info");
+    showNotice("Signed out locally. The public dashboard remains active.", "info");
     if (session && session.access_token && isConfigured()) {
       try {
         const response = await fetch(AUTH_ROOT + "logout", {
@@ -248,7 +248,7 @@
         });
         if (!response.ok) throw new Error("Server sign-out could not be confirmed.");
       } catch (_) {
-        showNotice("Guest Mode is active and local private data is cleared. Server-side sign-out could not be confirmed; the session token was discarded in this browser.", "warn");
+        showNotice("The public dashboard remains active and local private data is cleared. Server-side sign-out could not be confirmed; the session token was discarded in this browser.", "warn");
       }
     }
   }
@@ -1151,7 +1151,7 @@
     if (!hasVerifiedOwnerSession()) {
       state.dataFiles = [];
       container.innerHTML = '<p class="empty-state">Private library locked. Sign in to the verified owner account.</p>';
-      $("dataSyncStatus").textContent = "No private files are loaded in Guest Mode.";
+      $("dataSyncStatus").textContent = "No private files are loaded in public mode.";
       return;
     }
     if (!state.dataFiles.length) {
