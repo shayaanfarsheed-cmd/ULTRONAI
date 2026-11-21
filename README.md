@@ -1120,7 +1120,8 @@ The Stage 4 first implementation adds:
 - PR #113 merged at `909d49391d08dc08de4318024ed2c0e7e7c74b86`: ZFC-06 infinity and ZFC-09 foundation, encoded as an inductive set closed under set successor and a minimal-member/disjointness condition. All five PR checks passed.
 - PR #114 merged at `50eb5ef7eb3caba0dc85279db1c482c60dc26669`: typed betweenness and EUCLID-02 segment extension along a common line. All five PR checks passed.
 - PR #115 merged at `a76f614f87d09ed2f9bc3839c420f2344bb8a9d1`: typed Circle sort, centre/incidence formulas and EUCLID-03 circle construction. All five PR checks passed.
+- PR #116 merged at `c70917f180889cce0580fc1804e83b72e6c2804c`: typed Angle sort, right-angle/equality predicates and EUCLID-04. All five PR checks passed.
 - ZFC-07 separation and ZFC-08 replacement remain schemas; ZFC-10 choice remains disabled until the language can represent formula instantiation, indexed families and choice functions. PROB-03 countable additivity remains disabled until countable sequence/union/sum operators exist.
-- The current branch, `feature/euclidean-right-angle-equality`, adds a typed Angle sort and EUCLID-04 right-angle equality. It is pending Test Suite, preflight, Training Prototype Validation, Chromium and WebKit. Do not merge until all checks pass and the exact diff is reviewed.
+- The current branch, `feature/euclidean-parallel-postulate`, adds typed same-side interior-angle and intersection relations for EUCLID-05. The relations are primitive; no angle arithmetic or coordinate construction is claimed. It is pending Test Suite, preflight, Training Prototype Validation, Chromium and WebKit.
 - No model training, weight/checkpoint mutation, dataset generation, Supabase change or production configuration change.
 
