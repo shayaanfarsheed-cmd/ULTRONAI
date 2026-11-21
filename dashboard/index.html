@@ -23,7 +23,6 @@
   <script defer src="./math-conversation-ui.js"></script>
   <script defer src="./math-agent-ui.js"></script>
   <script defer src="./app.js?v=20261119-upload-batches-1"></script>
-  <script defer src="./training-control.js"></script>
 </head>
 <body data-theme="dark">
   <a class="skip-link" href="#mainContent">Skip to dashboard content</a>
@@ -38,10 +37,8 @@
       </span>
     </a>
     <div class="topbar-right">
-      <span id="connectionBadge" class="connection-badge">GUEST MODE</span>
-      <button id="ownerSignInButton" class="secondary-button" type="button">Owner sign in</button>
-      <button id="ownerSignOutButton" class="quiet-button" type="button" hidden>Sign out</button>
-      <button id="themeToggle" class="icon-button" type="button" aria-label="Toggle light and dark mode">◐</button>
+      <span id="connectionBadge" class="connection-badge">PUBLIC</span>
+      <button id="themeToggle class="icon-button" type="button" aria-label="Toggle light and dark mode">◐</button>
     </div>
   </header>
 
@@ -52,14 +49,9 @@
         <nav class="side-nav" aria-label="Dashboard sections">
           <button class="nav-button active" type="button" data-view="overview" aria-current="page"><span>◈</span> Overview</button>
           <button class="nav-button" type="button" data-view="learning"><span>∿</span> How ULTRON learns</button>
-          <button class="nav-button" type="button" data-view="data"><span>▤</span> Data library</button>
           <button class="nav-button" type="button" data-view="ask"><span>⌕</span> Ask ULTRON</button>
           <button class="nav-button" type="button" data-view="math"><span>∑</span> Math Agent</button>
-          <button class="nav-button" type="button" data-view="activity"><span>≋</span> Activity</button>
-          <button class="nav-button" type="button" data-view="control"><span>▶</span> Training control</button>
-          <button class="nav-button" type="button" data-view="devices"><span>▣</span> Device access</button>
           <button class="nav-button" type="button" data-view="servers"><span>⌘</span> Servers</button>
-          <button class="nav-button" type="button" data-view="checkpoints"><span>⬡</span> Checkpoints</button>
           <button class="nav-button" type="button" data-view="settings"><span>⚙</span> Settings</button>
         </nav>
         <div class="sidebar-bottom">
@@ -80,54 +72,7 @@
 
         <div id="globalNotice" class="notice" role="status" hidden></div>
 
-        <section id="view-control" class="view-section" hidden>
-          <div class="section-intro">
-            <div>
-              <div class="eyebrow">OWNER-ONLY TRAINING OPERATIONS</div>
-              <h2>Check remote compute from this device</h2>
-              <p class="muted-text">Choose GitHub Actions CPU and explicitly confirm a safe compute diagnostic. The owner account is checked again by the secure server before any action.</p>
-            </div>
-            <span class="status-pill">OWNER ONLY</span>
-          </div>
-          <div id="trainingControlMessage" class="notice" role="status" aria-live="polite">Sign in to the verified owner account to unlock controls.</div>
-          <div class="training-control-grid">
-            <article class="panel section-panel">
-              <div class="eyebrow">COMPUTE PROVIDER</div>
-              <h2>Select server</h2>
-              <label for="trainingServerSelect" class="muted-text">Launch target</label>
-              <select id="trainingServerSelect" class="training-control-select" aria-describedby="trainingServerHelp">
-                <option value="github_actions_cpu">GitHub Actions CPU · REMOTE LAUNCH</option>
-              </select>
-              <p id="trainingServerHelp" class="fine-print">GitHub Actions CPU runs a safe compute diagnostic only. Colab remains manual-only.</p>
-              <div class="training-control-actions">
-                <button id="trainingStartButton" class="primary-button" type="button" disabled>Run compute diagnostic</button>
-                <button id="trainingStopButton" class="secondary-button" type="button" disabled>Stop active workflow</button>
-              </div>
-            </article>
-            <article class="panel section-panel">
-              <div class="eyebrow">LIVE WORKFLOW STATUS</div>
-              <h2 id="trainingStatusTitle">GitHub Actions</h2>
-              <div class="training-control-status"><span class="status-dot status-warn"></span><strong id="trainingControlState">OWNER SIGN-IN REQUIRED</strong></div>
-              <p id="trainingControlDetails" class="muted-text">Workflow status has not been requested.</p>
-              <a id="trainingRunLink" class="training-control-run-link" href="https://github.com/shayaanfarsheed-cmd/ULTRONAI/actions" target="_blank" rel="noopener" hidden>Open workflow run ↗</a>
-              <div class="training-control-actions">
-                <button id="trainingRefreshButton" class="quiet-button" type="button">Refresh status</button>
-              </div>
-            </article>
-          </div>
-          <article class="panel section-panel training-control-note">
-            <div class="eyebrow">SAFETY / EXECUTION LIMITS</div>
-            <h2>What the diagnostic does</h2>
-            <ul>
-              
-              
-              <li>GitHub Actions CPU measures the hosted runner; the iPad is the remote owner console.</li>
-              <li>Colab remains manual-only and is not controlled by the remote Start/Stop buttons.</li>
-              <li>Stop cancels the diagnostic workflow. The diagnostic never creates or changes checkpoints.</li>
-            </ul>
-            <p class="fine-print">GitHub Actions hosted CPU runner limits apply. The RAM preference slider elsewhere in this dashboard does not cap cloud-runner memory. This diagnostic does not start model training.</p>
-          </article>
-        </section>
+        
 
         <section id="view-devices" class="view-section" hidden>
           <div class="section-intro">
@@ -195,14 +140,14 @@
               <span id="nextActionIcon" class="next-action-icon">◎</span>
             </div>
             <div class="next-action-bottom">
-              <span id="nextActionMeta" class="muted-text">Read-only status; no remote training controls.</span>
+              <span id="nextActionMeta" class="muted-text">Account-free browser dashboard · training disabled.</span>
               <a id="nextServerButton" class="primary-button button-link" href="#" target="_blank" rel="noopener" hidden>View provider ↗</a>
             </div>
           </div>
 
           <div class="metric-grid">
             <article class="metric-card panel">
-              <span class="metric-label">TRAINING STATE</span>
+              <span class="metric-label">MODEL TRAINING</span>
               <strong id="metricState" class="metric-value">—</strong>
               <small id="metricStateDetail">No active run</small>
             </article>
@@ -217,7 +162,7 @@
               <small>Latest training heartbeat</small>
             </article>
             <article class="metric-card panel">
-              <span class="metric-label">SESSION TIME LEFT</span>
+              <span class="metric-label">REMOTE EXECUTION</span>
               <strong id="metricTimeLeft" class="metric-value numeric">—</strong>
               <small id="metricSessionAge">Session not running</small>
             </article>
@@ -248,10 +193,10 @@
           </div>
 
           <div class="metric-strip panel">
-            <div><span>LAST HEARTBEAT</span><strong id="heartbeatAge">—</strong></div>
-            <div><span>LAST CHECKPOINT</span><strong id="checkpointAge">—</strong></div>
-            <div><span>ACTIVE SERVER</span><strong id="activeServer">—</strong></div>
-            <div><span>LEASE</span><strong id="leaseState">—</strong></div>
+            <div><span>TRAINING PERMISSION</span><strong id="heartbeatAge">DISABLED</strong></div>
+            <div><span>PERSONAL HISTORY</span><strong id="checkpointAge">NOT USED</strong></div>
+            <div><span>REMOTE SERVER</span><strong id="activeServer">NOT CONNECTED</strong></div>
+            <div><span>ACCOUNT</span><strong id="leaseState">NOT REQUIRED</strong></div>
           </div>
 
         </section>
@@ -589,22 +534,5 @@
       </div>
     </section>
   </main>
-  <dialog id="ownerSignInDialog" class="auth-dialog" aria-labelledby="ownerSignInTitle">
-    <form id="ownerSignInForm" class="auth-card" method="dialog">
-      <div class="eyebrow">RESTRICTED ACCESS</div>
-      <h2 id="ownerSignInTitle">Owner sign in</h2>
-      <p class="muted-text">Sign in to the single ULTRON owner account. Guest access does not require an account.</p>
-      <label for="ownerEmail">Email</label>
-      <input id="ownerEmail" name="email" type="email" autocomplete="username" required maxlength="254">
-      <label for="ownerPassword">Password</label>
-      <input id="ownerPassword" name="password" type="password" autocomplete="current-password" required minlength="8" maxlength="256">
-      <p id="ownerAuthMessage" class="notice" role="status" hidden></p>
-      <div class="auth-actions">
-        <button id="ownerCancelButton" class="quiet-button" type="button">Cancel</button>
-        <button id="ownerSubmitButton" class="primary-button" type="submit">Sign in</button>
-      </div>
-      <p class="fine-print">Account creation is disabled. If owner authentication has not been configured, Guest Mode remains available.</p>
-    </form>
-  </dialog>
 </body>
 </html>
