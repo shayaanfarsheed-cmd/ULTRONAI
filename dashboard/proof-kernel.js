@@ -37,15 +37,15 @@ function termSort(t,bound={}) {
  default:return null;
  }
 }
-function validFormula(f,bound={}) {
+function validFormula(f,bound={},allowedSorts=null) {
  if(!isObj(f))return false;
  switch(f.kind){
- case "eq":return !!termSort(f.left,bound)&&termSort(f.left,bound)===termSort(f.right,bound);
- case "lt":return ["Nat","Field"].includes(termSort(f.left,bound))&&termSort(f.left,bound)===termSort(f.right,bound);
- case "and":case "implies":return validFormula(f.left,bound)&&validFormula(f.right,bound);
- case "forall":{if(typeof f.name!=="string"||!["Nat","Field","Point","Line","Event","Probability","Set"].includes(f.sort))return false;return validFormula(f.body,Object.assign({},bound,{[f.name]:f.sort}));}
- case "member":return !!termSort(f.term,bound)&&termSort(f.set,bound)==="Set";
- case "predicate":return typeof f.name==="string"&&!!f.name&&Array.isArray(f.args)&&f.args.every(x=>!!termSort(x,bound));
+ case "eq":{const sort=termSort(f.left,bound);return !!sort&&sort===termSort(f.right,bound)&&(!allowedSorts||allowedSorts.has(sort));}
+ case "lt":{const sort=termSort(f.left,bound);return ["Nat","Field"].includes(sort)&&sort===termSort(f.right,bound)&&(!allowedSorts||allowedSorts.has(sort));}
+ case "and":case "implies":return validFormula(f.left,bound,allowedSorts)&&validFormula(f.right,bound,allowedSorts);
+ case "forall":{if(typeof f.name!=="string"||!["Nat","Field","Point","Line","Event","Probability","Set"].includes(f.sort)||(allowedSorts&&!allowedSorts.has(f.sort)))return false;return validFormula(f.body,Object.assign({},bound,{[f.name]:f.sort}),allowedSorts);}
+ case "member":{const a=termSort(f.term,bound),b=termSort(f.set,bound);return !!a&&b==="Set"&&(!allowedSorts||(allowedSorts.has(a)&&allowedSorts.has(b)));}
+ case "predicate":return typeof f.name==="string"&&!!f.name&&Array.isArray(f.args)&&f.args.every(x=>{const sort=termSort(x,bound);return !!sort&&(!allowedSorts||allowedSorts.has(sort));});
  default:return false;
  }
 }
@@ -70,10 +70,10 @@ const AXIOMS=Object.freeze({
 const err=(code,message,stepId)=>({valid:false,code,message,stepId:stepId||null});
 function verify(p){
  if(!isObj(p)||p.version!==1||!Object.hasOwn(SYSTEMS,p.system)||!Array.isArray(p.assumptions)||!Array.isArray(p.steps)||!p.steps.length||typeof p.conclusion!=="string")return err("MALFORMED_PROOF","Malformed proof envelope or unknown system.");
- const sys=SYSTEMS[p.system],available=new Map(),used=[];
- for(const a of p.assumptions){if(!isObj(a)||typeof a.id!=="string"||available.has(a.id)||!validFormula(a.formula))return err("INVALID_ASSUMPTION","Assumptions need unique IDs and well-typed formulas.");available.set(a.id,{formula:a.formula,origin:"assumption"});}
+ const sys=SYSTEMS[p.system],allowedSorts=new Set(sys.sorts),available=new Map(),used=[];
+ for(const a of p.assumptions){if(!isObj(a)||typeof a.id!=="string"||available.has(a.id)||!validFormula(a.formula,{},allowedSorts))return err("INVALID_ASSUMPTION","Assumptions need unique IDs and well-typed formulas.");available.set(a.id,{formula:a.formula,origin:"assumption"});}
  for(const s of p.steps){
-  if(!isObj(s)||typeof s.id!=="string"||available.has(s.id)||!validFormula(s.formula))return err("INVALID_STEP","Each step needs a unique ID and well-typed formula.",s&&s.id);
+  if(!isObj(s)||typeof s.id!=="string"||available.has(s.id)||!validFormula(s.formula,{},allowedSorts))return err("INVALID_STEP","Each step needs a unique ID and well-typed formula.",s&&s.id);
   const ids=s.premises||[];if(!Array.isArray(ids))return err("INVALID_PREMISES","Premises must be an array.",s.id);
   const refs=ids.map(id=>available.get(id));if(refs.some(x=>!x))return err("UNKNOWN_PREMISE","Missing or forward proof reference.",s.id);
   let e=null;
@@ -88,7 +88,7 @@ function verify(p){
    case "and_right":if(refs.length===1&&refs[0].formula.kind==="and")e=refs[0].formula.right;break;
    case "imp_elim":if(refs.length===2){const i=refs.find(x=>x.formula.kind==="implies"),a=refs.find(x=>x!==i);if(i&&a&&stable(i.formula.left)===stable(a.formula))e=i.formula.right;}break;
    case "imp_intro":{const r=refs.length===1?refs[0]:null,d=available.get(s.discharge);if(r&&d&&d.origin==="assumption"&&s.formula.kind==="implies"&&stable(d.formula)===stable(s.formula.left)&&stable(r.formula)===stable(s.formula.right))e=s.formula;break;}
-   case "forall_elim":if(refs.length===1&&refs[0].formula.kind==="forall"&&s.term&&termSort(s.term)===refs[0].formula.sort){const candidate=substitute(refs[0].formula.body,refs[0].formula.name,s.term);if(candidate&&validFormula(candidate))e=candidate;}break;
+   case "forall_elim":if(refs.length===1&&refs[0].formula.kind==="forall"&&s.term&&termSort(s.term)===refs[0].formula.sort){const candidate=substitute(refs[0].formula.body,refs[0].formula.name,s.term);if(candidate&&validFormula(candidate,{},allowedSorts))e=candidate;}break;
    default:return err("UNKNOWN_RULE","Rule is not part of the audited kernel.",s.id);
   }
   if(!e||stable(e)!==stable(s.formula))return err("RULE_MISMATCH","Conclusion does not follow from the selected rule and premises.",s.id);
