@@ -8,7 +8,7 @@ const SYSTEMS=deepFreeze({
  COMPLETE_REAL:{label:"Complete real field",sorts:["Field","RealSet"],enabledAxioms:["FIELD-01","FIELD-02","FIELD-03","FIELD-04","FIELD-05","FIELD-06","FIELD-07","FIELD-08","FIELD-09"].concat(["ORDER-01","ORDER-02","ORDER-03","ORDER-04","COMPLETE-01"]),enabledAxiomSchemas:[]},
  EUCLID_GEOMETRY:{label:"Euclidean geometry",sorts:["Point","Line","Circle","Angle"],enabledAxioms:["EUCLID-01","EUCLID-02","EUCLID-03","EUCLID-04","EUCLID-05"],enabledAxiomSchemas:[]},
  KOLMOGOROV:{label:"Kolmogorov probability",sorts:["Event","Real","EventSequence"],enabledAxioms:["PROB-01","PROB-02","PROB-03"],enabledAxiomSchemas:[]},
- ZFC:{label:"Zermelo–Fraenkel set theory with Choice",sorts:["Set"],enabledAxioms:["ZFC-01","ZFC-02","ZFC-03","ZFC-04","ZFC-05","ZFC-06","ZFC-09"],enabledAxiomSchemas:["ZFC-07","ZFC-08"]}
+ ZFC:{label:"Zermelo–Fraenkel set theory with Choice",sorts:["Set"],enabledAxioms:["ZFC-01","ZFC-02","ZFC-03","ZFC-04","ZFC-05","ZFC-06","ZFC-09","ZFC-10"],enabledAxiomSchemas:["ZFC-07","ZFC-08"]}
 });
 const T=Object.freeze({
  variable:(name,sort)=>({kind:"var",name,sort}), numeral:value=>({kind:"nat",value}),
