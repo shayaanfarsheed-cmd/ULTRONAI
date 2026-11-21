@@ -119,18 +119,18 @@ These are project requirements, not optional optimizations:
 - Use free compute only; do not add paid services or payment methods.
 - Never commit secrets or expose backend credentials in browser code.
 - Respect provider quotas, usage limits and terms; do not evade limits.
-- Do not start real training until readiness checks pass and the owner explicitly authorizes it.
+- Keep actual training disabled. Do not start a real training run until every readiness gate passes and the owner gives separate, explicit authorization for that specific run.
 
 The dashboard's RAM slider is a **browser-local preference**. It does not set the memory limit of a remote runner or control GPU VRAM. Device/browser memory monitoring is not equivalent to enforced training-process limits.
 
-Public visitors can browse the dashboard. Owner authentication is required for private training operations and private records. Browser-side checks are not a substitute for server-side authorization.
+The intended website experience is account-free: no login, sign-up, account-specific training history, or account-pairing controls. Keep real training and remote execution unavailable from the public website until a separately reviewed, safe control design exists. Do not add account-based features without an explicit product decision.
 
 ## Current development priorities
 
 Work should proceed in small, independently testable increments:
 
-1. Finish and verify the website experience on physical iPad and mobile devices, in addition to automated Chromium and WebKit tests.
-2. Complete the live security checks for owner-only operations, invalid/expired authentication, non-owner denial and secret non-disclosure.
+1. Finish and verify the account-free website experience on physical iPad and mobile devices, in addition to automated Chromium and WebKit tests.
+2. Verify that no login/sign-up, account-specific history, pairing controls or privileged training actions are exposed in the public frontend; verify that secrets and backend credentials are never exposed.
 3. Continue adversarial review and expansion of the formal proof kernel. Add a rule only when its mathematical side conditions can be checked.
 4. Connect validated proof traces to step-level mistake diagnosis without treating unverified work as evidence.
 5. Complete model, dataset, evaluation, checkpoint recovery and compute-readiness audits.
@@ -195,7 +195,7 @@ For proof-kernel work, the focused regression suite is `tests/proof_kernel.test.
 
 ## Current handoff
 
-**Next task:** continue the formal proof-kernel work in small chunks. First inspect the current open pull request and its exact diff, then address one review or validation issue at a time. Preserve existing ZFC separation/replacement work and the typed probability-order change; do not recreate or overwrite already merged work.
+**Next task:** finish the website before returning to deeper proof-kernel expansion. Start with a focused audit of the current GitHub Pages frontend against the account-free product requirements: no login/sign-up, no account-specific history or pairing controls, responsive iPad/mobile/desktop layout, and an honestly labelled browser-local RAM preference. Identify the smallest incomplete UI task, test it, and proceed in short segments. Preserve already merged proof-kernel work; do not recreate or overwrite it.
 
 **Training state:** not started. No training run is authorized by this README update.
 
@@ -232,7 +232,7 @@ If a test cannot be run, mark it **not run** or **blocked** and explain why. Nev
 - Keep the held-out evaluation set isolated. Never train on it, tune curriculum against it, or leak its answers into training examples.
 - Keep the project within the approved free-compute budget. Do not add paid services, payment methods or surprise costs. Respect provider terms, quotas, idle limits and session limits; never evade restrictions or create accounts to bypass limits.
 - The website is the control surface and must remain usable on iPad, mobile and desktop browsers. Do not make the owner depend on a laptop for ordinary project control.
-- Public dashboard browsing must not expose owner-only operations, credentials, private records or training controls. Authorization must be enforced by trusted server-side code, not only by hiding browser buttons.
+- The public website must remain account-free: no login/sign-up, account-specific training history or pairing controls. Do not expose remote execution or training actions through the public UI while training is disabled. Any future remote execution capability requires a separately reviewed server-side authorization design.
 - The RAM/resource slider must be labelled honestly. A browser preference is not a remote process memory limit or GPU-VRAM control. Show actual runner limits only when the runner reports them.
 - Do not start real training, update model weights, mutate production checkpoints or launch a long-running training job until the final readiness gate passes and the owner separately authorizes the run.
 
