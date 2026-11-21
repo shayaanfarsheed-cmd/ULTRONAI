@@ -1130,12 +1130,11 @@ The Stage 4 first implementation adds:
 
 
 
-## Stage 4 — ordered-field and completeness axioms (in progress, 2026-11-21)
+## Stage 4 — ordered-field and completeness axioms (PR #125 merged, 2026-11-21)
 
-- Branch: `feature/ordered-field-axioms`.
-- Adds ORDER-01 trichotomy, ORDER-02 strict-order transitivity, ORDER-03 addition-preserves-order and ORDER-04 positive-multiplication-preserves-order.
-- Makes the nine existing FIELD axioms explicitly available in both ORDERED_FIELD and COMPLETE_REAL; this is registered per context, not inherited implicitly.
-- Adds a typed `RealSet` domain and COMPLETE-01 as the least-upper-bound property: every nonempty, bounded-above set of field values has a least upper bound.
-- Adds regression coverage for exact axiom replay, cross-context rejection, RealSet membership typing and incompatible numeric sorts.
-- The RealSet domain and order axioms are formal signatures; no general real arithmetic engine or numerical supremum evaluator is claimed. Validation is pending.
+- PR #125 merged at `84d3ee3a78f9886dfdc33c93a2d0ab924b8a39fd`: ORDER-01 trichotomy, ORDER-02 strict-order transitivity, ORDER-03 addition-preserves-order and ORDER-04 positive-multiplication-preserves-order are now executable in the ordered-field context.
+- The nine FIELD axioms are explicitly available in both ORDERED_FIELD and COMPLETE_REAL; availability is registered per context rather than inherited implicitly.
+- COMPLETE_REAL now includes a typed `RealSet` domain and COMPLETE-01: every nonempty, bounded-above subset of Field has a least upper bound.
+- Regression tests cover exact axiom replay, cross-context rejection, RealSet membership typing and incompatible numeric sorts. Test Suite, preflight, Training Prototype Validation, Chromium and WebKit all passed.
+- The RealSet domain and order axioms are formal signatures; no general real arithmetic engine or numerical supremum evaluator is claimed.
 - No training, model weights, checkpoints, dataset generation, Supabase or production configuration changes.
