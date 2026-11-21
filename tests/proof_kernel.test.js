@@ -94,3 +94,12 @@ test("assumptions reject additional untyped fields",()=>{
  [{id:"a",rule:"assumption",assumption:"ha",formula:F.predicate("A")}],"a");
  assert.equal(K.verify(p).code,"INVALID_ASSUMPTION");
 });
+
+test("a present but null claimed conclusion cannot bypass trace comparison",()=>{
+ const proof=mk("PEANO_N",[],[{id:"r",rule:"eq_refl",term:T.numeral(1),formula:F.eq(T.numeral(1),T.numeral(1))}],"r");
+ assert.equal(K.verifyWorkingTrace({kind:"ultron-proof-trace",proof,claimedConclusion:null}).code,"FORGED_TRACE");
+});
+test("rule-specific step schemas reject malformed premise types",()=>{
+ const proof=mk("PEANO_N",[],[{id:"x",rule:"and_left",premises:"not-an-array",formula:F.predicate("A")}],"x");
+ assert.equal(K.verify(proof).code,"INVALID_STEP");
+});
