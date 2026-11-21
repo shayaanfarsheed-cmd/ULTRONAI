@@ -20,7 +20,7 @@ class NoRemoteDevicePairingTests(unittest.TestCase):
         self.assertNotIn("device access / remote control console", html)
         self.assertIn('id="view-servers"', html)
         self.assertIn("this page cannot start or control training", html)
-        self.assertIn("actual training remains disabled", html)
+        self.assertIn("training disabled", html)
 
     def test_public_ram_slider_is_browser_local_and_does_not_claim_remote_control(self):
         html = (ROOT / "dashboard" / "index.html").read_text(encoding="utf-8").lower()
