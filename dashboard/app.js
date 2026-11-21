@@ -68,7 +68,7 @@
     const badge = $("connectionBadge");
     badge.textContent = label;
     badge.className = "connection-badge" + (kind ? " " + kind : "");
-    $("footerConnection").textContent = kind === "stale" ? "PUBLIC STATUS · OUT OF DATE" : "PUBLIC DASHBOARD";
+    $("footerConnection").textContent = "PUBLIC DASHBOARD";
   }
 
   function isConfigured() {
@@ -149,8 +149,8 @@
     const account = document.querySelector(".account-email");
     if (signIn) signIn.hidden = Boolean(isOwner);
     if (signOut) signOut.hidden = !isOwner;
-    if (account) account.textContent = isOwner ? "OWNER MODE" : "GUEST MODE";
-    setConnection(isOwner ? "OWNER" : "GUEST MODE", isOwner ? "connected" : "");
+    if (account) account.textContent = "PUBLIC DASHBOARD";
+    setConnection("PUBLIC", "");
     renderAll();
     window.dispatchEvent(new Event("ultron:owner-mode-changed"));
   }
@@ -617,9 +617,9 @@
     const link = $("nextServerButton");
     link.hidden = true;
     if (state.publicMode) {
-      title.textContent = "Welcome to the ULTRON guest dashboard";
-      text.textContent = "You can browse public system information without an account. Private training status, history and checkpoints are not loaded in Guest Mode.";
-      meta.textContent = "Guest access · no private data or training commands";
+      title.textContent = "ULTRON is not training";
+      text.textContent = "This account-free website provides the public math-learning interface. It does not expose account-specific history, checkpoints, or remote execution controls.";
+      meta.textContent = "Public browser access · training disabled";
       return;
     }
     if (!status) {
@@ -671,6 +671,20 @@
   }
 
   function renderMetrics() {
+    if (state.publicMode) {
+      $("metricState").textContent = "DISABLED";
+      $("metricStateDetail").textContent = "Training cannot be started here";
+      $("metricStep").textContent = "—";
+      $("metricTopic").textContent = "No active training run";
+      $("metricLoss").textContent = "—";
+      $("metricTimeLeft").textContent = "—";
+      $("metricSessionAge").textContent = "Training is disabled";
+      $("heartbeatAge").textContent = "DISABLED";
+      $("checkpointAge").textContent = "NOT USED";
+      $("activeServer").textContent = "NOT CONNECTED";
+      $("leaseState").textContent = "NOT REQUIRED";
+      return;
+    }
     const status = state.status;
     $("metricState").textContent = status ? effectiveState(status).toUpperCase() : "NOT STARTED";
     $("metricStateDetail").textContent = status ? (status.current_server || "No server assigned") : "No active run";
@@ -828,6 +842,7 @@
 
   function renderCheckpointList() {
     const container = $("checkpointList");
+    if (!container) return;
     if (state.publicMode) {
       container.innerHTML = '<div class="empty-state panel">Checkpoint access is locked on the public dashboard. No personal checkpoint history is loaded or displayed.</div>';
       return;
@@ -853,6 +868,7 @@
   function renderActivity() {
     const logs = $("activityLogs");
     const switches = $("activitySwitches");
+    if (!logs || !switches) return;
     if (state.publicMode || !hasVerifiedOwnerSession()) {
       logs.innerHTML = '<p class="empty-state">Training activity is private. Sign in to the verified ULTRON owner account to view it.</p>';
       switches.innerHTML = '<p class="empty-state">Server handoff records are private to the ULTRON owner.</p>';
@@ -1445,15 +1461,11 @@
       applyTheme(document.body.getAttribute("data-theme") === "dark" ? "light" : "dark");
       scheduleChartDraw();
     });
-    $("refreshButton").addEventListener("click", refreshData);
-    $("ownerSignInButton").addEventListener("click", function () {
-      showAuthMessage("", "");
-      if (typeof $("ownerSignInDialog").showModal === "function") $("ownerSignInDialog").showModal();
-      else showAuthMessage("This browser does not support the sign-in dialog. Update the browser or continue in Guest Mode.", "warn");
+    $("refreshButton").addEventListener("click", function () {
+      loadServerRegistry().then(renderAll).catch(function (error) {
+        showNotice("Server registry refresh failed: " + error.message, "warn");
+      });
     });
-    $("ownerSignOutButton").addEventListener("click", function () { signOutOwner().catch(function (error) { showNotice(error.message, "error"); }); });
-    $("ownerSignInForm").addEventListener("submit", signInOwner);
-    $("ownerCancelButton").addEventListener("click", function () { $("ownerSignInDialog").close(); });
     document.querySelectorAll("[data-view]").forEach(function (button) {
       button.addEventListener("click", function () { switchView(button.getAttribute("data-view")); });
     });
@@ -1533,6 +1545,18 @@
     }, 20000);
   }
 
+  function clearLegacyOwnerState() {
+    state.session = null;
+    state.user = null;
+    try { sessionStorage.removeItem(SESSION_KEY); } catch (_) {}
+    try {
+      for (let index = localStorage.length - 1; index >= 0; index -= 1) {
+        const key = localStorage.key(index);
+        if (key && key.indexOf(CACHE_PREFIX) === 0) localStorage.removeItem(key);
+      }
+    } catch (_) {}
+  }
+
   async function init() {
     initTheme();
     try {
@@ -1543,17 +1567,10 @@
     } catch (_) {}
     bindEvents();
     await loadServerRegistry();
-    state.session = loadSavedSession();
-    state.user = state.session && state.session.user ? state.session.user : null;
-    const restoredOwner = await verifyOwnerSession();
-    setAccessMode(restoredOwner);
-    if (restoredOwner) {
-      $("lastUpdated").textContent = "Restored verified owner session.";
-      await refreshData();
-    } else {
-      $("lastUpdated").textContent = "Public system information · no personal training history";
-      showNotice("Guest Mode is active. Public information is available without an account. Private training status, history, checkpoints and device controls are not loaded in Guest Mode. Training remains disabled until the remote training runtime and resource safeguards are validated.", "info");
-    }
+    clearLegacyOwnerState();
+    setAccessMode(false);
+    $("lastUpdated").textContent = "Public browser mode · no account-specific data";
+    showNotice("ULTRON is available without an account. This website does not load personal training history or checkpoints, and it cannot launch remote execution. The RAM slider is a browser-local preference only. Actual training remains disabled.", "info");
     renderAll();
   }
 
