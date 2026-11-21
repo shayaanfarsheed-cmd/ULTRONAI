@@ -1154,10 +1154,17 @@ The Stage 4 first implementation adds:
 - No training, model weights, checkpoints, dataset generation, Supabase or production configuration changes.
 
 
-## Stage 4 — proof-kernel binder-environment hardening (in progress, 2026-11-21)
+## Stage 4 — proof-kernel binder-environment hardening (PR #133 merged, 2026-11-21)
 
-- Branch: `fix/proof-kernel-binder-environment`.
-- Replace inherited-property lookups with own-property checks and null-prototype nested binding environments.
-- Reject empty variable names, empty sort labels and empty quantifier binders.
-- Add regression tests for `__proto__`, `constructor`, `toString`, `hasOwnProperty`, empty names and genuine bound-sort mismatches.
+- PR #133 merged at `0b2a8999750287299a1b157a4563b7fb7c51affe`: own-property sort lookups and null-prototype nested binder environments prevent prototype-sensitive variable names from corrupting sort resolution.
+- Empty variable names, empty sort labels and empty quantifier binders are rejected. Regression tests cover `__proto__`, `constructor`, `toString`, `hasOwnProperty`, empty names and true bound-sort mismatches. All five validation gates passed.
+- No training, model weights, checkpoints, dataset generation, Supabase or production configuration changes.
+
+
+## Stage 4 — proof-input resource limits (in progress, 2026-11-21)
+
+- Branch: `fix/proof-kernel-resource-bounds`.
+- Add iterative input preflight before recursive validation to reject cyclic/accessor-backed/non-plain data and enforce node/depth/string/array/object limits.
+- Cap proofs at 4,096 steps and 4,096 assumptions; cap AST object/array nodes at 100,000 and nesting at 256.
+- Add regressions for cycles, getters, deep formulas, excessive step/assumption counts and cyclic working traces.
 - Validation pending. No training, model weights, checkpoints, dataset generation, Supabase or production configuration changes.
