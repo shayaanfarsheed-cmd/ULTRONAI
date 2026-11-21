@@ -142,8 +142,8 @@
     if (points.length < 2) {
       context.fillStyle = getComputedStyle(document.body).getPropertyValue("--muted");
       context.font = "12px system-ui";
-      context.fillText("Loss history will appear after heartbeats.", 12, 95);
-      $("chartFirst").textContent = points.length ? "1 data point" : "Waiting for data";
+      context.fillText("Training is disabled; no loss history is available.", 12, 95);
+      $("chartFirst").textContent = "Not available";
       $("chartLast").textContent = "—";
       return;
     }
@@ -179,7 +179,6 @@
 
   function renderServers() {
     const container = $("serverList");
-    const nextId = null;
     if (!state.servers.length) {
       container.innerHTML = '<div class="empty-state panel">Could not load servers.json.</div>';
       return;
@@ -191,9 +190,9 @@
       const startUrl = server.notebook_open_url || server.notebook_url || server.documentation_url || "#";
       const limitHours = server.limits && (server.limits.session_limit_hours || server.limits.free_studio_restart_hours || server.limits.job_execution_limit_hours || server.limits.session_hours);
       const limitText = limitHours ? limitHours + (server.limits.job_execution_limit_hours ? "h job" : "h session") : "Session varies";
-      return '<article class="server-card' + (server.id === nextId ? ' next-server' : '') + '">' +
+      return '<article class="server-card">' +
         '<div class="server-main">' +
-          '<div class="server-title-row"><span class="server-number">0' + (index + 1) + '</span><strong class="server-title">' + escapeHtml(server.name) + '</strong><span class="status-pill ' + escapeHtml(status) + '">' + escapeHtml(status.replace(/_/g, " ")) + '</span>' + (server.id === nextId ? '<span class="next-flag">NEXT</span>' : '') + '</div>' +
+          '<div class="server-title-row"><span class="server-number">0' + (index + 1) + '</span><strong class="server-title">' + escapeHtml(server.name) + '</strong><span class="status-pill ' + escapeHtml(status) + '">' + escapeHtml(status.replace(/_/g, " ")) + '</span></div>' +
           '<div class="server-sub">' + escapeHtml(server.role || "compute server") + ' · ' + escapeHtml(limitText) + ' · Provider automation: not controlled by this dashboard</div>' +
           '<div class="server-meta"><span class="meta-chip">' + escapeHtml(server.hardware && (server.hardware.cpu_only ? "CPU" : server.hardware.free_gpu_options ? "GPU / CPU" : server.hardware.preferred || "Compute")) + '</span><span class="meta-chip">' + escapeHtml(quotaText) + '</span><span class="meta-chip">Order ' + escapeHtml(server.order) + '</span></div>' +
           '<div class="quota-line"><div class="quota-top"><span>Quota usage</span><span>' + escapeHtml(quota.percent == null ? "Not measurable" : formatNumber(quota.percent, 1) + "%") + '</span></div><div class="quota-track"><div class="quota-fill" style="width:' + (quota.percent == null ? 0 : Math.max(0, Math.min(100, quota.percent))) + '%"></div></div></div>' +
@@ -237,6 +236,14 @@
   }
 
   function switchView(view) {
+    const labels = {
+      overview: ["OVERVIEW", "System overview"],
+      learning: ["HOW ULTRON LEARNS", "Learning system"],
+      servers: ["SERVERS", "Free compute servers"],
+      math: ["MATH AGENT", "Solve mathematics"],
+      settings: ["SETTINGS", "System settings"],
+    };
+    if (!labels[view]) return;
     state.currentView = view;
     document.querySelectorAll(".view-section").forEach(function (section) {
       section.hidden = section.id !== "view-" + view;
@@ -247,14 +254,6 @@
       if (selected) button.setAttribute("aria-current", "page");
       else button.removeAttribute("aria-current");
     });
-    const labels = {
-      overview: ["OVERVIEW", "System overview"],
-      learning: ["HOW ULTRON LEARNS", "Learning system"],
-      servers: ["SERVERS", "Free compute servers"],
-      math: ["MATH AGENT", "Solve mathematics"],
-      settings: ["SETTINGS", "System settings"],
-    };
-    if (!labels[view]) return;
     $("viewName").textContent = labels[view][0];
     $("pageTitle").textContent = labels[view][1];
     if (view === "overview") scheduleChartDraw();
