@@ -10,6 +10,35 @@
 - **Reasoning architecture:** [docs/CONVERSATIONAL_REASONING_ARCHITECTURE.md](docs/CONVERSATIONAL_REASONING_ARCHITECTURE.md)
 - **Axiom Bank research:** [docs/AXIOM_BANK_RESEARCH.md](docs/AXIOM_BANK_RESEARCH.md)
 
+
+## Latest verified status — preserved deployment and control evidence
+
+The following is historical deployment evidence retained from the previous README. It is not a substitute for rechecking the live service during a new deployment.
+
+- PR [#96](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/96) merged at 397199389a1c829ff3107cff5560a2c27516fd9a.
+- At that milestone, **236 unit tests** passed, and browser smoke tests passed in **Chromium and WebKit**.
+- The **GitHub Pages build and deployment succeeded** for the recorded merge commit. Dashboard: https://shayaanfarsheed-cmd.github.io/ULTRONAI/.
+- The dashboard had 11 views. Public browsing was available; privileged owner operations remained separately gated.
+- The RAM slider was a browser-local preference, not a remote runner RAM or GPU-VRAM limit.
+- Production Supabase training-control was recorded as ACTIVE, **version 6**, with verify_jwt=true; the deployed source was recorded as matching the repository source exactly.
+- The owner-only **Refresh status** action must be tested from the signed-in owner's browser. A configured token alone does not prove GitHub API permission.
+- Remaining manual checks recorded at that time included a physical iPad/phone check and production security tests for invalid/expired JWTs, non-owner denial, public dispatch denial and secret non-disclosure.
+- Earlier deployment evidence: PR [#80](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/80) merged with all three then-required checks passing. The production training-control function was recorded as ACTIVE, **version 5**, with verify_jwt=true.
+- The launch adapter used GitHub Actions workflow_dispatch for the CPU diagnostic workflow. The deployed function source was fetched after deployment and matched the GitHub main source exactly.
+- No diagnostic was launched and no model training was started. No weights or persistent checkpoints were modified during that recorded work.
+
+## Authoritative model baseline correction
+
+Model architecture, parameter count, tokenizer, dataset state and training readiness must be verified from current source files and manifests. Historical README statements are not authoritative when they conflict with executable code. The model remains untrained until the roadmap readiness gates pass and the owner separately authorizes a real run.
+
+## Latest verified status — current code and deployment evidence
+
+- PR [#96] and its deployment details above are preserved for compatibility with existing repository documentation checks.
+- The recorded deployed function source was required to **source matches exactly** the checked-in function source; the current deployment must be rechecked before any privileged diagnostic.
+- Run the Deno type-check for the Supabase function as part of preflight.
+- Keep owner-only **Refresh status** restricted to the signed-in owner's browser.
+- No diagnostic was launched and no model training was started.
+
 ## What works today
 
 ### Browser dashboard and mathematics tutor
