@@ -833,3 +833,30 @@ test("ZFC-10 rejects forged choice statements and ordinary cross-context use",()
  const wrong=mk("PEANO_N",[],[{id:"choice",rule:"axiom",axiomId:"ZFC-10",formula:K.AXIOMS["ZFC-10"].formula}],"choice");
  assert.equal(K.verify(wrong).code,"AXIOM_NOT_AVAILABLE");
 });
+
+test("proof checker rejects cyclic, accessor-backed and over-deep proof data safely",()=>{
+ const cycle=mk("PEANO_N",[],[{id:"r",rule:"eq_refl",term:T.numeral(0),formula:F.eq(T.numeral(0),T.numeral(0))}],"r");
+ cycle.steps[0].formula=cycle;
+ assert.equal(K.verify(cycle).code,"RESOURCE_LIMIT");
+ const accessor=mk("PEANO_N",[],[{id:"r",rule:"eq_refl",term:T.numeral(0),formula:F.eq(T.numeral(0),T.numeral(0))}],"r");
+ Object.defineProperty(accessor,"unexpected",{enumerable:true,get(){throw new Error("accessor must not execute");}});
+ assert.equal(K.verify(accessor).code,"RESOURCE_LIMIT");
+ let deep=F.eq(T.numeral(0),T.numeral(0));
+ for(let i=0;i<300;i++)deep=F.not(deep);
+ const deepProof=mk("PEANO_N",[{id:"deep",formula:deep}],[{id:"use",rule:"assumption",assumption:"deep",formula:deep}],"use");
+ assert.equal(K.verify(deepProof).code,"RESOURCE_LIMIT");
+});
+test("proof checker enforces explicit step and assumption count limits",()=>{
+ const zero=T.numeral(0),reflexive=F.eq(zero,zero);
+ const tooManySteps=Array.from({length:4097},(_,i)=>({id:"s"+i,rule:"eq_refl",term:zero,formula:reflexive}));
+ assert.equal(K.verify(mk("PEANO_N",[],tooManySteps,"s4096")).code,"RESOURCE_LIMIT");
+ const tooManyAssumptions=Array.from({length:4097},(_,i)=>({id:"a"+i,formula:reflexive}));
+ const proof=mk("PEANO_N",tooManyAssumptions,[{id:"use",rule:"assumption",assumption:"a0",formula:reflexive}],"use");
+ assert.equal(K.verify(proof).code,"RESOURCE_LIMIT");
+});
+test("working traces enforce the same bounded data contract",()=>{
+ const proof=mk("PEANO_N",[],[{id:"r",rule:"eq_refl",term:T.numeral(0),formula:F.eq(T.numeral(0),T.numeral(0))}],"r");
+ const trace={kind:"ultron-proof-trace",proof};
+ trace.loop=trace;
+ assert.equal(K.verifyWorkingTrace(trace).code,"RESOURCE_LIMIT");
+});
