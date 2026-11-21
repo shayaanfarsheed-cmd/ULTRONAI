@@ -26,7 +26,7 @@ const isObj=x=>!!x&&typeof x==="object"&&!Array.isArray(x), stable=x=>JSON.strin
 function termSort(t,bound={}) {
  if(!isObj(t))return null;
  switch(t.kind){
- case "var":return typeof t.name==="string"&&(bound[t.name]||t.sort)||null;
+ case "var":return typeof t.name==="string"&&typeof t.sort==="string"&&(!bound[t.name]||bound[t.name]===t.sort)?(bound[t.name]||t.sort):null;
  case "nat":return Number.isSafeInteger(t.value)&&t.value>=0?"Nat":null;
  case "succ":return termSort(t.value,bound)==="Nat"?"Nat":null;
  case "add":case "mul":{const a=termSort(t.left,bound),b=termSort(t.right,bound);return a&&a===b&&(a==="Nat"||a==="Field")?a:null;}
@@ -71,15 +71,15 @@ const err=(code,message,stepId)=>({valid:false,code,message,stepId:stepId||null}
 function verify(p){
  if(!isObj(p)||p.version!==1||!Object.hasOwn(SYSTEMS,p.system)||!Array.isArray(p.assumptions)||!Array.isArray(p.steps)||!p.steps.length||typeof p.conclusion!=="string")return err("MALFORMED_PROOF","Malformed proof envelope or unknown system.");
  const sys=SYSTEMS[p.system],allowedSorts=new Set(sys.sorts),available=new Map(),used=[];
- for(const a of p.assumptions){if(!isObj(a)||typeof a.id!=="string"||available.has(a.id)||!validFormula(a.formula,{},allowedSorts))return err("INVALID_ASSUMPTION","Assumptions need unique IDs and well-typed formulas.");available.set(a.id,{formula:a.formula,origin:"assumption"});}
+ for(const a of p.assumptions){if(!isObj(a)||typeof a.id!=="string"||available.has(a.id)||!validFormula(a.formula,{},allowedSorts))return err("INVALID_ASSUMPTION","Assumptions need unique IDs and well-typed formulas.");available.set(a.id,{formula:a.formula,origin:"assumption",dependencies:new Set([a.id])});}
  for(const s of p.steps){
   if(!isObj(s)||typeof s.id!=="string"||available.has(s.id)||!validFormula(s.formula,{},allowedSorts))return err("INVALID_STEP","Each step needs a unique ID and well-typed formula.",s&&s.id);
   const ids=s.premises||[];if(!Array.isArray(ids))return err("INVALID_PREMISES","Premises must be an array.",s.id);
   const refs=ids.map(id=>available.get(id));if(refs.some(x=>!x))return err("UNKNOWN_PREMISE","Missing or forward proof reference.",s.id);
   let e=null;
   switch(s.rule){
-   case "assumption":{const a=p.assumptions.find(x=>x.id===s.assumption);if(a)e=a.formula;break;}
-   case "axiom":{const a=AXIOMS[s.axiomId];if(!a||a.system!==p.system||!sys.enabledAxioms.includes(s.axiomId))return err("AXIOM_NOT_AVAILABLE","Axiom is unknown, not formalized, or unavailable in this system.",s.id);e=a.formula;used.push(s.axiomId);break;}
+   case "assumption":{const a=p.assumptions.find(x=>x.id===s.assumption);if(a&&!ids.length)e=a.formula;break;}
+   case "axiom":{const a=AXIOMS[s.axiomId];if(ids.length)return err("RULE_MISMATCH","Axiom steps cannot have premises.",s.id);if(!a||a.system!==p.system||!sys.enabledAxioms.includes(s.axiomId))return err("AXIOM_NOT_AVAILABLE","Axiom is unknown, not formalized, or unavailable in this system.",s.id);e=a.formula;used.push(s.axiomId);break;}
    case "eq_refl":if(s.term&&termSort(s.term)&&!ids.length)e=F.eq(s.term,s.term);break;
    case "eq_symm":if(refs.length===1&&refs[0].formula.kind==="eq")e=F.eq(refs[0].formula.right,refs[0].formula.left);break;
    case "eq_trans":if(refs.length===2&&refs.every(x=>x.formula.kind==="eq")&&stable(refs[0].formula.right)===stable(refs[1].formula.left))e=F.eq(refs[0].formula.left,refs[1].formula.right);break;
@@ -92,10 +92,14 @@ function verify(p){
    default:return err("UNKNOWN_RULE","Rule is not part of the audited kernel.",s.id);
   }
   if(!e||stable(e)!==stable(s.formula))return err("RULE_MISMATCH","Conclusion does not follow from the selected rule and premises.",s.id);
-  available.set(s.id,{formula:s.formula,origin:s.rule});
+  const dependencies=new Set();
+  if(s.rule==="assumption")dependencies.add(s.assumption);
+  else refs.forEach(ref=>ref.dependencies.forEach(id=>dependencies.add(id)));
+  if(s.rule==="imp_intro")dependencies.delete(s.discharge);
+  available.set(s.id,{formula:s.formula,origin:s.rule,dependencies});
  }
  const last=available.get(p.conclusion);if(!last||!p.steps.some(x=>x.id===p.conclusion))return err("MISSING_CONCLUSION","Conclusion must reference a derived step.");
- return {valid:true,system:p.system,conclusion:clone(last.formula),usedAxioms:[...new Set(used)],checkedSteps:p.steps.length,trace:p.steps.map(x=>({id:x.id,rule:x.rule,formula:clone(x.formula),premises:(x.premises||[]).slice(),axiomId:x.axiomId||null}))};
+ return {valid:true,system:p.system,conclusion:clone(last.formula),openAssumptions:[...last.dependencies].sort(),usedAxioms:[...new Set(used)],checkedSteps:p.steps.length,trace:p.steps.map(x=>({id:x.id,rule:x.rule,formula:clone(x.formula),premises:(x.premises||[]).slice(),axiomId:x.axiomId||null}))};
 }
 function verifyWorkingTrace(trace){
  if(!isObj(trace)||trace.kind!=="ultron-proof-trace")return err("UNTRUSTED_TRACE","Working must be a structured proof trace.");
