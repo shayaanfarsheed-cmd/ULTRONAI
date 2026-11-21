@@ -39,7 +39,11 @@ class NoRemoteDevicePairingTests(unittest.TestCase):
                           "data-checkpoint-resume", "manualHoursForm", "data-server-ready",
                           "data-server-unavailable", "autoStartToggle"):
             self.assertNotIn(forbidden, html)
-        self.assertIn("read-only", html.lower())
+        self.assertIn('class="connection-badge">PUBLIC</span>', html)
+        self.assertNotIn("read-only", html.lower())
+        self.assertNotIn("./training-control.js", html)
+        self.assertNotIn('id="trainingStartButton"', html)
+        self.assertNotIn('id="trainingStopButton"', html)
 
     def test_dashboard_data_client_has_no_training_control_writes(self):
         app = (ROOT / "dashboard" / "app.js").read_text(encoding="utf-8")
