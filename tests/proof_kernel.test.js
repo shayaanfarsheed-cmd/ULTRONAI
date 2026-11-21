@@ -709,6 +709,10 @@ test("ZFC schema instances reject wrong formulas, unavailable systems and variab
   id:"sep",rule:"separation",schemaId:"ZFC-07",sourceSet:T.variable("X","Set"),predicate:F.eq(T.variable("u","Set"),T.variable("Y","Set")),predicateVariable:"u",elementVariable:"x",subsetVariable:"Y",formula:F.predicate("forged",[])
  }],"sep");
  assert.equal(K.verify(badCapture).code,"RULE_MISMATCH");
+ const sourceCollision=mk("ZFC",[],[{
+  id:"sep",rule:"separation",schemaId:"ZFC-07",sourceSet:T.variable("X","Set"),predicate:F.eq(T.variable("X","Set"),T.variable("X","Set")),predicateVariable:"X",elementVariable:"x",subsetVariable:"Y",formula:F.predicate("forged",[])
+ }],"sep");
+ assert.equal(K.verify(sourceCollision).code,"RULE_MISMATCH");
  const wrongSystem=mk("REAL_FIELD",[],[{
   id:"sep",rule:"separation",schemaId:"ZFC-07",sourceSet:T.variable("X","Set"),predicate,predicateVariable:"u",elementVariable:"x",subsetVariable:"Y",formula:F.predicate("forged",[])
  }],"sep");
