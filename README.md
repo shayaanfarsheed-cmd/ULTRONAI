@@ -1076,3 +1076,6 @@ The Stage 4 first implementation adds:
 - Induction is enabled only in the Peano context. No induction rule is enabled in field, geometry, probability, completeness or ZFC contexts.
 - Branch: `feature/peano-induction-schema`. Do not merge until full Test Suite, preflight, Training Prototype Validation, Chromium and WebKit checks pass.
 - No model training, dataset generation, weight/checkpoint mutation or production configuration change.
+
+
+- Additional induction soundness guard: the induction variable must not occur free in any still-open assumption on which either premise depends. Added a regression where a derived base case depends on an unrelated assumption containing that variable.
