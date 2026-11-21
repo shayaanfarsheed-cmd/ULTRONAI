@@ -2,8 +2,8 @@
 "use strict";
 function deepFreeze(value){if(value&&typeof value==="object"&&!Object.isFrozen(value)){Object.keys(value).forEach(key=>deepFreeze(value[key]));Object.freeze(value);}return value;}
 const SYSTEMS=deepFreeze({
- PEANO_N:{label:"Peano arithmetic",sorts:["Nat"],enabledAxioms:["PEANO-03"]},
- REAL_FIELD:{label:"Field theory",sorts:["Field"],enabledAxioms:["FIELD-01"]},
+ PEANO_N:{label:"Peano arithmetic",sorts:["Nat"],enabledAxioms:["PEANO-02","PEANO-03"]},
+ REAL_FIELD:{label:"Field theory",sorts:["Field"],enabledAxioms:["FIELD-01","FIELD-02","FIELD-03","FIELD-05","FIELD-06","FIELD-09"]},
  ORDERED_FIELD:{label:"Ordered-field theory",sorts:["Field"],enabledAxioms:[]},
  COMPLETE_REAL:{label:"Complete real field",sorts:["Field"],enabledAxioms:[]},
  EUCLID_GEOMETRY:{label:"Euclidean geometry",sorts:["Point","Line"],enabledAxioms:[]},
@@ -20,7 +20,7 @@ const T=Object.freeze({
 const F=Object.freeze({
  eq:(left,right)=>({kind:"eq",left,right}), lt:(left,right)=>({kind:"lt",left,right}),
  and:(left,right)=>({kind:"and",left,right}), implies:(left,right)=>({kind:"implies",left,right}),
- forall:(name,sort,body)=>({kind:"forall",name,sort,body}),
+ forall:(name,sort,body)=>({kind:"forall",name,sort,body}), not:formula=>({kind:"not",formula}),
  member:(term,set)=>({kind:"member",term,set}), predicate:(name,args)=>({kind:"predicate",name,args:args||[]})
 });
 const isObj=x=>!!x&&typeof x==="object"&&!Array.isArray(x), stable=x=>JSON.stringify(x), clone=x=>JSON.parse(JSON.stringify(x));
@@ -60,6 +60,7 @@ function validFormula(f,bound={},allowedSorts=null) {
  case "eq":{if(!exactKeys(f,["kind","left","right"]))return false;const sort=termSort(f.left,bound);return !!sort&&sort===termSort(f.right,bound)&&(!allowedSorts||allowedSorts.has(sort));}
  case "lt":{if(!exactKeys(f,["kind","left","right"]))return false;const sort=termSort(f.left,bound);return ["Nat","Field"].includes(sort)&&sort===termSort(f.right,bound)&&(!allowedSorts||allowedSorts.has(sort));}
  case "and":case "implies":return exactKeys(f,["kind","left","right"])&&validFormula(f.left,bound,allowedSorts)&&validFormula(f.right,bound,allowedSorts);
+ case "not":return exactKeys(f,["kind","formula"])&&validFormula(f.formula,bound,allowedSorts);
  case "forall":{if(!exactKeys(f,["kind","name","sort","body"])||typeof f.name!=="string"||!["Nat","Field","Point","Line","Event","Probability","Set"].includes(f.sort)||(allowedSorts&&!allowedSorts.has(f.sort)))return false;return validFormula(f.body,Object.assign({},bound,{[f.name]:f.sort}),allowedSorts);}
  case "member":{if(!exactKeys(f,["kind","term","set"]))return false;const a=termSort(f.term,bound),b=termSort(f.set,bound);return !!a&&b==="Set"&&(!allowedSorts||(allowedSorts.has(a)&&allowedSorts.has(b)));}
  case "predicate":return exactKeys(f,["kind","name","args"])&&typeof f.name==="string"&&!!f.name&&denseArray(f.args)&&f.args.every(x=>{const sort=termSort(x,bound);return !!sort&&(!allowedSorts||allowedSorts.has(sort));});
@@ -81,8 +82,14 @@ function substitute(node,name,replacement){
  const out={};for(const k of Object.keys(node))out[k]=Array.isArray(node[k])?node[k].map(x=>substitute(x,name,replacement)):isObj(node[k])?substitute(node[k],name,replacement):node[k];return out;
 }
 const AXIOMS=deepFreeze({
+ "PEANO-02":{system:"PEANO_N",formula:F.forall("n","Nat",F.not(F.eq(T.succ(T.variable("n","Nat")),T.numeral(0))))},
  "PEANO-03":{system:"PEANO_N",formula:F.forall("m","Nat",F.forall("n","Nat",F.implies(F.eq(T.succ(T.variable("m","Nat")),T.succ(T.variable("n","Nat"))),F.eq(T.variable("m","Nat"),T.variable("n","Nat")))))},
- "FIELD-01":{system:"REAL_FIELD",formula:F.forall("a","Field",F.forall("b","Field",F.eq(T.add(T.variable("a","Field"),T.variable("b","Field")),T.add(T.variable("b","Field"),T.variable("a","Field")))))}
+ "FIELD-01":{system:"REAL_FIELD",formula:F.forall("a","Field",F.forall("b","Field",F.eq(T.add(T.variable("a","Field"),T.variable("b","Field")),T.add(T.variable("b","Field"),T.variable("a","Field")))))},
+ "FIELD-02":{system:"REAL_FIELD",formula:F.forall("a","Field",F.forall("b","Field",F.forall("c","Field",F.eq(T.add(T.add(T.variable("a","Field"),T.variable("b","Field")),T.variable("c","Field")),T.add(T.variable("a","Field"),T.add(T.variable("b","Field"),T.variable("c","Field")))))))},
+ "FIELD-03":{system:"REAL_FIELD",formula:F.forall("a","Field",F.and(F.eq(T.add(T.variable("a","Field"),T.rational(0,1)),T.variable("a","Field")),F.eq(T.add(T.rational(0,1),T.variable("a","Field")),T.variable("a","Field"))))},
+ "FIELD-05":{system:"REAL_FIELD",formula:F.forall("a","Field",F.forall("b","Field",F.eq(T.multiply(T.variable("a","Field"),T.variable("b","Field")),T.multiply(T.variable("b","Field"),T.variable("a","Field")))))},
+ "FIELD-06":{system:"REAL_FIELD",formula:F.forall("a","Field",F.forall("b","Field",F.forall("c","Field",F.eq(T.multiply(T.multiply(T.variable("a","Field"),T.variable("b","Field")),T.variable("c","Field")),T.multiply(T.variable("a","Field"),T.multiply(T.variable("b","Field"),T.variable("c","Field")))))))},
+ "FIELD-09":{system:"REAL_FIELD",formula:F.forall("a","Field",F.forall("b","Field",F.forall("c","Field",F.eq(T.multiply(T.variable("a","Field"),T.add(T.variable("b","Field"),T.variable("c","Field"))),T.add(T.multiply(T.variable("a","Field"),T.variable("b","Field")),T.multiply(T.variable("a","Field"),T.variable("c","Field"))))))))}
 });
 const err=(code,message,stepId)=>({valid:false,code,message,stepId:stepId||null});
 function verify(p){
