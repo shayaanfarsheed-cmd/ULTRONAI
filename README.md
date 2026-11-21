@@ -1110,8 +1110,6 @@ The Stage 4 first implementation adds:
 - PR #108 merged at `c54f8e5ca4ff16c04304387b52237f3b64c3768e`: eigenvariable-checked universal introduction.
 - PR #109 merged at `122d309ed401329f020f229c7d7910d6f128c6a5`: typed existential formulas, capture-aware substitution and exact FIELD-04, FIELD-07 and FIELD-08; REAL_FIELD now contains all nine researched field axioms.
 - PR #110 merged at `cb5cb021e006c930c673f1f4b9c1e9747663252a`: witness-checked `exists_intro` and scoped `exists_elim`, with adversarial tests for witness capture, leakage, incorrect scope and dependency discharge. Test Suite, preflight, Training Prototype Validation, Chromium and WebKit all passed.
-- PR #111 merged at `6eaf286133462aaa7799643cd41bc0195b79bb4a`: exact, context-isolated EUCLID-01, PROB-01/02 and ZFC-01/02. Test Suite, preflight, Training Prototype Validation, Chromium and WebKit all passed on the PR head.
-- The next branch adds ZFC-03 pairing, ZFC-04 union and ZFC-05 power set using exact quantified membership characterizations. It is pending full validation.
 - No model training, weight/checkpoint mutation, dataset generation or production configuration change.
 
 
