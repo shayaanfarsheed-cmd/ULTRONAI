@@ -51,6 +51,7 @@ Merged proof-kernel milestones on current `main`:
 - PR #132 — ZFC-10 expanded into quantified set-membership formulas using Kuratowski ordered pairs and exact-domain function graphs.
 - PR #133 — prototype-safe binder environments and rejection of empty variable/sort names.
 - PR #134 — iterative proof-input validation and explicit step, assumption, node, depth, array, object and string limits.
+- PR #136 — capture-safe fresh binders in ZFC-10's ordered-pair and function-graph formula macros.
 
 The five required validation groups passed for the listed code milestones: Test Suite, preflight, Training Prototype Validation, Chromium and WebKit. Check current Actions state before relying on historical results.
 
@@ -102,7 +103,7 @@ Implemented foundations include:
 - Euclidean incidence/construction and parallel-postulate relations.
 - Probability non-negativity, sample-space normalization and countable additivity.
 - ZFC finite axioms, separation/replacement schema-instance rules, and ZFC-10 choice expanded through Kuratowski ordered pairs and function graphs with exact domain and unique outputs.
-- Binder-environment hardening for prototype-sensitive variable names and iterative proof-input limits: 4,096 steps, 4,096 assumptions, 100,000 object/array nodes and depth 256.
+- Binder-environment hardening for prototype-sensitive variable names; capture-safe ZFC-10 formula binders; iterative proof-input limits of 4,096 steps, 4,096 assumptions, 100,000 object/array nodes and depth 256.
 
 The ZFC-10 formula defines indexed families of nonempty sets and choice functions using ordinary quantified Set-membership formulas. The checker validates the axiom statement; it does not compute or construct a choice function for arbitrary families. The `RealSet` domain is a formal subset domain, not a general set-construction evaluator or numerical supremum engine.
 
@@ -578,4 +579,13 @@ The first run is not proof that the project is finished. Use held-out results to
 - Branch: `fix/zfc-choice-macro-capture`.
 - Generate fresh internal binders for Kuratowski-pair and function-graph formula expansions, checking against all variable names in the caller's terms.
 - Add free-variable regressions using names that collide with the previous internal binder prefixes.
+- Validation pending. No training, model weights, checkpoints, dataset generation, Supabase or production configuration changes.
+
+
+## Stage 4 — equality substitution and replayable proof traces (in progress)
+
+- Branch: `feature/equality-substitution-and-complete-traces`.
+- Add `eq_subst`: from an equality and one instance of a formula template, derive the opposite instance with capture-avoiding substitution and context-sort validation.
+- Preserve the complete original proof envelope and full rule-specific step metadata in successful verification results.
+- Add forward/reverse substitution, capture rejection, forged-template, missing-placeholder, exact-step-schema and trace-replay tests.
 - Validation pending. No training, model weights, checkpoints, dataset generation, Supabase or production configuration changes.
