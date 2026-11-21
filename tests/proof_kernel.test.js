@@ -506,6 +506,27 @@ test("new formal contexts reject forged statements and incompatible terms",()=>{
  assert.equal(K.verify(zfcPoint).code,"INVALID_STEP");
  assert.equal(K.verify(geometryEvent).code,"INVALID_STEP");
 });
+test("ZFC pairing, union and power-set axioms are well-typed and replay exactly",()=>{
+ for(const id of ["ZFC-03","ZFC-04","ZFC-05"]){
+  const formula=K.AXIOMS[id].formula;
+  assert.equal(K.validFormula(formula,{},new Set(K.SYSTEMS.ZFC.sorts)),true,id);
+  const proof=mk("ZFC",[],[{id:"ax",rule:"axiom",axiomId:id,formula}],"ax");
+  const result=K.verify(proof);
+  assert.equal(result.valid,true,id);
+  assert.deepEqual(result.usedAxioms,[id],id);
+  const wrong=mk("REAL_FIELD",[],[{id:"ax",rule:"axiom",axiomId:id,formula}],"ax");
+  assert.equal(K.verify(wrong).code,"AXIOM_NOT_AVAILABLE",id);
+ }
+});
+test("ZFC construction axioms reject forged formulas and foreign sorts",()=>{
+ for(const id of ["ZFC-03","ZFC-04","ZFC-05"]){
+  const forged=mk("ZFC",[],[{id:"ax",rule:"axiom",axiomId:id,formula:F.predicate("forged",[])}],"ax");
+  assert.equal(K.verify(forged).code,"RULE_MISMATCH",id);
+ }
+ for(const term of [T.point("P"),T.event("E"),T.line("l"),T.real(1,1)]){
+  assert.equal(K.validFormula(F.eq(term,term),{},new Set(K.SYSTEMS.ZFC.sorts)),false);
+ }
+});
 test("countable additivity remains disabled until sequence and sum operators exist",()=>{
  assert.equal(K.AXIOMS["PROB-03"],undefined);
  assert.deepEqual(K.SYSTEMS.KOLMOGOROV.enabledAxioms,["PROB-01","PROB-02"]);
