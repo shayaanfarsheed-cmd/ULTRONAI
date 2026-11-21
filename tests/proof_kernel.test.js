@@ -818,6 +818,24 @@ test("ZFC-10 choice axiom replays with the typed family and choice-function rela
  const wrong=mk("REAL_FIELD",[],[{id:"choice",rule:"axiom",axiomId:"ZFC-10",formula}],"choice");
  assert.equal(K.verify(wrong).code,"AXIOM_NOT_AVAILABLE");
 });
+test("ZFC choice formula macros avoid capturing caller variable names",()=>{
+ const freeNames=(node,bound=new Set(),out=new Set())=>{
+  if(!node||typeof node!=="object")return out;
+  if(Array.isArray(node)){for(const item of node)freeNames(item,bound,out);return out;}
+  if(node.kind==="var"){if(!bound.has(node.name))out.add(node.name);return out;}
+  if(node.kind==="forall"||node.kind==="exists"){const next=new Set(bound);next.add(node.name);freeNames(node.body,next,out);return out;}
+  for(const key of Object.keys(node))if(key!=="kind")freeNames(node[key],bound,out);
+  return out;
+ };
+ const family=T.variable("__fam_index","Set"),index=T.variable("__fg_pair","Set");
+ const familyFormula=F.familyOfNonemptySets(family,index);
+ assert.equal(K.validFormula(familyFormula,{},new Set(K.SYSTEMS.ZFC.sorts)),true);
+ assert.deepEqual([...freeNames(familyFormula)].sort(),["__fam_index","__fg_pair"].sort());
+ const choice=T.variable("__choice_index","Set"),choiceIndex=T.variable("__op_singleton","Set"),choiceFamily=T.variable("__fg_value","Set");
+ const choiceFormula=F.choiceFunction(choice,choiceIndex,choiceFamily);
+ assert.equal(K.validFormula(choiceFormula,{},new Set(K.SYSTEMS.ZFC.sorts)),true);
+ assert.deepEqual([...freeNames(choiceFormula)].sort(),["__choice_index","__fg_value","__op_singleton"].sort());
+});
 test("choice relations require set-valued family, index set and choice function",()=>{
  const sorts=new Set(K.SYSTEMS.ZFC.sorts);
  assert.equal(K.validFormula(F.familyOfNonemptySets(T.set("A"),T.set("I")),{},sorts),true);

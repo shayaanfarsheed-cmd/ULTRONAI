@@ -136,3 +136,6 @@ Variable-sort lookup uses own-property checks only, and nested quantifier enviro
 ## Proof-input resource bounds
 
 The verifier performs an iterative JSON-data preflight before recursive formula validation or proof replay. It rejects cycles, accessors, non-plain objects, sparse/custom arrays, unsupported primitive values, non-finite numbers, overlong strings and excessive object keys. The current caps are 4,096 proof steps, 4,096 assumptions, 100,000 object/array nodes, nesting depth 256, arrays up to 8,192 entries, 64 object keys and 16,384 characters per string. Working traces use the same bounded-data contract. These are defensive parser/replay limits, not claims about mathematical proof length.
+
+
+The ZFC choice formula macros select fresh binder names against every variable name in their input terms/formulas. This avoids capture when a caller supplies names that resemble the kernel's internal ordered-pair or function-graph binders. Regression tests deliberately use `__fam_index`, `__fg_pair`, `__choice_index` and `__op_singleton` as free input variables and assert they remain free in the expanded formulas.

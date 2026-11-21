@@ -571,3 +571,11 @@ The first run is not proof that the project is finished. Use held-out results to
 2. Reconcile this roadmap with current code and technical documentation.
 3. Choose one small, verifiable task from the earliest incomplete stage. Website, security, proof and data readiness take priority over training.
 4. Do not jump to Stage 13. The neural model remains untrained until every readiness gate passes and the owner explicitly authorizes the first real run.
+
+
+## Stage 4 — ZFC choice macro capture hardening (in progress)
+
+- Branch: `fix/zfc-choice-macro-capture`.
+- Generate fresh internal binders for Kuratowski-pair and function-graph formula expansions, checking against all variable names in the caller's terms.
+- Add free-variable regressions using names that collide with the previous internal binder prefixes.
+- Validation pending. No training, model weights, checkpoints, dataset generation, Supabase or production configuration changes.

@@ -200,58 +200,66 @@ function replacementSchemaFormula(step,allowedSorts){
 const equivalent=(a,b)=>F.and(F.implies(a,b),F.implies(b,a));
 const disjunction=(a,b)=>F.not(F.and(F.not(a),F.not(b)));
 
+function freshBinderNames(prefix,nodes,suffixes){
+ const used=new Set();for(const node of nodes)allVariableNames(node,used);
+ return suffixes.map(suffix=>{let name=prefix+suffix,index=0;while(used.has(name))name=prefix+suffix+"_"+(++index);used.add(name);return name;});
+}
 function orderedPairFormula(pair,first,second){
- const singleton=T.variable("__op_singleton","Set"),unordered=T.variable("__op_unordered","Set");
- const z=T.variable("__op_z","Set"),w=T.variable("__op_w","Set"),element=T.variable("__op_element","Set");
- const singletonDef=F.forall("__op_z","Set",equivalent(F.member(z,singleton),F.eq(z,first)));
- const unorderedDef=F.forall("__op_w","Set",equivalent(F.member(w,unordered),disjunction(F.eq(w,first),F.eq(w,second))));
- const outerDef=F.forall("__op_element","Set",equivalent(F.member(element,pair),disjunction(F.eq(element,singleton),F.eq(element,unordered))));
- return F.exists("__op_singleton","Set",F.exists("__op_unordered","Set",F.and(singletonDef,F.and(unorderedDef,outerDef))));
+ const [singletonName,unorderedName,zName,wName,elementName]=freshBinderNames("__op_",[pair,first,second],["singleton","unordered","z","w","element"]);
+ const singleton=T.variable(singletonName,"Set"),unordered=T.variable(unorderedName,"Set");
+ const z=T.variable(zName,"Set"),w=T.variable(wName,"Set"),element=T.variable(elementName,"Set");
+ const singletonDef=F.forall(zName,"Set",equivalent(F.member(z,singleton),F.eq(z,first)));
+ const unorderedDef=F.forall(wName,"Set",equivalent(F.member(w,unordered),disjunction(F.eq(w,first),F.eq(w,second))));
+ const outerDef=F.forall(elementName,"Set",equivalent(F.member(element,pair),disjunction(F.eq(element,singleton),F.eq(element,unordered))));
+ return F.exists(singletonName,"Set",F.exists(unorderedName,"Set",F.and(singletonDef,F.and(unorderedDef,outerDef))));
 }
 function functionGraphFormula(graph,indexSet){
- const p=T.variable("__fg_pair","Set"),x=T.variable("__fg_first","Set"),y=T.variable("__fg_value","Set");
- const allMembersArePairs=F.forall("__fg_pair","Set",F.implies(
-  F.member(p,graph),F.exists("__fg_first","Set",F.exists("__fg_value","Set",orderedPairFormula(p,x,y)))
+ const names=freshBinderNames("__fg_",[graph,indexSet],["pair","first","value","index","result","other_pair","other_value","domain_index","domain_value"]);
+ const [pairName,firstName,valueName,indexName,resultName,otherPairName,otherValueName,domainIndexName,domainValueName]=names;
+ const p=T.variable(pairName,"Set"),x=T.variable(firstName,"Set"),y=T.variable(valueName,"Set");
+ const allMembersArePairs=F.forall(pairName,"Set",F.implies(
+  F.member(p,graph),F.exists(firstName,"Set",F.exists(valueName,"Set",orderedPairFormula(p,x,y)))
  ));
- const i=T.variable("__fg_index","Set"),v=T.variable("__fg_result","Set"),q=T.variable("__fg_other_pair","Set"),z=T.variable("__fg_other_value","Set");
- const eachIndexHasUniqueValue=F.forall("__fg_index","Set",F.implies(
+ const i=T.variable(indexName,"Set"),v=T.variable(resultName,"Set"),q=T.variable(otherPairName,"Set"),z=T.variable(otherValueName,"Set");
+ const eachIndexHasUniqueValue=F.forall(indexName,"Set",F.implies(
   F.member(i,indexSet),
-  F.exists("__fg_result","Set",F.and(
-   F.exists("__fg_pair","Set",F.and(F.member(p,graph),orderedPairFormula(p,i,v))),
-   F.forall("__fg_other_value","Set",F.implies(
-    F.exists("__fg_other_pair","Set",F.and(F.member(q,graph),orderedPairFormula(q,i,z))),
+  F.exists(resultName,"Set",F.and(
+   F.exists(pairName,"Set",F.and(F.member(p,graph),orderedPairFormula(p,i,v))),
+   F.forall(otherValueName,"Set",F.implies(
+    F.exists(otherPairName,"Set",F.and(F.member(q,graph),orderedPairFormula(q,i,z))),
     F.eq(z,v)
    ))
   ))
  ));
- const index=T.variable("__fg_domain_index","Set"),value=T.variable("__fg_domain_value","Set");
- const noPairsOutsideDomain=F.forall("__fg_pair","Set",F.implies(
+ const index=T.variable(domainIndexName,"Set"),value=T.variable(domainValueName,"Set");
+ const noPairsOutsideDomain=F.forall(pairName,"Set",F.implies(
   F.member(p,graph),
-  F.exists("__fg_domain_index","Set",F.and(
+  F.exists(domainIndexName,"Set",F.and(
    F.member(index,indexSet),
-   F.exists("__fg_domain_value","Set",orderedPairFormula(p,index,value))
+   F.exists(domainValueName,"Set",orderedPairFormula(p,index,value))
   ))
  ));
  return F.and(allMembersArePairs,F.and(eachIndexHasUniqueValue,noPairsOutsideDomain));
 }
 function familyOfNonemptySetsFormula(family,indexSet){
- const i=T.variable("__fam_index","Set"),set=T.variable("__fam_set","Set"),p=T.variable("__fam_pair","Set"),x=T.variable("__fam_element","Set");
- const familyValue=F.exists("__fam_pair","Set",F.and(F.member(p,family),orderedPairFormula(p,i,set)));
- const nonempty=F.exists("__fam_element","Set",F.member(x,set));
- return F.and(functionGraphFormula(family,indexSet),F.forall("__fam_index","Set",F.implies(
-  F.member(i,indexSet),F.exists("__fam_set","Set",F.and(familyValue,nonempty))
+ const [indexName,setName,pairName,elementName]=freshBinderNames("__fam_",[family,indexSet],["index","set","pair","element"]);
+ const i=T.variable(indexName,"Set"),set=T.variable(setName,"Set"),p=T.variable(pairName,"Set"),x=T.variable(elementName,"Set");
+ const familyValue=F.exists(pairName,"Set",F.and(F.member(p,family),orderedPairFormula(p,i,set)));
+ const nonempty=F.exists(elementName,"Set",F.member(x,set));
+ return F.and(functionGraphFormula(family,indexSet),F.forall(indexName,"Set",F.implies(
+  F.member(i,indexSet),F.exists(setName,"Set",F.and(familyValue,nonempty))
  )));
 }
 function choiceFunctionFormula(choice,indexSet,family){
- const i=T.variable("__choice_index","Set"),set=T.variable("__choice_set","Set"),value=T.variable("__choice_value","Set");
- const p=T.variable("__choice_family_pair","Set"),q=T.variable("__choice_choice_pair","Set");
- const familyValue=F.exists("__choice_family_pair","Set",F.and(F.member(p,family),orderedPairFormula(p,i,set)));
- const chosenValue=F.exists("__choice_choice_pair","Set",F.and(F.member(q,choice),orderedPairFormula(q,i,value)));
- return F.and(functionGraphFormula(choice,indexSet),F.forall("__choice_index","Set",F.forall("__choice_set","Set",F.forall("__choice_value","Set",F.implies(
+ const [indexName,setName,valueName,familyPairName,choicePairName]=freshBinderNames("__choice_",[choice,indexSet,family],["index","set","value","family_pair","choice_pair"]);
+ const i=T.variable(indexName,"Set"),set=T.variable(setName,"Set"),value=T.variable(valueName,"Set");
+ const p=T.variable(familyPairName,"Set"),q=T.variable(choicePairName,"Set");
+ const familyValue=F.exists(familyPairName,"Set",F.and(F.member(p,family),orderedPairFormula(p,i,set)));
+ const chosenValue=F.exists(choicePairName,"Set",F.and(F.member(q,choice),orderedPairFormula(q,i,value)));
+ return F.and(functionGraphFormula(choice,indexSet),F.forall(indexName,"Set",F.forall(setName,"Set",F.forall(valueName,"Set",F.implies(
   F.and(familyValue,chosenValue),F.member(value,set)
  )))));
 }
-
 const pointVar=name=>T.variable(name,"Point");
 const lineVar=name=>T.variable(name,"Line");
 const and4=(a,b,c,d)=>F.and(a,F.and(b,F.and(c,d)));
