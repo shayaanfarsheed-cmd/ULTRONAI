@@ -23,3 +23,12 @@ test("field axiom is usable only in field context",()=>{
  const bad=mk("PEANO_N",[],[{id:"field",rule:"axiom",axiomId:"FIELD-01",formula:f}],"field");
  assert.equal(K.verify(bad).code,"AXIOM_NOT_AVAILABLE");
 });
+
+test("proof contexts reject terms from incompatible mathematical domains",()=>{
+ const fieldEquality=F.eq(T.rational(1,2),T.rational(1,2));
+ const peano=mk("PEANO_N",[],[{id:"x",rule:"eq_refl",term:T.rational(1,2),formula:fieldEquality}],"x");
+ assert.equal(K.verify(peano).valid,false);
+ const pointEquality=F.eq(T.point("A"),T.point("A"));
+ const field=mk("REAL_FIELD",[],[{id:"x",rule:"eq_refl",term:T.point("A"),formula:pointEquality}],"x");
+ assert.equal(K.verify(field).valid,false);
+});
