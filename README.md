@@ -2,7 +2,7 @@
 
 ## Overall ULTRON completion estimate — 2026-11-21
 
-**Estimated whole-project completion: 34%.** This is a milestone-based engineering estimate, not a line-count or feature-count metric. It includes the website, security, data pipeline, model, evaluation, compute/recovery, testing and release readiness. The estimate is deliberately conservative: conversational mathematics and the Stage 3 tutoring/Axiom Bank baseline are merged and independently tested, but physical-device verification, live security checks, a machine-checked proof kernel, deeper diagnosis, remaining dashboard integration and later reasoning stages remain open; the neural model has not been trained; production training readiness is not established. The increase to 34% reflects the merged conversational tutor, researched axiom catalog, Stage 4 proof replayer, proof-soundness fixes, strict AST validation, formalized Peano/field axioms and verified Peano induction schema. The neural model remains untrained and production training readiness is not established. The neural model remains untrained and production training readiness is not established. Increase this figure only when substantial work is implemented and independently validated. Report this estimate in every progress update and revise it when evidence changes.
+**Estimated whole-project completion: 35%.** This is a milestone-based engineering estimate, not a line-count or feature-count metric. It includes the website, security, data pipeline, model, evaluation, compute/recovery, testing and release readiness. The estimate is deliberately conservative: conversational mathematics and the Stage 3 tutoring/Axiom Bank baseline are merged and independently tested, but physical-device verification, live security checks, a machine-checked proof kernel, deeper diagnosis, remaining dashboard integration and later reasoning stages remain open; the neural model has not been trained; production training readiness is not established. The increase to 35% reflects the merged conversational tutor, researched axiom catalog, Stage 4 proof replayer, proof-soundness fixes, strict AST validation, formalized Peano/field axioms, verified induction schema, universal introduction and existential formula support. The neural model remains untrained and production training readiness is not established. The neural model remains untrained and production training readiness is not established. The neural model remains untrained and production training readiness is not established. Increase this figure only when substantial work is implemented and independently validated. Report this estimate in every progress update and revise it when evidence changes.
 
 ## Legacy pull-request reconciliation — 2026-11-20
 
@@ -1102,3 +1102,13 @@ The Stage 4 first implementation adds:
 - Existential introduction/elimination inference rules remain disabled; the language can state these axioms but does not yet provide an unsupported witness rule.
 - Branch: `feature/field-existential-axioms`. Do not merge until full Test Suite, preflight, Training Prototype Validation, Chromium and WebKit checks pass.
 - No training, model-weight change, dataset generation, checkpoint mutation or production configuration update.
+
+
+## Stage 4 — existential inference and formal-field milestones (2026-11-21)
+
+- PR #108 merged at `c54f8e5ca4ff16c04304387b52237f3b64c3768e`: eigenvariable-checked universal introduction.
+- PR #109 merged at `122d309ed401329f020f229c7d7910d6f128c6a5`: typed existential formulas, capture-aware substitution and exact FIELD-04, FIELD-07 and FIELD-08; the REAL_FIELD context now contains all nine researched field axioms.
+- This follow-up implements `exists_intro` using an explicit verified witness and `exists_elim` with a temporary witness assumption, strict eigenvariable freshness, no major-premise dependency on the discharged assumption, and open-dependency removal.
+- Added adversarial tests for witness capture, witness leakage into conclusions, leakage through other open assumptions, and invalid discharge of a major-premise dependency.
+- Branch: `feature/existential-inference-rules`. Merge only after Test Suite, preflight, Training Prototype Validation, Chromium and WebKit pass.
+- No model training, weight/checkpoint mutation, dataset generation or production configuration change.
