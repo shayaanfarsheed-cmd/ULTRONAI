@@ -70,6 +70,7 @@ function validStepShape(step){
   case "assumption":return exactKeys(step,base,["assumption","premises"])&&Object.prototype.hasOwnProperty.call(step,"assumption")&&typeof step.assumption==="string"&&emptyOptionalPremises();
   case "axiom":return exactKeys(step,base,["axiomId","premises"])&&Object.prototype.hasOwnProperty.call(step,"axiomId")&&typeof step.axiomId==="string"&&emptyOptionalPremises();
   case "eq_refl":return exactKeys(step,base,["term","premises"])&&Object.prototype.hasOwnProperty.call(step,"term")&&emptyOptionalPremises();
+  case "eq_subst":return exactKeys(step,base.concat(["premises","template","variable"]))&&denseArray(step.premises)&&step.premises.length===2&&isObj(step.template)&&typeof step.variable==="string"&&step.variable.length>0;
   case "eq_symm":case "eq_trans":case "and_intro":case "and_left":case "and_right":case "imp_elim":return exactKeys(step,base.concat("premises"))&&denseArray(step.premises);
   case "imp_intro":return exactKeys(step,base.concat(["premises","discharge"]))&&denseArray(step.premises)&&Object.prototype.hasOwnProperty.call(step,"discharge")&&typeof step.discharge==="string";
   case "forall_elim":return exactKeys(step,base.concat(["premises","term"]))&&denseArray(step.premises)&&Object.prototype.hasOwnProperty.call(step,"term");
@@ -441,6 +442,15 @@ function verify(p){
    case "eq_refl":if(s.term&&termSort(s.term)&&!ids.length)e=F.eq(s.term,s.term);break;
    case "eq_symm":if(refs.length===1&&refs[0].formula.kind==="eq")e=F.eq(refs[0].formula.right,refs[0].formula.left);break;
    case "eq_trans":if(refs.length===2&&refs.every(x=>x.formula.kind==="eq")&&stable(refs[0].formula.right)===stable(refs[1].formula.left))e=F.eq(refs[0].formula.left,refs[1].formula.right);break;
+   case "eq_subst":{
+    const equality=refs[0].formula,template=s.template,variable=s.variable;
+    if(equality.kind!=="eq"||!validFormula(template,{},allowedSorts)||!freeVariableNames(template).has(variable))break;
+    const left=substitute(template,variable,equality.left),right=substitute(template,variable,equality.right);
+    if(!left||!right||!validFormula(left,{},allowedSorts)||!validFormula(right,{},allowedSorts))break;
+    if(stable(refs[1].formula)===stable(left)&&stable(s.formula)===stable(right))e=right;
+    else if(stable(refs[1].formula)===stable(right)&&stable(s.formula)===stable(left))e=left;
+    break;
+   }
    case "and_intro":if(refs.length===2)e=F.and(refs[0].formula,refs[1].formula);break;
    case "and_left":if(refs.length===1&&refs[0].formula.kind==="and")e=refs[0].formula.left;break;
    case "and_right":if(refs.length===1&&refs[0].formula.kind==="and")e=refs[0].formula.right;break;
@@ -500,7 +510,7 @@ function verify(p){
   available.set(s.id,{formula:s.formula,origin:s.rule,dependencies});
  }
  const last=available.get(p.conclusion);if(!last||!p.steps.some(x=>x.id===p.conclusion))return err("MISSING_CONCLUSION","Conclusion must reference a derived step.");
- return {valid:true,system:p.system,conclusion:clone(last.formula),openAssumptions:[...last.dependencies].sort(),usedAxioms:[...new Set(used)],usedAxiomSchemas:[...new Set(usedSchemas)],checkedSteps:p.steps.length,trace:p.steps.map(x=>({id:x.id,rule:x.rule,formula:clone(x.formula),premises:(x.premises||[]).slice(),axiomId:x.axiomId||null,schemaId:x.schemaId||null,sourceSet:x.sourceSet?clone(x.sourceSet):null,predicate:x.predicate?clone(x.predicate):null,predicateVariable:x.predicateVariable||null,elementVariable:x.elementVariable||null,subsetVariable:x.subsetVariable||null,inputVariable:x.inputVariable||null,outputVariable:x.outputVariable||null,uniquenessVariable:x.uniquenessVariable||null,imageElementVariable:x.imageElementVariable||null,imageSetVariable:x.imageSetVariable||null,term:x.term?clone(x.term):null,variable:x.variable||null,discharge:x.discharge||null}))};
+ return {valid:true,system:p.system,conclusion:clone(last.formula),openAssumptions:[...last.dependencies].sort(),usedAxioms:[...new Set(used)],usedAxiomSchemas:[...new Set(usedSchemas)],checkedSteps:p.steps.length,trace:p.steps.map(x=>clone(x))};
 }
 function verifyWorkingTrace(trace){
  if(!boundedProofData(trace))return err("RESOURCE_LIMIT","Trace contains unsupported, cyclic, accessor-backed, or oversized data.");
