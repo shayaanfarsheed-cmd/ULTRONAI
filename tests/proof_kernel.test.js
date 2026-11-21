@@ -52,3 +52,17 @@ test("trusted system and axiom registries cannot be mutated at runtime",()=>{
  assert.throws(()=>K.SYSTEMS.PEANO_N.enabledAxioms.push("ZFC-10"),TypeError);
  assert.throws(()=>{K.AXIOMS["PEANO-03"].formula.kind="forged";},TypeError);
 });
+
+test("implication introduction must discharge an assumption used by its derivation",()=>{
+ const a=F.predicate("A"),b=F.predicate("B");
+ const invalid=mk("PEANO_N",[{id:"ha",formula:a},{id:"hb",formula:b}],[
+  {id:"b",rule:"assumption",assumption:"hb",formula:b},
+  {id:"bad",rule:"imp_intro",premises:["b"],discharge:"ha",formula:F.implies(a,b)}
+ ],"bad");
+ assert.equal(K.verify(invalid).code,"RULE_MISMATCH");
+ const valid=mk("PEANO_N",[{id:"ha",formula:a}],[
+  {id:"a",rule:"assumption",assumption:"ha",formula:a},
+  {id:"good",rule:"imp_intro",premises:["a"],discharge:"ha",formula:F.implies(a,a)}
+ ],"good");
+ assert.equal(K.verify(valid).valid,true);
+});
