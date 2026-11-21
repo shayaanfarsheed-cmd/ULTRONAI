@@ -6,7 +6,7 @@ const SYSTEMS=deepFreeze({
  REAL_FIELD:{label:"Field theory",sorts:["Field"],enabledAxioms:["FIELD-01","FIELD-02","FIELD-03","FIELD-04","FIELD-05","FIELD-06","FIELD-07","FIELD-08","FIELD-09"],enabledAxiomSchemas:[]},
  ORDERED_FIELD:{label:"Ordered-field theory",sorts:["Field"],enabledAxioms:[],enabledAxiomSchemas:[]},
  COMPLETE_REAL:{label:"Complete real field",sorts:["Field"],enabledAxioms:[],enabledAxiomSchemas:[]},
- EUCLID_GEOMETRY:{label:"Euclidean geometry",sorts:["Point","Line"],enabledAxioms:["EUCLID-01"],enabledAxiomSchemas:[]},
+ EUCLID_GEOMETRY:{label:"Euclidean geometry",sorts:["Point","Line"],enabledAxioms:["EUCLID-01","EUCLID-02"],enabledAxiomSchemas:[]},
  KOLMOGOROV:{label:"Kolmogorov probability",sorts:["Event","Real"],enabledAxioms:["PROB-01","PROB-02"],enabledAxiomSchemas:[]},
  ZFC:{label:"Zermelo–Fraenkel set theory with Choice",sorts:["Set"],enabledAxioms:["ZFC-01","ZFC-02","ZFC-03","ZFC-04","ZFC-05","ZFC-06","ZFC-09"],enabledAxiomSchemas:[]}
 });
@@ -23,7 +23,7 @@ const F=Object.freeze({
  eq:(left,right)=>({kind:"eq",left,right}), lt:(left,right)=>({kind:"lt",left,right}),
  and:(left,right)=>({kind:"and",left,right}), implies:(left,right)=>({kind:"implies",left,right}),
  forall:(name,sort,body)=>({kind:"forall",name,sort,body}), exists:(name,sort,body)=>({kind:"exists",name,sort,body}), not:formula=>({kind:"not",formula}),
- member:(term,set)=>({kind:"member",term,set}), incident:(point,line)=>({kind:"incident",point,line}), predicate:(name,args)=>({kind:"predicate",name,args:args||[]})
+ member:(term,set)=>({kind:"member",term,set}), incident:(point,line)=>({kind:"incident",point,line}), between:(first,middle,last)=>({kind:"between",first,middle,last}), predicate:(name,args)=>({kind:"predicate",name,args:args||[]})
 });
 const isObj=x=>!!x&&typeof x==="object"&&!Array.isArray(x), stable=x=>JSON.stringify(x), clone=x=>JSON.parse(JSON.stringify(x));
 function exactKeys(value,required,optional=[]){if(!isObj(value))return false;const allowed=new Set(required.concat(optional));const keys=Reflect.ownKeys(value);return required.every(key=>Object.prototype.hasOwnProperty.call(value,key))&&keys.every(key=>typeof key==="string"&&allowed.has(key));}
@@ -74,6 +74,7 @@ function validFormula(f,bound={},allowedSorts=null) {
  case "forall":case "exists":{if(!exactKeys(f,["kind","name","sort","body"])||typeof f.name!=="string"||!["Nat","Field","Real","Point","Line","Event","Probability","Set"].includes(f.sort)||(allowedSorts&&!allowedSorts.has(f.sort)))return false;return validFormula(f.body,Object.assign({},bound,{[f.name]:f.sort}),allowedSorts);}
  case "member":{if(!exactKeys(f,["kind","term","set"]))return false;const a=termSort(f.term,bound),b=termSort(f.set,bound);return !!a&&b==="Set"&&(!allowedSorts||(allowedSorts.has(a)&&allowedSorts.has(b)));}
  case "incident":return exactKeys(f,["kind","point","line"])&&termSort(f.point,bound)==="Point"&&termSort(f.line,bound)==="Line"&&(!allowedSorts||(allowedSorts.has("Point")&&allowedSorts.has("Line")));
+ case "between":return exactKeys(f,["kind","first","middle","last"])&&termSort(f.first,bound)==="Point"&&termSort(f.middle,bound)==="Point"&&termSort(f.last,bound)==="Point"&&(!allowedSorts||allowedSorts.has("Point"));
  case "predicate":return exactKeys(f,["kind","name","args"])&&typeof f.name==="string"&&!!f.name&&denseArray(f.args)&&f.args.every(x=>{const sort=termSort(x,bound);return !!sort&&(!allowedSorts||allowedSorts.has(sort));});
  default:return false;
  }
@@ -104,6 +105,26 @@ function substitute(node,name,replacement){
 }
 const equivalent=(a,b)=>F.and(F.implies(a,b),F.implies(b,a));
 const disjunction=(a,b)=>F.not(F.and(F.not(a),F.not(b)));
+const pointVar=name=>T.variable(name,"Point");
+const lineVar=name=>T.variable(name,"Line");
+const and4=(a,b,c,d)=>F.and(a,F.and(b,F.and(c,d)));
+const EUCLID_SEGMENT_EXTENSION=F.forall("A","Point",
+ F.forall("B","Point",
+  F.implies(
+   F.not(F.eq(pointVar("A"),pointVar("B"))),
+   F.exists("C","Point",
+    F.exists("l","Line",
+     and4(
+      F.incident(pointVar("A"),lineVar("l")),
+      F.incident(pointVar("B"),lineVar("l")),
+      F.incident(pointVar("C"),lineVar("l")),
+      F.between(pointVar("A"),pointVar("B"),pointVar("C"))
+     )
+    )
+   )
+  )
+ )
+);
 const AXIOMS=deepFreeze({
  "PEANO-02":{system:"PEANO_N",formula:F.forall("n","Nat",F.not(F.eq(T.succ(T.variable("n","Nat")),T.numeral(0))))},
  "PEANO-03":{system:"PEANO_N",formula:F.forall("m","Nat",F.forall("n","Nat",F.implies(F.eq(T.succ(T.variable("m","Nat")),T.succ(T.variable("n","Nat"))),F.eq(T.variable("m","Nat"),T.variable("n","Nat")))))},
@@ -117,6 +138,7 @@ const AXIOMS=deepFreeze({
  "FIELD-08":{system:"REAL_FIELD",formula:F.forall("a","Field",F.implies(F.not(F.eq(T.variable("a","Field"),T.rational(0,1))),F.exists("b","Field",F.eq(T.multiply(T.variable("a","Field"),T.variable("b","Field")),T.rational(1,1)))))},
  "FIELD-09":{system:"REAL_FIELD",formula:F.forall("a","Field",F.forall("b","Field",F.forall("c","Field",F.eq(T.multiply(T.variable("a","Field"),T.add(T.variable("b","Field"),T.variable("c","Field"))),T.add(T.multiply(T.variable("a","Field"),T.variable("b","Field")),T.multiply(T.variable("a","Field"),T.variable("c","Field")))))))},
  "EUCLID-01":{system:"EUCLID_GEOMETRY",formula:F.forall("A","Point",F.forall("B","Point",F.implies(F.not(F.eq(T.variable("A","Point"),T.variable("B","Point"))),F.exists("l","Line",F.and(F.incident(T.variable("A","Point"),T.variable("l","Line")),F.incident(T.variable("B","Point"),T.variable("l","Line")))))))},
+ "EUCLID-02":{system:"EUCLID_GEOMETRY",formula:EUCLID_SEGMENT_EXTENSION},
  "PROB-01":{system:"KOLMOGOROV",formula:F.forall("A","Event",F.not(F.lt(T.measure(T.variable("A","Event")),T.real(0,1))))},
  "PROB-02":{system:"KOLMOGOROV",formula:F.eq(T.measure(T.sampleSpace()),T.real(1,1))},
  "ZFC-01":{system:"ZFC",formula:F.forall("A","Set",F.forall("B","Set",F.implies(F.forall("z","Set",F.and(F.implies(F.member(T.variable("z","Set"),T.variable("A","Set")),F.member(T.variable("z","Set"),T.variable("B","Set"))),F.implies(F.member(T.variable("z","Set"),T.variable("B","Set")),F.member(T.variable("z","Set"),T.variable("A","Set"))))),F.eq(T.variable("A","Set"),T.variable("B","Set")))))},
