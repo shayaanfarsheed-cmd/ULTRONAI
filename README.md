@@ -2,7 +2,7 @@
 
 ## Overall ULTRON completion estimate — 2026-11-21
 
-**Estimated whole-project completion: 35%.** This is a conservative, milestone-based engineering estimate across the website, security, data pipeline, model, evaluation, compute/recovery, testing and release readiness. The browser-local mathematics tutor, structured reasoning kernel and Stage 4 formal proof kernel have advanced substantially, including proof-soundness fixes, strict AST validation, executable Peano and real-field axioms, induction, universal and existential inference, and executable geometry, probability and ZFC foundations, including countable additivity. The probability nonnegativity axiom now uses an explicit typed non-strict order relation. Physical-device verification, live production security checks, deeper step-level misconception diagnosis, remaining formal-system coverage, evaluation integration and later reasoning stages remain open. The neural model has not been trained and production training readiness is not established. Increase this estimate only after substantial work is merged and independently validated.
+**Estimated whole-project completion: 35%.** This is a conservative, milestone-based engineering estimate across the website, security, data pipeline, model, evaluation, compute/recovery, testing and release readiness. The browser-local mathematics tutor, structured reasoning kernel and Stage 4 formal proof kernel have advanced substantially, including proof-soundness fixes, strict AST validation, executable Peano and real-field axioms, induction, universal and existential inference, and executable geometry, probability and ZFC foundations, including countable additivity. The probability nonnegativity axiom now uses an explicit typed non-strict order relation. Ordered-field and least-upper-bound formalization is the next in-progress kernel milestone. Physical-device verification, live production security checks, deeper step-level misconception diagnosis, remaining formal-system coverage, evaluation integration and later reasoning stages remain open. The neural model has not been trained and production training readiness is not established. Increase this estimate only after substantial work is merged and independently validated.
 
 
 ## Legacy pull-request reconciliation — 2026-11-20
@@ -1128,3 +1128,14 @@ The Stage 4 first implementation adds:
 - ZFC-10 choice remains disabled until indexed families and choice functions are represented. Separation and replacement are bounded schema-instance rules, not a general formula-metavariable engine.
 - No model training, weight/checkpoint mutation, dataset generation, Supabase change or production configuration change.
 
+
+
+## Stage 4 — ordered-field and completeness axioms (in progress, 2026-11-21)
+
+- Branch: `feature/ordered-field-axioms`.
+- Adds ORDER-01 trichotomy, ORDER-02 strict-order transitivity, ORDER-03 addition-preserves-order and ORDER-04 positive-multiplication-preserves-order.
+- Makes the nine existing FIELD axioms explicitly available in both ORDERED_FIELD and COMPLETE_REAL; this is registered per context, not inherited implicitly.
+- Adds a typed `RealSet` domain and COMPLETE-01 as the least-upper-bound property: every nonempty, bounded-above set of field values has a least upper bound.
+- Adds regression coverage for exact axiom replay, cross-context rejection, RealSet membership typing and incompatible numeric sorts.
+- The RealSet domain and order axioms are formal signatures; no general real arithmetic engine or numerical supremum evaluator is claimed. Validation is pending.
+- No training, model weights, checkpoints, dataset generation, Supabase or production configuration changes.
