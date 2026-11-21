@@ -47,3 +47,8 @@ test("bound variables cannot lie about their declared sort",()=>{
  const bad=F.forall("x","Nat",F.eq(T.variable("x","Field"),T.variable("x","Field")));
  assert.equal(K.validFormula(bad),false);
 });
+
+test("trusted system and axiom registries cannot be mutated at runtime",()=>{
+ assert.throws(()=>K.SYSTEMS.PEANO_N.enabledAxioms.push("ZFC-10"),TypeError);
+ assert.throws(()=>{K.AXIOMS["PEANO-03"].formula.kind="forged";},TypeError);
+});
