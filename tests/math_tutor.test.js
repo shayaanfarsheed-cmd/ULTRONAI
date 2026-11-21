@@ -3,6 +3,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const agent = require("../dashboard/math-agent.js");
 const reasoning = require("../dashboard/math-reasoning.js");
+const proofKernel = require("../dashboard/proof-kernel.js");
 const tutorApi = require("../dashboard/math-tutor.js");
 
 function create() { return tutorApi.createTutor(agent, reasoning); }
@@ -120,4 +121,24 @@ test("submitted working is acknowledged but not assigned an unsupported misconce
   assert.equal(result.status, "incorrect_work_submitted");
   assert.equal(result.misconception, null);
   assert.match(result.diagnosisLimit, /No misconception label is assigned/);
+});
+
+test("tutor accepts only formally replayed traces as evidence and does not over-diagnose", () => {
+  const tutor = create();
+  const term = proofKernel.T.numeral(2);
+  const formula = proofKernel.F.eq(term, term);
+  const trace = {
+    kind: "ultron-proof-trace",
+    proof: { version: 1, system: "PEANO_N", assumptions: [],
+      steps: [{ id: "r", rule: "eq_refl", term, formula }], conclusion: "r" },
+    claimedConclusion: formula
+  };
+  const result = tutor.diagnose("fractions", "Calculate: (1/3) + (1/6)", "2/3", [], trace);
+  assert.equal(result.status, "incorrect_work_submitted");
+  assert.equal(result.traceEvidence.traceValidated, true);
+  assert.equal(result.misconception, null);
+  const forged = { ...trace, claimedConclusion: proofKernel.F.eq(term, proofKernel.T.numeral(3)) };
+  const rejected = tutor.diagnose("fractions", "Calculate: (1/3) + (1/6)", "2/3", [], forged);
+  assert.equal(rejected.status, "incorrect_unclassified");
+  assert.equal(rejected.traceEvidence.code, "FORGED_TRACE");
 });
