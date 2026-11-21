@@ -71,7 +71,10 @@ class ComputeDiagnosticTests(unittest.TestCase):
     def test_dashboard_labels_start_as_diagnostic_not_training(self):
         html = (ROOT / "dashboard/index.html").read_text()
         script = (ROOT / "dashboard/training-control.js").read_text()
-        self.assertIn("Run compute diagnostic", html)
+        self.assertNotIn("Run compute diagnostic", html)
+        self.assertNotIn("./training-control.js", html)
+        self.assertNotIn('id="trainingStartButton"', html)
+        self.assertNotIn('id="trainingStopButton"', html)
         self.assertIn("Start a safe CPU compute diagnostic", script)
         self.assertNotIn("Start ULTRON neural training", script)
 
