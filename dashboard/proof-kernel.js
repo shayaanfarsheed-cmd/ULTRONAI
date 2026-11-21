@@ -8,7 +8,7 @@ const SYSTEMS=deepFreeze({
  COMPLETE_REAL:{label:"Complete real field",sorts:["Field"],enabledAxioms:[],enabledAxiomSchemas:[]},
  EUCLID_GEOMETRY:{label:"Euclidean geometry",sorts:["Point","Line","Circle","Angle"],enabledAxioms:["EUCLID-01","EUCLID-02","EUCLID-03","EUCLID-04","EUCLID-05"],enabledAxiomSchemas:[]},
  KOLMOGOROV:{label:"Kolmogorov probability",sorts:["Event","Real","EventSequence"],enabledAxioms:["PROB-01","PROB-02","PROB-03"],enabledAxiomSchemas:[]},
- ZFC:{label:"Zermelo–Fraenkel set theory with Choice",sorts:["Set"],enabledAxioms:["ZFC-01","ZFC-02","ZFC-03","ZFC-04","ZFC-05","ZFC-06","ZFC-09"],enabledAxiomSchemas:[]}
+ ZFC:{label:"Zermelo–Fraenkel set theory with Choice",sorts:["Set"],enabledAxioms:["ZFC-01","ZFC-02","ZFC-03","ZFC-04","ZFC-05","ZFC-06","ZFC-09"],enabledAxiomSchemas:["ZFC-07","ZFC-08"]}
 });
 const T=Object.freeze({
  variable:(name,sort)=>({kind:"var",name,sort}), numeral:value=>({kind:"nat",value}),
@@ -43,6 +43,8 @@ function validStepShape(step){
   case "exists_elim":return exactKeys(step,base.concat(["premises","variable","discharge"]))&&denseArray(step.premises)&&step.premises.length===2&&Object.prototype.hasOwnProperty.call(step,"variable")&&typeof step.variable==="string"&&step.variable.length>0&&Object.prototype.hasOwnProperty.call(step,"discharge")&&typeof step.discharge==="string";
   case "forall_intro":return exactKeys(step,base.concat(["premises","variable"]))&&denseArray(step.premises)&&step.premises.length===1&&Object.prototype.hasOwnProperty.call(step,"variable")&&typeof step.variable==="string"&&step.variable.length>0;
   case "induction":return exactKeys(step,base.concat(["premises","axiomId","variable"]))&&denseArray(step.premises)&&step.premises.length===2&&Object.prototype.hasOwnProperty.call(step,"axiomId")&&step.axiomId==="PEANO-04"&&Object.prototype.hasOwnProperty.call(step,"variable")&&typeof step.variable==="string"&&step.variable.length>0;
+  case "separation":return exactKeys(step,base.concat(["schemaId","sourceSet","predicate","predicateVariable","elementVariable","subsetVariable"]))&&typeof step.schemaId==="string"&&isObj(step.sourceSet)&&isObj(step.predicate)&&["predicateVariable","elementVariable","subsetVariable"].every(k=>typeof step[k]==="string"&&step[k].length>0);
+  case "replacement":return exactKeys(step,base.concat(["schemaId","sourceSet","predicate","inputVariable","outputVariable","uniquenessVariable","imageElementVariable","imageSetVariable"]))&&typeof step.schemaId==="string"&&isObj(step.sourceSet)&&isObj(step.predicate)&&["inputVariable","outputVariable","uniquenessVariable","imageElementVariable","imageSetVariable"].every(k=>typeof step[k]==="string"&&step[k].length>0);
   default:return false;
  }
 }
@@ -113,6 +115,51 @@ function substitute(node,name,replacement){
  if((node.kind==="forall"||node.kind==="exists")&&freeVariableNames(replacement).has(node.name))return null;
  const out={};for(const k of Object.keys(node))out[k]=Array.isArray(node[k])?node[k].map(x=>substitute(x,name,replacement)):isObj(node[k])?substitute(node[k],name,replacement):node[k];return out;
 }
+function boundVariableNames(node,out=new Set()){
+ if(!isObj(node))return out;
+ if(node.kind==="forall"||node.kind==="exists")out.add(node.name);
+ for(const value of Object.values(node)){if(Array.isArray(value))value.forEach(x=>boundVariableNames(x,out));else if(isObj(value))boundVariableNames(value,out);}
+ return out;
+}
+function separationSchemaFormula(step,allowedSorts){
+ const {sourceSet,predicate,predicateVariable,elementVariable,subsetVariable}=step;
+ if(!isObj(sourceSet)||sourceSet.kind!=="var"||termSort(sourceSet)!=="Set"||!validFormula(predicate,{},allowedSorts))return null;
+ if(![predicateVariable,elementVariable,subsetVariable].every(x=>typeof x==="string"&&x.length>0))return null;
+ if(new Set([elementVariable,subsetVariable]).size!==2)return null;
+ if([elementVariable,subsetVariable].includes(sourceSet.name))return null;
+ const free=freeVariableNames(predicate),all=allVariableNames(predicate),bound=boundVariableNames(predicate);
+ if(!free.has(predicateVariable)||bound.has(predicateVariable)||all.has(elementVariable)||all.has(subsetVariable))return null;
+ const instance=substitute(predicate,predicateVariable,T.variable(elementVariable,"Set"));
+ if(!instance||!validFormula(instance,{},allowedSorts))return null;
+ const element=T.variable(elementVariable,"Set"),subset=T.variable(subsetVariable,"Set");
+ return F.exists(subsetVariable,"Set",F.forall(elementVariable,"Set",equivalent(
+  F.member(element,subset),
+  F.and(F.member(element,sourceSet),instance)
+ )));
+}
+function replacementSchemaFormula(step,allowedSorts){
+ const {sourceSet,predicate,inputVariable,outputVariable,uniquenessVariable,imageElementVariable,imageSetVariable}=step;
+ if(!isObj(sourceSet)||sourceSet.kind!=="var"||termSort(sourceSet)!=="Set"||!validFormula(predicate,{},allowedSorts))return null;
+ const names=[inputVariable,outputVariable,uniquenessVariable,imageElementVariable,imageSetVariable];
+ if(!names.every(x=>typeof x==="string"&&x.length>0)||new Set(names).size!==names.length)return null;
+ if([inputVariable,outputVariable,uniquenessVariable,imageElementVariable,imageSetVariable].includes(sourceSet.name))return null;
+ const free=freeVariableNames(predicate),all=allVariableNames(predicate),bound=boundVariableNames(predicate);
+ if(!free.has(inputVariable)||!free.has(outputVariable)||bound.has(inputVariable)||bound.has(outputVariable))return null;
+ if([uniquenessVariable,imageElementVariable,imageSetVariable].some(x=>all.has(x)))return null;
+ const x=T.variable(inputVariable,"Set"),y=T.variable(outputVariable,"Set");
+ const z=T.variable(uniquenessVariable,"Set"),w=T.variable(imageElementVariable,"Set"),image=T.variable(imageSetVariable,"Set");
+ const phiXz=substitute(predicate,outputVariable,z),phiXw=substitute(predicate,outputVariable,w);
+ if(!phiXz||!phiXw||!validFormula(phiXz,{},allowedSorts)||!validFormula(phiXw,{},allowedSorts))return null;
+ const uniqueOutput=F.exists(outputVariable,"Set",F.and(
+  predicate,
+  F.forall(uniquenessVariable,"Set",F.implies(phiXz,F.eq(z,y)))
+ ));
+ const functionalOnSource=F.forall(inputVariable,"Set",F.implies(F.member(x,sourceSet),uniqueOutput));
+ const imageMembership=F.exists(inputVariable,"Set",F.and(F.member(x,sourceSet),phiXw));
+ const imageExists=F.exists(imageSetVariable,"Set",F.forall(imageElementVariable,"Set",equivalent(F.member(w,image),imageMembership)));
+ return F.implies(functionalOnSource,imageExists);
+}
+
 const equivalent=(a,b)=>F.and(F.implies(a,b),F.implies(b,a));
 const disjunction=(a,b)=>F.not(F.and(F.not(a),F.not(b)));
 const pointVar=name=>T.variable(name,"Point");
@@ -226,7 +273,9 @@ const AXIOMS=deepFreeze({
  ))}
 });
 const AXIOM_SCHEMAS=deepFreeze({
- "PEANO-04":{system:"PEANO_N",rule:"induction",description:"From P(0) and ∀k(P(k)→P(S(k))), derive ∀n P(n)."}
+ "PEANO-04":{system:"PEANO_N",rule:"induction",description:"From P(0) and ∀k(P(k)→P(S(k))), derive ∀n P(n)."},
+ "ZFC-07":{system:"ZFC",rule:"separation",description:"For any formula φ(x), the elements of a set X satisfying φ form a set."},
+ "ZFC-08":{system:"ZFC",rule:"replacement",description:"The image of a set under a formula defining a unique output for each input is a set."}
 });
 const err=(code,message,stepId)=>({valid:false,code,message,stepId:stepId||null});
 function verify(p){
@@ -235,9 +284,10 @@ function verify(p){
  for(const a of p.assumptions){if(!exactKeys(a,["id","formula"])||typeof a.id!=="string"||available.has(a.id)||!validFormula(a.formula,{},allowedSorts))return err("INVALID_ASSUMPTION","Assumptions need unique IDs and well-typed formulas.");available.set(a.id,{formula:a.formula,origin:"assumption",dependencies:new Set([a.id])});}
  for(const s of p.steps){
   if(!isObj(s)||typeof s.id!=="string"||available.has(s.id))return err("INVALID_STEP","Each step needs a unique ID.",s&&s.id);
-  if(!validStepShape(s)){if(typeof s.rule==="string"&&!["assumption","axiom","eq_refl","eq_symm","eq_trans","and_intro","and_left","and_right","imp_elim","imp_intro","forall_elim","forall_intro","exists_intro","exists_elim","induction"].includes(s.rule))return err("UNKNOWN_RULE","Rule is not part of the audited kernel.",s.id);return err("INVALID_STEP","Step contains missing, unexpected, or malformed fields.",s.id);}
+  if(!validStepShape(s)){if(typeof s.rule==="string"&&!["assumption","axiom","eq_refl","eq_symm","eq_trans","and_intro","and_left","and_right","imp_elim","imp_intro","forall_elim","forall_intro","exists_intro","exists_elim","induction","separation","replacement"].includes(s.rule))return err("UNKNOWN_RULE","Rule is not part of the audited kernel.",s.id);return err("INVALID_STEP","Step contains missing, unexpected, or malformed fields.",s.id);}
   if(s.rule==="axiom"){const registered=AXIOMS[s.axiomId];if(!registered||registered.system!==p.system||!sys.enabledAxioms.includes(s.axiomId))return err("AXIOM_NOT_AVAILABLE","Axiom is unknown, not formalized, or unavailable in this system.",s.id);}
   if(s.rule==="induction"){const schema=AXIOM_SCHEMAS[s.axiomId];if(!schema||schema.system!==p.system||!sys.enabledAxiomSchemas.includes(s.axiomId))return err("AXIOM_SCHEMA_NOT_AVAILABLE","Axiom schema is unknown or unavailable in this formal system.",s.id);}
+  if(s.rule==="separation"||s.rule==="replacement"){const schema=AXIOM_SCHEMAS[s.schemaId];if(!schema||schema.rule!==s.rule||schema.system!==p.system||!sys.enabledAxiomSchemas.includes(s.schemaId))return err("AXIOM_SCHEMA_NOT_AVAILABLE","Axiom schema is unknown or unavailable in this formal system.",s.id);}
   if(!validFormula(s.formula,{},allowedSorts))return err("INVALID_STEP","Proof step formula is not well-typed in its declared formal system.",s.id);
   const ids=s.premises||[];if(!Array.isArray(ids))return err("INVALID_PREMISES","Premises must be an array.",s.id);
   const refs=ids.map(id=>available.get(id));if(refs.some(x=>!x))return err("UNKNOWN_PREMISE","Missing or forward proof reference.",s.id);
@@ -281,6 +331,8 @@ function verify(p){
     if(instance&&validFormula(instance,{},allowedSorts)&&stable(refs[0].formula)===stable(instance))e=goal;
     break;
    }
+   case "separation":e=separationSchemaFormula(s,allowedSorts);break;
+   case "replacement":e=replacementSchemaFormula(s,allowedSorts);break;
    case "induction":{
     const goal=s.formula,variable=s.variable;
     if(goal.kind!=="forall"||goal.sort!=="Nat"||variable===goal.name||allVariableNames(goal.body).has(variable))return err("INVALID_INDUCTION_VARIABLE","Induction variable must be fresh and distinct from every variable and binder in the property.",s.id);
@@ -297,7 +349,7 @@ function verify(p){
    default:return err("UNKNOWN_RULE","Rule is not part of the audited kernel.",s.id);
   }
   if(!e||stable(e)!==stable(s.formula))return err("RULE_MISMATCH","Conclusion does not follow from the selected rule and premises.",s.id);
-  if(s.rule==="induction")usedSchemas.push(s.axiomId);
+  if(s.rule==="induction")usedSchemas.push(s.axiomId);else if(s.rule==="separation"||s.rule==="replacement")usedSchemas.push(s.schemaId);
   const dependencies=new Set();
   if(s.rule==="assumption")dependencies.add(s.assumption);
   else refs.forEach(ref=>ref.dependencies.forEach(id=>dependencies.add(id)));
@@ -305,7 +357,7 @@ function verify(p){
   available.set(s.id,{formula:s.formula,origin:s.rule,dependencies});
  }
  const last=available.get(p.conclusion);if(!last||!p.steps.some(x=>x.id===p.conclusion))return err("MISSING_CONCLUSION","Conclusion must reference a derived step.");
- return {valid:true,system:p.system,conclusion:clone(last.formula),openAssumptions:[...last.dependencies].sort(),usedAxioms:[...new Set(used)],usedAxiomSchemas:[...new Set(usedSchemas)],checkedSteps:p.steps.length,trace:p.steps.map(x=>({id:x.id,rule:x.rule,formula:clone(x.formula),premises:(x.premises||[]).slice(),axiomId:x.axiomId||null,term:x.term?clone(x.term):null,variable:x.variable||null,discharge:x.discharge||null}))};
+ return {valid:true,system:p.system,conclusion:clone(last.formula),openAssumptions:[...last.dependencies].sort(),usedAxioms:[...new Set(used)],usedAxiomSchemas:[...new Set(usedSchemas)],checkedSteps:p.steps.length,trace:p.steps.map(x=>({id:x.id,rule:x.rule,formula:clone(x.formula),premises:(x.premises||[]).slice(),axiomId:x.axiomId||null,schemaId:x.schemaId||null,sourceSet:x.sourceSet?clone(x.sourceSet):null,predicate:x.predicate?clone(x.predicate):null,predicateVariable:x.predicateVariable||null,elementVariable:x.elementVariable||null,subsetVariable:x.subsetVariable||null,inputVariable:x.inputVariable||null,outputVariable:x.outputVariable||null,uniquenessVariable:x.uniquenessVariable||null,imageElementVariable:x.imageElementVariable||null,imageSetVariable:x.imageSetVariable||null,term:x.term?clone(x.term):null,variable:x.variable||null,discharge:x.discharge||null}))};
 }
 function verifyWorkingTrace(trace){
  if(!exactKeys(trace,["kind","proof"],["claimedConclusion"])||trace.kind!=="ultron-proof-trace")return err("UNTRUSTED_TRACE","Working must be a strictly shaped structured proof trace.");
