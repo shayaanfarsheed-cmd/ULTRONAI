@@ -49,10 +49,18 @@ function validFormula(f,bound={}) {
  default:return false;
  }
 }
+function freeVariableNames(node,bound=new Set(),out=new Set()){
+ if(!isObj(node))return out;
+ if(node.kind==="var"){if(!bound.has(node.name))out.add(node.name);return out;}
+ if(node.kind==="forall"){const next=new Set(bound);next.add(node.name);freeVariableNames(node.body,next,out);return out;}
+ for(const value of Object.values(node)){if(Array.isArray(value))value.forEach(x=>freeVariableNames(x,bound,out));else if(isObj(value))freeVariableNames(value,bound,out);}
+ return out;
+}
 function substitute(node,name,replacement){
  if(!isObj(node))return node;
  if(node.kind==="var"&&node.name===name)return clone(replacement);
  if(node.kind==="forall"&&node.name===name)return clone(node);
+ if(node.kind==="forall"&&freeVariableNames(replacement).has(node.name))return null;
  const out={};for(const k of Object.keys(node))out[k]=Array.isArray(node[k])?node[k].map(x=>substitute(x,name,replacement)):isObj(node[k])?substitute(node[k],name,replacement):node[k];return out;
 }
 const AXIOMS=Object.freeze({
@@ -80,7 +88,7 @@ function verify(p){
    case "and_right":if(refs.length===1&&refs[0].formula.kind==="and")e=refs[0].formula.right;break;
    case "imp_elim":if(refs.length===2){const i=refs.find(x=>x.formula.kind==="implies"),a=refs.find(x=>x!==i);if(i&&a&&stable(i.formula.left)===stable(a.formula))e=i.formula.right;}break;
    case "imp_intro":{const r=refs.length===1?refs[0]:null,d=available.get(s.discharge);if(r&&d&&d.origin==="assumption"&&s.formula.kind==="implies"&&stable(d.formula)===stable(s.formula.left)&&stable(r.formula)===stable(s.formula.right))e=s.formula;break;}
-   case "forall_elim":if(refs.length===1&&refs[0].formula.kind==="forall"&&s.term&&termSort(s.term)===refs[0].formula.sort)e=substitute(refs[0].formula.body,refs[0].formula.name,s.term);break;
+   case "forall_elim":if(refs.length===1&&refs[0].formula.kind==="forall"&&s.term&&termSort(s.term)===refs[0].formula.sort){const candidate=substitute(refs[0].formula.body,refs[0].formula.name,s.term);if(candidate&&validFormula(candidate))e=candidate;}break;
    default:return err("UNKNOWN_RULE","Rule is not part of the audited kernel.",s.id);
   }
   if(!e||stable(e)!==stable(s.formula))return err("RULE_MISMATCH","Conclusion does not follow from the selected rule and premises.",s.id);
