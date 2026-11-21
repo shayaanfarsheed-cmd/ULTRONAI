@@ -2,7 +2,7 @@
 const test=require("node:test"),assert=require("node:assert/strict"),K=require("../dashboard/proof-kernel.js");
 const {T,F}=K, mk=(system,assumptions,steps,conclusion)=>({version:1,system,assumptions,steps,conclusion});
 test("typed expression and formula validation",()=>{assert.equal(K.validFormula(F.eq(T.numeral(1),T.numeral(1))),true);assert.equal(K.validFormula(F.eq(T.numeral(1),T.rational(1,1))),false);assert.equal(K.validFormula(F.eq(T.add(T.numeral(1),T.numeral(2)),T.numeral(3))),true);assert.equal(K.validFormula({kind:"evil"}),false);});
-test("formal contexts are separate and conservative",()=>{assert.deepEqual(K.SYSTEMS.PEANO_N.enabledAxioms,["PEANO-02","PEANO-03"]);assert.deepEqual(K.SYSTEMS.PEANO_N.enabledAxiomSchemas,["PEANO-04"]);assert.deepEqual(K.SYSTEMS.REAL_FIELD.enabledAxioms,["FIELD-01","FIELD-02","FIELD-03","FIELD-04","FIELD-05","FIELD-06","FIELD-07","FIELD-08","FIELD-09"]);assert.deepEqual(K.SYSTEMS.REAL_FIELD.enabledAxiomSchemas,[]);for(const s of ["ORDERED_FIELD","COMPLETE_REAL"]){assert.deepEqual(K.SYSTEMS[s].enabledAxioms,[]);assert.deepEqual(K.SYSTEMS[s].enabledAxiomSchemas,[]);}assert.deepEqual(K.SYSTEMS.EUCLID_GEOMETRY.enabledAxioms,["EUCLID-01","EUCLID-02","EUCLID-03","EUCLID-04","EUCLID-05"]);assert.deepEqual(K.SYSTEMS.KOLMOGOROV.enabledAxioms,["PROB-01","PROB-02","PROB-03"]);assert.deepEqual(K.SYSTEMS.ZFC.enabledAxioms,["ZFC-01","ZFC-02","ZFC-03","ZFC-04","ZFC-05","ZFC-06","ZFC-09"]);for(const s of ["EUCLID_GEOMETRY","KOLMOGOROV","ZFC"])assert.deepEqual(K.SYSTEMS[s].enabledAxiomSchemas,[]);});
+test("formal contexts are separate and conservative",()=>{assert.deepEqual(K.SYSTEMS.PEANO_N.enabledAxioms,["PEANO-02","PEANO-03"]);assert.deepEqual(K.SYSTEMS.PEANO_N.enabledAxiomSchemas,["PEANO-04"]);assert.deepEqual(K.SYSTEMS.REAL_FIELD.enabledAxioms,["FIELD-01","FIELD-02","FIELD-03","FIELD-04","FIELD-05","FIELD-06","FIELD-07","FIELD-08","FIELD-09"]);assert.deepEqual(K.SYSTEMS.REAL_FIELD.enabledAxiomSchemas,[]);for(const s of ["ORDERED_FIELD","COMPLETE_REAL"]){assert.deepEqual(K.SYSTEMS[s].enabledAxioms,[]);assert.deepEqual(K.SYSTEMS[s].enabledAxiomSchemas,[]);}assert.deepEqual(K.SYSTEMS.EUCLID_GEOMETRY.enabledAxioms,["EUCLID-01","EUCLID-02","EUCLID-03","EUCLID-04","EUCLID-05"]);assert.deepEqual(K.SYSTEMS.KOLMOGOROV.enabledAxioms,["PROB-01","PROB-02","PROB-03"]);assert.deepEqual(K.SYSTEMS.ZFC.enabledAxioms,["ZFC-01","ZFC-02","ZFC-03","ZFC-04","ZFC-05","ZFC-06","ZFC-09"]);for(const s of ["EUCLID_GEOMETRY","KOLMOGOROV"])assert.deepEqual(K.SYSTEMS[s].enabledAxiomSchemas,[]);assert.deepEqual(K.SYSTEMS.ZFC.enabledAxiomSchemas,["ZFC-07","ZFC-08"]);});
 test("reflexivity replays and forged conclusion fails",()=>{const x=T.variable("x","Nat"),p=mk("PEANO_N",[],[{id:"r",rule:"eq_refl",term:x,formula:F.eq(x,x)}],"r");assert.equal(K.verify(p).valid,true);p.steps[0].formula=F.eq(x,T.numeral(2));assert.equal(K.verify(p).code,"RULE_MISMATCH");});
 test("assumptions, conjunction and implication introduction",()=>{const a=F.predicate("A"),b=F.predicate("B"),p=mk("PEANO_N",[{id:"ha",formula:a},{id:"hb",formula:b}],[{id:"a",rule:"assumption",assumption:"ha",formula:a},{id:"b",rule:"assumption",assumption:"hb",formula:b},{id:"ab",rule:"and_intro",premises:["a","b"],formula:F.and(a,b)},{id:"imp",rule:"imp_intro",premises:["b"],discharge:"hb",formula:F.implies(b,b)}],"imp");assert.equal(K.verify(p).valid,true);});
 test("unknown, forward and duplicate references rejected",()=>{const a=F.predicate("A"),p=mk("PEANO_N",[],[{id:"x",rule:"and_left",premises:["future"],formula:a}],"x");assert.equal(K.verify(p).code,"UNKNOWN_PREMISE");const d=mk("PEANO_N",[{id:"x",formula:a}],[{id:"x",rule:"assumption",assumption:"x",formula:a}],"x");assert.equal(K.verify(d).code,"INVALID_STEP");});
@@ -662,6 +662,69 @@ test("countable union and sum terms require EventSequence arguments",()=>{
  assert.equal(K.termSort(T.countableSum(T.set("A"))),null);
  assert.equal(K.validFormula(F.pairwiseDisjoint(sequence),{},new Set(K.SYSTEMS.KOLMOGOROV.sorts)),true);
  assert.equal(K.validFormula(F.pairwiseDisjoint(T.event("A")),{},new Set(K.SYSTEMS.KOLMOGOROV.sorts)),false);
+});
+test("ZFC separation schema constructs the exact subset comprehension formula",()=>{
+ const predicate=F.eq(T.variable("u","Set"),T.variable("u","Set"));
+ const X=T.variable("X","Set"),x=T.variable("x","Set"),Y=T.variable("Y","Set");
+ const instance=F.exists("Y","Set",F.forall("x","Set",F.and(
+  F.implies(F.member(x,Y),F.and(F.member(x,X),F.eq(x,x))),
+  F.implies(F.and(F.member(x,X),F.eq(x,x)),F.member(x,Y))
+ )));
+ const proof=mk("ZFC",[],[{
+  id:"sep",rule:"separation",schemaId:"ZFC-07",sourceSet:X,predicate,predicateVariable:"u",elementVariable:"x",subsetVariable:"Y",formula:instance
+ }],"sep");
+ const result=K.verify(proof);
+ assert.equal(result.valid,true);
+ assert.deepEqual(result.usedAxiomSchemas,["ZFC-07"]);
+ assert.equal(result.trace[0].schemaId,"ZFC-07");
+ assert.deepEqual(result.trace[0].predicate,predicate);
+});
+test("ZFC replacement schema checks functionality and constructs the image set",()=>{
+ const predicate=F.eq(T.variable("y","Set"),T.variable("x","Set"));
+ const X=T.variable("X","Set"),x=T.variable("x","Set"),y=T.variable("y","Set"),z=T.variable("z","Set"),w=T.variable("w","Set"),Y=T.variable("Y","Set");
+ const phiXz=F.eq(z,x),phiXw=F.eq(w,x);
+ const unique=F.exists("y","Set",F.and(predicate,F.forall("z","Set",F.implies(phiXz,F.eq(z,y)))));
+ const functional=F.forall("x","Set",F.implies(F.member(x,X),unique));
+ const imageMembers=F.exists("x","Set",F.and(F.member(x,X),phiXw));
+ const image=F.exists("Y","Set",F.forall("w","Set",F.and(
+  F.implies(F.member(w,Y),imageMembers),
+  F.implies(imageMembers,F.member(w,Y))
+ )));
+ const proof=mk("ZFC",[],[{
+  id:"rep",rule:"replacement",schemaId:"ZFC-08",sourceSet:X,predicate,inputVariable:"x",outputVariable:"y",uniquenessVariable:"z",imageElementVariable:"w",imageSetVariable:"Y",formula:F.implies(functional,image)
+ }],"rep");
+ const result=K.verify(proof);
+ assert.equal(result.valid,true);
+ assert.deepEqual(result.usedAxiomSchemas,["ZFC-08"]);
+ assert.equal(result.trace[0].schemaId,"ZFC-08");
+ assert.deepEqual(result.trace[0].predicate,predicate);
+});
+test("ZFC schema instances reject wrong formulas, unavailable systems and variable capture",()=>{
+ const predicate=F.eq(T.variable("u","Set"),T.variable("u","Set"));
+ const sep=mk("ZFC",[],[{
+  id:"sep",rule:"separation",schemaId:"ZFC-07",sourceSet:T.variable("X","Set"),predicate,predicateVariable:"u",elementVariable:"x",subsetVariable:"Y",formula:F.predicate("forged",[])
+ }],"sep");
+ assert.equal(K.verify(sep).code,"RULE_MISMATCH");
+ const badCapture=mk("ZFC",[],[{
+  id:"sep",rule:"separation",schemaId:"ZFC-07",sourceSet:T.variable("X","Set"),predicate:F.eq(T.variable("u","Set"),T.variable("Y","Set")),predicateVariable:"u",elementVariable:"x",subsetVariable:"Y",formula:F.predicate("forged",[])
+ }],"sep");
+ assert.equal(K.verify(badCapture).code,"RULE_MISMATCH");
+ const wrongSystem=mk("REAL_FIELD",[],[{
+  id:"sep",rule:"separation",schemaId:"ZFC-07",sourceSet:T.variable("X","Set"),predicate,predicateVariable:"u",elementVariable:"x",subsetVariable:"Y",formula:F.predicate("forged",[])
+ }],"sep");
+ assert.equal(K.verify(wrongSystem).code,"AXIOM_SCHEMA_NOT_AVAILABLE");
+ const badReplacement=mk("ZFC",[],[{
+  id:"rep",rule:"replacement",schemaId:"ZFC-08",sourceSet:T.variable("X","Set"),predicate,inputVariable:"x",outputVariable:"y",uniquenessVariable:"z",imageElementVariable:"w",imageSetVariable:"w",formula:F.predicate("forged",[])
+ }],"rep");
+ assert.equal(K.verify(badReplacement).code,"RULE_MISMATCH");
+});
+test("ZFC schema identifiers cannot be substituted or used as ordinary axioms",()=>{
+ const wrongId=mk("ZFC",[],[{
+  id:"sep",rule:"separation",schemaId:"ZFC-08",sourceSet:T.variable("X","Set"),predicate:F.eq(T.variable("u","Set"),T.variable("u","Set")),predicateVariable:"u",elementVariable:"x",subsetVariable:"Y",formula:F.predicate("forged",[])
+ }],"sep");
+ assert.equal(K.verify(wrongId).code,"AXIOM_SCHEMA_NOT_AVAILABLE");
+ const asAxiom=mk("ZFC",[],[{id:"ax",rule:"axiom",axiomId:"ZFC-07",formula:F.predicate("forged",[])}],"ax");
+ assert.equal(K.verify(asAxiom).code,"AXIOM_NOT_AVAILABLE");
 });
 test("countable additivity rejects forged statements and cross-system use",()=>{
  const forged=mk("KOLMOGOROV",[],[{id:"ax",rule:"axiom",axiomId:"PROB-03",formula:F.predicate("forged",[])}],"ax");
