@@ -820,8 +820,6 @@
     if (ramSlider) {
       ramSlider.value = String(state.ramLimitGb);
       $("ramLimitValue").textContent = state.ramLimitGb + " GB";
-      const localRamValue = $("deviceRamLimitValue");
-      if (localRamValue) localRamValue.textContent = state.ramLimitGb + " GB";
       $("ramLimitStatus").textContent = "Saved in this browser only. This preference is not connected to remote training or hosted-runner memory controls.";
     }
     const review = state.projectConfig.terms_review || {};
@@ -865,43 +863,13 @@
     }).join("");
   }
 
-  function renderActivity() {
-    const logs = $("activityLogs");
-    const switches = $("activitySwitches");
-    if (!logs || !switches) return;
-    if (state.publicMode || !hasVerifiedOwnerSession()) {
-      logs.innerHTML = '<p class="empty-state">Training activity is private. Sign in to the verified ULTRON owner account to view it.</p>';
-      switches.innerHTML = '<p class="empty-state">Server handoff records are private to the ULTRON owner.</p>';
-      return;
-    }
-    if (!state.logs.length) {
-      logs.innerHTML = '<p class="empty-state">No training sessions have been recorded yet.</p>';
-    } else {
-      logs.innerHTML = '<div class="table-scroll"><table><thead><tr><th>Server</th><th>Started</th><th>Duration</th><th>Result</th></tr></thead><tbody>' +
-        state.logs.slice(0, 500).map(function (item) {
-          return '<tr><td>' + escapeHtml(item.server_name || "Unknown") + '</td><td>' + escapeHtml(formatDateTime(item.started_at)) + '</td><td>' + escapeHtml(formatDuration(item.gpu_seconds)) + '</td><td>' + escapeHtml(item.end_reason || (item.ended_at ? "Completed" : "In progress")) + '</td></tr>';
-        }).join("") + '</tbody></table></div>';
-    }
-    if (!state.switches.length) {
-      switches.innerHTML = '<p class="empty-state">No server handoffs have been recorded yet.</p>';
-    } else {
-      switches.innerHTML = '<div class="table-scroll"><table><thead><tr><th>Requested</th><th>From</th><th>To</th><th>Reason</th><th>Result</th></tr></thead><tbody>' +
-        state.switches.slice(0, 200).map(function (item) {
-          return '<tr><td>' + escapeHtml(formatDateTime(item.requested_at)) + '</td><td>' + escapeHtml(item.from_server || "—") + '</td><td>' + escapeHtml(item.to_server || "—") + '</td><td>' + escapeHtml(item.reason || "—") + '</td><td>' + escapeHtml(item.result || "Pending") + '</td></tr>';
-        }).join("") + '</tbody></table></div>';
-    }
-  }
-
   function renderAll() {
     renderNextAction();
     renderMetrics();
-    renderActivity();
     renderMastery();
     scheduleChartDraw();
     renderServers();
     renderSettings();
-    renderCheckpointList();
-    renderDataLibrary();
   }
 
   function switchView(view) {
@@ -919,11 +887,7 @@
       overview: ["OVERVIEW", "System overview"],
       control: ["TRAINING CONTROL", "Owner training control"],
       learning: ["HOW ULTRON LEARNS", "Learning system"],
-      activity: ["ACTIVITY", "Training activity"],
       servers: ["SERVERS", "Free compute servers"],
-      checkpoints: ["CHECKPOINTS", "Verified checkpoints"],
-      data: ["DATA LIBRARY", "Owner data library"],
-      ask: ["ASK ULTRON", "Ask questions about your data"],
       math: ["MATH AGENT", "Solve mathematics"],
       settings: ["SETTINGS", "System settings"],
       devices: ["LOCAL TRAINING", "Local training"]
@@ -932,10 +896,6 @@
     $("pageTitle").textContent = labels[view][1];
     if (view === "overview") scheduleChartDraw();
     if (view === "control" && typeof window.refreshTrainingControlStatus === "function") window.refreshTrainingControlStatus();
-    if (view === "data") loadDataLibrary().catch(function (error) { showDataLibraryNotice(error.message, "error"); });
-    if (view === "checkpoints") loadCheckpointCandidates().then(renderCheckpointList).catch(function (error) {
-      showCheckpointNotice(error.message, "warn");
-    });
   }
 
   function objectPath(parts) {
@@ -1480,49 +1440,6 @@
     });
 
 
-    $("dataUploadForm").addEventListener("submit", function (event) {
-      event.preventDefault();
-      uploadDataFile().catch(function (error) { showDataLibraryNotice(error.message, "error"); });
-    });
-    $("dataRefreshButton").addEventListener("click", function () {
-      loadDataLibrary().catch(function (error) { showDataLibraryNotice(error.message, "error"); });
-    });
-    $("askQuestionForm").addEventListener("submit", function (event) {
-      event.preventDefault();
-      askUltron($("askQuestionInput").value).catch(function (error) { $("askResults").textContent = error.message; });
-    });
-    $("dataFileList").addEventListener("click", function (event) {
-      const button = event.target.closest("[data-data-download], [data-data-delete], [data-data-delete-folder]");
-      if (!button) return;
-      const name = button.getAttribute("data-data-download") || button.getAttribute("data-data-delete") || button.getAttribute("data-data-delete-folder");
-      const action = button.hasAttribute("data-data-download") ? downloadDataFile :
-        (button.hasAttribute("data-data-delete-folder") ? deleteDataFolder : deleteDataFile);
-      action(name).catch(function (error) { showDataLibraryNotice(error.message, "error"); });
-    });
-    $("dataFileList").addEventListener("change", function (event) {
-      if (!event.target.matches("[data-data-select]")) return;
-      const selectedCount = document.querySelectorAll("[data-data-select]:checked").length;
-      const deleteButton = $("dataDeleteSelectedButton");
-      if (deleteButton) {
-        deleteButton.disabled = selectedCount === 0;
-        deleteButton.textContent = "Delete selected (" + selectedCount + ")";
-      }
-      const all = $("dataSelectAll");
-      if (all) all.checked = state.dataFiles.length > 0 && selectedCount === state.dataFiles.length;
-    });
-    $("dataSelectAll").addEventListener("change", function (event) {
-      document.querySelectorAll("[data-data-select]").forEach(function (input) { input.checked = event.target.checked; });
-      const count = document.querySelectorAll("[data-data-select]:checked").length;
-      $("dataDeleteSelectedButton").disabled = count === 0;
-      $("dataDeleteSelectedButton").textContent = "Delete selected (" + count + ")";
-    });
-    $("dataDeleteSelectedButton").addEventListener("click", function () {
-      deleteSelectedDataFiles().catch(function (error) { showDataLibraryNotice(error.message, "error"); });
-    });
-    $("checkpointList").addEventListener("click", function (event) {
-      const button = event.target.closest("[data-checkpoint-verify], [data-checkpoint-download]");
-      if (button) handleCheckpointAction(button).catch(function (error) { showCheckpointNotice(error.message, "error"); });
-    });
     window.addEventListener("resize", scheduleChartDraw);
     if (typeof ResizeObserver === "function") {
       const chart = $("lossChart");
