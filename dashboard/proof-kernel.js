@@ -126,6 +126,7 @@ function separationSchemaFormula(step,allowedSorts){
  const {sourceSet,predicate,predicateVariable,elementVariable,subsetVariable}=step;
  if(!isObj(sourceSet)||sourceSet.kind!=="var"||termSort(sourceSet)!=="Set"||!validFormula(predicate,{},allowedSorts))return null;
  if(![predicateVariable,elementVariable,subsetVariable].every(x=>typeof x==="string"&&x.length>0))return null;
+ if(predicateVariable===sourceSet.name)return null;
  if(new Set([elementVariable,subsetVariable]).size!==2)return null;
  if([elementVariable,subsetVariable].includes(sourceSet.name))return null;
  const free=freeVariableNames(predicate),all=allVariableNames(predicate),bound=boundVariableNames(predicate);
