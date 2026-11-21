@@ -1015,3 +1015,12 @@ The Stage 4 first implementation adds:
 5. Add validated trace-to-step diagnostic rules only after the trace parser and checker can prove each transformation; otherwise abstain.
 6. Keep the dashboard usable on iPad and Android. No training until the separate readiness gates and explicit authorization are satisfied.
 7. Update this README at every meaningful milestone.
+
+### Stage 4 first-slice merge and validation — 2026-11-21
+
+- PR #103 merged by squash: `afa8181ff198d3f0b2524905d554967c45b267d3`.
+- PR validation passed: Python/Node test suite, preflight, training-prototype validation, Chromium and WebKit.
+- Main-commit validation also passed independently: test suite, preflight, Chromium, WebKit, Pages build and deployment.
+- The initial JavaScript test run exposed two cross-context axiom error-code assertions. The checker was tightened to reject/report an unavailable axiom before attempting to type-check its foreign-system formula; the final run passed.
+- The final proof checker also freezes the trusted context/axiom registries, enforces context-specific sorts, tracks open assumptions, rejects variable capture and keeps traces evidence-only until linked to the exercise's exact steps.
+- The Stage 4 implementation is merged and deployed. Continue expanding the formal language and validated diagnostic mapping in separately reviewed PRs; do not overstate this first slice as a complete theorem prover.
