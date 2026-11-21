@@ -12,6 +12,19 @@ Seven isolated contexts are declared: Peano arithmetic, real fields, ordered fie
 ## Audited rules
 assumption, axiom, eq_refl, eq_symm, eq_trans, and_intro, and_left, and_right, imp_elim, imp_intro, forall_elim, eigenvariable-checked forall_intro, witness-checked exists_intro, scoped exists_elim and the schema-gated induction rule are replayed. The induction rule is enabled only for PEANO-04 in the Peano context and requires a checked base instance P(0) plus the checked successor step ∀k(P(k)→P(S(k))). Each proof records PEANO-04 as a schema dependency. For forall_intro, the eigenvariable must be fresh from every variable and binder inside the quantified property and must not occur free in any undischarged assumption used by the premise. For induction, the induction variable has the same freshness requirement across both premises. Every premise must refer backward to an existing assumption or step. The checker recomputes the conclusion. Axiom IDs are checked against the exact active context.
 
+
+## Newly executable formal foundations — pending validation
+
+The following initial statements are represented by exact Axiom Bank IDs and are enabled only in their own contexts:
+
+- `EUCLID-01`: for any two distinct points, there exists a line incident with both. The AST now has a distinct `Line` term sort and a typed `incident(Point, Line)` formula. The antecedent explicitly requires point inequality.
+- `PROB-01`: every event has nonnegative measure, represented as the negation of a strictly negative measure.
+- `PROB-02`: the sample space has measure one. The probability context uses a dedicated `Real` sort, a sample-space term and a measure term whose argument must have sort `Event`.
+- `ZFC-01`: extensionality, represented as equality of sets whose members are equivalent in both directions for every set.
+- `ZFC-02`: existence of a set with no members, i.e. the empty-set existence axiom.
+
+These are exact finite formulas, not a claim that the complete theories are implemented. The probability context does not yet implement countable additivity (`PROB-03)): the language lacks sequence, countable-union and infinite-sum operators. The geometry context does not yet implement construction rules beyond the first postulate. ZFC pairing, union, power set, separation, replacement, foundation and choice remain disabled. The ordered-field and complete-real contexts remain isolated and currently have no executable axioms. The `Real` sort is currently limited to typed rational literals and probability-measure results; general real arithmetic and field laws over that sort are not implemented.
+
 ## Validated working traces
 A trace must use kind "ultron-proof-trace" and contain a proof envelope. verifyWorkingTrace replays every step and compares an optional claimed conclusion. Free-form prose, unknown rules and forged conclusions are rejected. Tutoring may use a trace as evidence only after validation; this is not yet a misconception classifier.
 
