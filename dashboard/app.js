@@ -138,43 +138,11 @@
     if (canvas.height !== pixelHeight) canvas.height = pixelHeight;
     context.setTransform(ratio, 0, 0, ratio, 0, 0);
     context.clearRect(0, 0, width, height);
-    const points = [];
-    if (points.length < 2) {
-      context.fillStyle = getComputedStyle(document.body).getPropertyValue("--muted");
-      context.font = "12px system-ui";
-      context.fillText("Training is disabled; no loss history is available.", 12, 95);
-      $("chartFirst").textContent = "Not available";
-      $("chartLast").textContent = "—";
-      return;
-    }
-    const values = points.map(function (point) { return Number(point.loss); });
-    const min = Math.min.apply(null, values);
-    const max = Math.max.apply(null, values);
-    const span = Math.max(0.000001, max - min);
-    const padX = 12, padY = 16, chartW = width - 24, chartH = height - 32;
-    const line = getComputedStyle(document.body).getPropertyValue("--red").trim() || "#ff3048";
-    const grid = getComputedStyle(document.body).getPropertyValue("--line").trim() || "rgba(255,255,255,.1)";
-    context.strokeStyle = grid;
-    context.lineWidth = 1;
-    for (let i = 0; i < 4; i++) {
-      const y = padY + chartH * i / 3;
-      context.beginPath(); context.moveTo(padX, y); context.lineTo(width - padX, y); context.stroke();
-    }
-    context.strokeStyle = line;
-    context.lineWidth = 2.5;
-    context.beginPath();
-    values.forEach(function (value, index) {
-      const x = padX + chartW * index / (values.length - 1);
-      const y = padY + chartH * (1 - (value - min) / span);
-      if (index === 0) context.moveTo(x, y); else context.lineTo(x, y);
-    });
-    context.stroke();
-    context.fillStyle = line;
-    const lastX = padX + chartW;
-    const lastY = padY + chartH * (1 - (values[values.length - 1] - min) / span);
-    context.beginPath(); context.arc(lastX, lastY, 4, 0, Math.PI * 2); context.fill();
-    $("chartFirst").textContent = "Step " + formatNumber(points[0].step, 0) + " · " + formatNumber(values[0], 4);
-    $("chartLast").textContent = "Step " + formatNumber(points[points.length - 1].step, 0) + " · " + formatNumber(values[values.length - 1], 4);
+    context.fillStyle = getComputedStyle(document.body).getPropertyValue("--muted");
+    context.font = "12px system-ui";
+    context.fillText("Training is disabled; no loss history is available.", 12, 95);
+    $("chartFirst").textContent = "Not available";
+    $("chartLast").textContent = "—";
   }
 
   function renderServers() {
