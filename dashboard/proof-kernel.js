@@ -23,7 +23,7 @@ const F=Object.freeze({
  eq:(left,right)=>({kind:"eq",left,right}), lt:(left,right)=>({kind:"lt",left,right}), le:(left,right)=>({kind:"le",left,right}),
  and:(left,right)=>({kind:"and",left,right}), implies:(left,right)=>({kind:"implies",left,right}),
  forall:(name,sort,body)=>({kind:"forall",name,sort,body}), exists:(name,sort,body)=>({kind:"exists",name,sort,body}), not:formula=>({kind:"not",formula}),
- member:(term,set)=>({kind:"member",term,set}), incident:(point,line)=>({kind:"incident",point,line}), between:(first,middle,last)=>({kind:"between",first,middle,last}), circleCenter:(circle,center)=>({kind:"circleCenter",circle,center}), onCircle:(point,circle)=>({kind:"onCircle",point,circle}), rightAngle:angle=>({kind:"rightAngle",angle}), angleEqual:(left,right)=>({kind:"angleEqual",left,right}), sameSideInteriorAngles:(firstAngle,secondAngle,firstLine,secondLine,transversal)=>({kind:"sameSideInteriorAngles",firstAngle,secondAngle,firstLine,secondLine,transversal}), angleSumLessThanTwoRightAngles:(firstAngle,secondAngle)=>({kind:"angleSumLessThanTwoRightAngles",firstAngle,secondAngle}), linesMeetOnSameSide:(firstLine,secondLine,transversal)=>({kind:"linesMeetOnSameSide",firstLine,secondLine,transversal}), pairwiseDisjoint:sequence=>({kind:"pairwiseDisjoint",sequence}), familyOfNonemptySets:(family,indexSet)=>({kind:"familyOfNonemptySets",family,indexSet}), choiceFunction:(choice,indexSet,family)=>({kind:"choiceFunction",choice,indexSet,family}), predicate:(name,args)=>({kind:"predicate",name,args:args||[]})
+ member:(term,set)=>({kind:"member",term,set}), incident:(point,line)=>({kind:"incident",point,line}), between:(first,middle,last)=>({kind:"between",first,middle,last}), circleCenter:(circle,center)=>({kind:"circleCenter",circle,center}), onCircle:(point,circle)=>({kind:"onCircle",point,circle}), rightAngle:angle=>({kind:"rightAngle",angle}), angleEqual:(left,right)=>({kind:"angleEqual",left,right}), sameSideInteriorAngles:(firstAngle,secondAngle,firstLine,secondLine,transversal)=>({kind:"sameSideInteriorAngles",firstAngle,secondAngle,firstLine,secondLine,transversal}), angleSumLessThanTwoRightAngles:(firstAngle,secondAngle)=>({kind:"angleSumLessThanTwoRightAngles",firstAngle,secondAngle}), linesMeetOnSameSide:(firstLine,secondLine,transversal)=>({kind:"linesMeetOnSameSide",firstLine,secondLine,transversal}), pairwiseDisjoint:sequence=>({kind:"pairwiseDisjoint",sequence}), familyOfNonemptySets:(family,indexSet)=>familyOfNonemptySetsFormula(family,indexSet), choiceFunction:(choice,indexSet,family)=>choiceFunctionFormula(choice,indexSet,family), predicate:(name,args)=>({kind:"predicate",name,args:args||[]})
 });
 const isObj=x=>!!x&&typeof x==="object"&&!Array.isArray(x), stable=x=>JSON.stringify(x), clone=x=>JSON.parse(JSON.stringify(x));
 function exactKeys(value,required,optional=[]){if(!isObj(value))return false;const allowed=new Set(required.concat(optional));const keys=Reflect.ownKeys(value);return required.every(key=>Object.prototype.hasOwnProperty.call(value,key))&&keys.every(key=>typeof key==="string"&&allowed.has(key));}
@@ -88,8 +88,7 @@ function validFormula(f,bound={},allowedSorts=null) {
  case "angleSumLessThanTwoRightAngles":return exactKeys(f,["kind","firstAngle","secondAngle"])&&termSort(f.firstAngle,bound)==="Angle"&&termSort(f.secondAngle,bound)==="Angle"&&(!allowedSorts||allowedSorts.has("Angle"));
  case "linesMeetOnSameSide":return exactKeys(f,["kind","firstLine","secondLine","transversal"])&&termSort(f.firstLine,bound)==="Line"&&termSort(f.secondLine,bound)==="Line"&&termSort(f.transversal,bound)==="Line"&&(!allowedSorts||allowedSorts.has("Line"));
  case "pairwiseDisjoint":return exactKeys(f,["kind","sequence"])&&termSort(f.sequence,bound)==="EventSequence"&&(!allowedSorts||allowedSorts.has("EventSequence"));
- case "familyOfNonemptySets":return exactKeys(f,["kind","family","indexSet"])&&termSort(f.family,bound)==="Set"&&termSort(f.indexSet,bound)==="Set"&&(!allowedSorts||allowedSorts.has("Set"));
- case "choiceFunction":return exactKeys(f,["kind","choice","indexSet","family"])&&termSort(f.choice,bound)==="Set"&&termSort(f.indexSet,bound)==="Set"&&termSort(f.family,bound)==="Set"&&(!allowedSorts||allowedSorts.has("Set"));
+
  case "predicate":return exactKeys(f,["kind","name","args"])&&typeof f.name==="string"&&!!f.name&&denseArray(f.args)&&f.args.every(x=>{const sort=termSort(x,bound);return !!sort&&(!allowedSorts||allowedSorts.has(sort));});
  default:return false;
  }
@@ -166,6 +165,59 @@ function replacementSchemaFormula(step,allowedSorts){
 
 const equivalent=(a,b)=>F.and(F.implies(a,b),F.implies(b,a));
 const disjunction=(a,b)=>F.not(F.and(F.not(a),F.not(b)));
+
+function orderedPairFormula(pair,first,second){
+ const singleton=T.variable("__op_singleton","Set"),unordered=T.variable("__op_unordered","Set");
+ const z=T.variable("__op_z","Set"),w=T.variable("__op_w","Set"),element=T.variable("__op_element","Set");
+ const singletonDef=F.forall("__op_z","Set",equivalent(F.member(z,singleton),F.eq(z,first)));
+ const unorderedDef=F.forall("__op_w","Set",equivalent(F.member(w,unordered),disjunction(F.eq(w,first),F.eq(w,second))));
+ const outerDef=F.forall("__op_element","Set",equivalent(F.member(element,pair),disjunction(F.eq(element,singleton),F.eq(element,unordered))));
+ return F.exists("__op_singleton","Set",F.exists("__op_unordered","Set",F.and(singletonDef,F.and(unorderedDef,outerDef))));
+}
+function functionGraphFormula(graph,indexSet){
+ const p=T.variable("__fg_pair","Set"),x=T.variable("__fg_first","Set"),y=T.variable("__fg_value","Set");
+ const allMembersArePairs=F.forall("__fg_pair","Set",F.implies(
+  F.member(p,graph),F.exists("__fg_first","Set",F.exists("__fg_value","Set",orderedPairFormula(p,x,y)))
+ ));
+ const i=T.variable("__fg_index","Set"),v=T.variable("__fg_result","Set"),q=T.variable("__fg_other_pair","Set"),z=T.variable("__fg_other_value","Set");
+ const eachIndexHasUniqueValue=F.forall("__fg_index","Set",F.implies(
+  F.member(i,indexSet),
+  F.exists("__fg_result","Set",F.and(
+   F.exists("__fg_pair","Set",F.and(F.member(p,graph),orderedPairFormula(p,i,v))),
+   F.forall("__fg_other_value","Set",F.implies(
+    F.exists("__fg_other_pair","Set",F.and(F.member(q,graph),orderedPairFormula(q,i,z))),
+    F.eq(z,v)
+   ))
+  ))
+ ));
+ const index=T.variable("__fg_domain_index","Set"),value=T.variable("__fg_domain_value","Set");
+ const noPairsOutsideDomain=F.forall("__fg_pair","Set",F.implies(
+  F.member(p,graph),
+  F.exists("__fg_domain_index","Set",F.and(
+   F.member(index,indexSet),
+   F.exists("__fg_domain_value","Set",orderedPairFormula(p,index,value))
+  ))
+ ));
+ return F.and(allMembersArePairs,F.and(eachIndexHasUniqueValue,noPairsOutsideDomain));
+}
+function familyOfNonemptySetsFormula(family,indexSet){
+ const i=T.variable("__fam_index","Set"),set=T.variable("__fam_set","Set"),p=T.variable("__fam_pair","Set"),x=T.variable("__fam_element","Set");
+ const familyValue=F.exists("__fam_pair","Set",F.and(F.member(p,family),orderedPairFormula(p,i,set)));
+ const nonempty=F.exists("__fam_element","Set",F.member(x,set));
+ return F.and(functionGraphFormula(family,indexSet),F.forall("__fam_index","Set",F.implies(
+  F.member(i,indexSet),F.exists("__fam_set","Set",F.and(familyValue,nonempty))
+ )));
+}
+function choiceFunctionFormula(choice,indexSet,family){
+ const i=T.variable("__choice_index","Set"),set=T.variable("__choice_set","Set"),value=T.variable("__choice_value","Set");
+ const p=T.variable("__choice_family_pair","Set"),q=T.variable("__choice_choice_pair","Set");
+ const familyValue=F.exists("__choice_family_pair","Set",F.and(F.member(p,family),orderedPairFormula(p,i,set)));
+ const chosenValue=F.exists("__choice_choice_pair","Set",F.and(F.member(q,choice),orderedPairFormula(q,i,value)));
+ return F.and(functionGraphFormula(choice,indexSet),F.forall("__choice_index","Set",F.forall("__choice_set","Set",F.forall("__choice_value","Set",F.implies(
+  F.and(familyValue,chosenValue),F.member(value,set)
+ )))));
+}
+
 const pointVar=name=>T.variable(name,"Point");
 const lineVar=name=>T.variable(name,"Line");
 const and4=(a,b,c,d)=>F.and(a,F.and(b,F.and(c,d)));
