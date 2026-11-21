@@ -2,7 +2,7 @@
 
 ## Overall ULTRON completion estimate — 2026-11-21
 
-**Estimated whole-project completion: 33%.** This is a milestone-based engineering estimate, not a line-count or feature-count metric. It includes the website, security, data pipeline, model, evaluation, compute/recovery, testing and release readiness. The estimate is deliberately conservative: conversational mathematics and the Stage 3 tutoring/Axiom Bank baseline are merged and independently tested, but physical-device verification, live security checks, a machine-checked proof kernel, deeper diagnosis, remaining dashboard integration and later reasoning stages remain open; the neural model has not been trained; production training readiness is not established. The increase to 33% reflects the merged conversational tutor, researched axiom catalog, Stage 4 proof replayer, proof-soundness fixes and strict AST validation. The neural model remains untrained and production training readiness is not established. Increase this figure only when substantial work is implemented and independently validated. Report this estimate in every progress update and revise it when evidence changes.
+**Estimated whole-project completion: 34%.** This is a milestone-based engineering estimate, not a line-count or feature-count metric. It includes the website, security, data pipeline, model, evaluation, compute/recovery, testing and release readiness. The estimate is deliberately conservative: conversational mathematics and the Stage 3 tutoring/Axiom Bank baseline are merged and independently tested, but physical-device verification, live security checks, a machine-checked proof kernel, deeper diagnosis, remaining dashboard integration and later reasoning stages remain open; the neural model has not been trained; production training readiness is not established. The increase to 34% reflects the merged conversational tutor, researched axiom catalog, Stage 4 proof replayer, proof-soundness fixes, strict AST validation, formalized Peano/field axioms and verified Peano induction schema. The neural model remains untrained and production training readiness is not established. The neural model remains untrained and production training readiness is not established. Increase this figure only when substantial work is implemented and independently validated. Report this estimate in every progress update and revise it when evidence changes.
 
 ## Legacy pull-request reconciliation — 2026-11-20
 
@@ -1079,3 +1079,15 @@ The Stage 4 first implementation adds:
 
 
 - Additional induction soundness guard: the induction variable must not occur free in any still-open assumption on which either premise depends. Added a regression where a derived base case depends on an unrelated assumption containing that variable.
+
+
+## Stage 4 verification milestones — 2026-11-21
+
+- PR #104 merged: implication introduction now requires the discharged assumption to be present in the derived premise dependency set.
+- PR #105 merged: strict AST/proof/step schemas, sparse-array rejection and exact claimed-conclusion checking.
+- PR #106 merged: typed negation plus PEANO-02 and FIELD-02/03/05/06/09 formalized with exact Axiom Bank IDs.
+- PR #107 merged at `7223686d04ffe37d9b3604fc12bc7c47ff033626`: dedicated PEANO-04 induction schema; verifies P(0), ∀k(P(k)→P(S(k))), schema scope, fresh induction variable and no free occurrence in undischarged assumptions.
+- Each merged PR passed Test Suite, preflight, Training Prototype Validation, Chromium and WebKit on its reviewed head.
+- Next follow-up implements `forall_intro` with a reconstructed quantified-goal instance and eigenvariable side conditions. No language-wide or unverified universal generalization is permitted.
+- Branch: `feature/universal-introduction-eigenvariable`. Do not merge until all required CI checks pass.
+- No training, weight/checkpoint mutation, dataset generation or production configuration change.

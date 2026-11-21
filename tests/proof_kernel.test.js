@@ -212,3 +212,49 @@ test("Peano induction rejects an induction variable free in an open premise assu
  ],"induction");
  assert.equal(K.verify(proof).code,"INDUCTION_VARIABLE_IN_ASSUMPTION");
 });
+
+test("universal introduction verifies a fresh eigenvariable instance",()=>{
+ const eigen=T.variable("k","Nat");
+ const instance=F.eq(eigen,eigen);
+ const goal=F.forall("n","Nat",F.eq(T.variable("n","Nat"),T.variable("n","Nat")));
+ const proof=mk("PEANO_N",[],[
+  {id:"reflexive",rule:"eq_refl",term:eigen,formula:instance},
+  {id:"generalized",rule:"forall_intro",variable:"k",premises:["reflexive"],formula:goal}
+ ],"generalized");
+ assert.equal(K.verify(proof).valid,true);
+ assert.deepEqual(K.verify(proof).openAssumptions,[]);
+});
+test("universal introduction rejects an eigenvariable free in an open assumption",()=>{
+ const eigen=T.variable("k","Nat"),claim=F.predicate("P",[eigen]);
+ const goal=F.forall("n","Nat",F.predicate("P",[T.variable("n","Nat")]));
+ const proof=mk("PEANO_N",[{id:"assumption",formula:claim}],[ 
+  {id:"premise",rule:"assumption",assumption:"assumption",formula:claim},
+  {id:"generalized",rule:"forall_intro",variable:"k",premises:["premise"],formula:goal}
+ ],"generalized");
+ assert.equal(K.verify(proof).code,"EIGENVARIABLE_IN_ASSUMPTION");
+});
+test("universal introduction rejects a mismatched premise instance",()=>{
+ const eigen=T.variable("j","Nat"),goal=F.forall("n","Nat",F.eq(T.variable("n","Nat"),T.variable("n","Nat")));
+ const proof=mk("PEANO_N",[],[
+  {id:"reflexive",rule:"eq_refl",term:eigen,formula:F.eq(eigen,eigen)},
+  {id:"generalized",rule:"forall_intro",variable:"k",premises:["reflexive"],formula:goal}
+ ],"generalized");
+ assert.equal(K.verify(proof).code,"RULE_MISMATCH");
+});
+test("universal introduction rejects binder capture and shadowing",()=>{
+ const body=F.and(F.predicate("P",[T.variable("n","Nat")]),F.forall("k","Nat",F.predicate("Q",[T.variable("n","Nat")])));
+ const goal=F.forall("n","Nat",body);
+ const proof=mk("PEANO_N",[],[
+  {id:"premise",rule:"eq_refl",term:T.numeral(1),formula:F.eq(T.numeral(1),T.numeral(1))},
+  {id:"generalized",rule:"forall_intro",variable:"k",premises:["premise"],formula:goal}
+ ],"generalized");
+ assert.equal(K.verify(proof).code,"INVALID_EIGENVARIABLE");
+});
+test("universal introduction works in a compatible field context",()=>{
+ const eigen=T.variable("z","Field"),goal=F.forall("x","Field",F.eq(T.variable("x","Field"),T.variable("x","Field")));
+ const proof=mk("REAL_FIELD",[],[
+  {id:"reflexive",rule:"eq_refl",term:eigen,formula:F.eq(eigen,eigen)},
+  {id:"generalized",rule:"forall_intro",variable:"z",premises:["reflexive"],formula:goal}
+ ],"generalized");
+ assert.equal(K.verify(proof).valid,true);
+});

@@ -37,6 +37,7 @@ function validStepShape(step){
   case "eq_symm":case "eq_trans":case "and_intro":case "and_left":case "and_right":case "imp_elim":return exactKeys(step,base.concat("premises"))&&denseArray(step.premises);
   case "imp_intro":return exactKeys(step,base.concat(["premises","discharge"]))&&denseArray(step.premises)&&Object.prototype.hasOwnProperty.call(step,"discharge")&&typeof step.discharge==="string";
   case "forall_elim":return exactKeys(step,base.concat(["premises","term"]))&&denseArray(step.premises)&&Object.prototype.hasOwnProperty.call(step,"term");
+  case "forall_intro":return exactKeys(step,base.concat(["premises","variable"]))&&denseArray(step.premises)&&step.premises.length===1&&Object.prototype.hasOwnProperty.call(step,"variable")&&typeof step.variable==="string"&&step.variable.length>0;
   case "induction":return exactKeys(step,base.concat(["premises","axiomId","variable"]))&&denseArray(step.premises)&&step.premises.length===2&&Object.prototype.hasOwnProperty.call(step,"axiomId")&&step.axiomId==="PEANO-04"&&Object.prototype.hasOwnProperty.call(step,"variable")&&typeof step.variable==="string"&&step.variable.length>0;
   default:return false;
  }
@@ -81,6 +82,10 @@ function allVariableNames(node,out=new Set()){
  for(const value of Object.values(node)){if(Array.isArray(value))value.forEach(x=>allVariableNames(x,out));else if(isObj(value))allVariableNames(value,out);}
  return out;
 }
+function hasFreeVariableInDependencies(refs,name,available){
+ for(const ref of refs){for(const assumptionId of ref.dependencies){const dependency=available.get(assumptionId);if(dependency&&dependency.origin==="assumption"&&freeVariableNames(dependency.formula).has(name))return true;}}
+ return false;
+}
 function substitute(node,name,replacement){
  if(!isObj(node))return node;
  if(node.kind==="var"&&node.name===name)return clone(replacement);
@@ -108,7 +113,7 @@ function verify(p){
  for(const a of p.assumptions){if(!exactKeys(a,["id","formula"])||typeof a.id!=="string"||available.has(a.id)||!validFormula(a.formula,{},allowedSorts))return err("INVALID_ASSUMPTION","Assumptions need unique IDs and well-typed formulas.");available.set(a.id,{formula:a.formula,origin:"assumption",dependencies:new Set([a.id])});}
  for(const s of p.steps){
   if(!isObj(s)||typeof s.id!=="string"||available.has(s.id))return err("INVALID_STEP","Each step needs a unique ID.",s&&s.id);
-  if(!validStepShape(s)){if(typeof s.rule==="string"&&!["assumption","axiom","eq_refl","eq_symm","eq_trans","and_intro","and_left","and_right","imp_elim","imp_intro","forall_elim","induction"].includes(s.rule))return err("UNKNOWN_RULE","Rule is not part of the audited kernel.",s.id);return err("INVALID_STEP","Step contains missing, unexpected, or malformed fields.",s.id);}
+  if(!validStepShape(s)){if(typeof s.rule==="string"&&!["assumption","axiom","eq_refl","eq_symm","eq_trans","and_intro","and_left","and_right","imp_elim","imp_intro","forall_elim","forall_intro","induction"].includes(s.rule))return err("UNKNOWN_RULE","Rule is not part of the audited kernel.",s.id);return err("INVALID_STEP","Step contains missing, unexpected, or malformed fields.",s.id);}
   if(s.rule==="axiom"){const registered=AXIOMS[s.axiomId];if(!registered||registered.system!==p.system||!sys.enabledAxioms.includes(s.axiomId))return err("AXIOM_NOT_AVAILABLE","Axiom is unknown, not formalized, or unavailable in this system.",s.id);}
   if(s.rule==="induction"){const schema=AXIOM_SCHEMAS[s.axiomId];if(!schema||schema.system!==p.system||!sys.enabledAxiomSchemas.includes(s.axiomId))return err("AXIOM_SCHEMA_NOT_AVAILABLE","Axiom schema is unknown or unavailable in this formal system.",s.id);}
   if(!validFormula(s.formula,{},allowedSorts))return err("INVALID_STEP","Proof step formula is not well-typed in its declared formal system.",s.id);
@@ -127,10 +132,18 @@ function verify(p){
    case "imp_elim":if(refs.length===2){const i=refs.find(x=>x.formula.kind==="implies"),a=refs.find(x=>x!==i);if(i&&a&&stable(i.formula.left)===stable(a.formula))e=i.formula.right;}break;
    case "imp_intro":{const r=refs.length===1?refs[0]:null,d=available.get(s.discharge);if(r&&d&&d.origin==="assumption"&&r.dependencies.has(s.discharge)&&s.formula.kind==="implies"&&stable(d.formula)===stable(s.formula.left)&&stable(r.formula)===stable(s.formula.right))e=s.formula;break;}
    case "forall_elim":if(refs.length===1&&refs[0].formula.kind==="forall"&&s.term&&termSort(s.term)===refs[0].formula.sort){const candidate=substitute(refs[0].formula.body,refs[0].formula.name,s.term);if(candidate&&validFormula(candidate,{},allowedSorts))e=candidate;}break;
+   case "forall_intro":{
+    const goal=s.formula,variable=s.variable;
+    if(goal.kind!=="forall"||variable===goal.name||allVariableNames(goal.body).has(variable))return err("INVALID_EIGENVARIABLE","Universal-introduction variable must be fresh from the quantified property and its binders.",s.id);
+    if(hasFreeVariableInDependencies(refs,variable,available))return err("EIGENVARIABLE_IN_ASSUMPTION","Universal-introduction variable must not occur free in any undischarged assumption used by the premise.",s.id);
+    const instance=substitute(goal.body,goal.name,T.variable(variable,goal.sort));
+    if(instance&&validFormula(instance,{},allowedSorts)&&stable(refs[0].formula)===stable(instance))e=goal;
+    break;
+   }
    case "induction":{
     const goal=s.formula,variable=s.variable;
     if(goal.kind!=="forall"||goal.sort!=="Nat"||variable===goal.name||allVariableNames(goal.body).has(variable))return err("INVALID_INDUCTION_VARIABLE","Induction variable must be fresh and distinct from every variable and binder in the property.",s.id);
-    for(const ref of refs){for(const assumptionId of ref.dependencies){const assumption=available.get(assumptionId);if(assumption&&freeVariableNames(assumption.formula).has(variable))return err("INDUCTION_VARIABLE_IN_ASSUMPTION","Induction variable must not occur free in any undischarged assumption used by the base or successor step.",s.id);}}
+    if(hasFreeVariableInDependencies(refs,variable,available))return err("INDUCTION_VARIABLE_IN_ASSUMPTION","Induction variable must not occur free in any undischarged assumption used by the base or successor step.",s.id);
     const base=substitute(goal.body,goal.name,T.numeral(0));
     const inductionVariable=T.variable(variable,"Nat");
     const before=substitute(goal.body,goal.name,inductionVariable);
