@@ -6,7 +6,7 @@ The browser-side kernel is a deterministic proof replayer. It validates typed sy
 
 ## Typed language
 
-Terms include typed variables, natural numerals, successor, natural/field addition and multiplication, field and real rational literals, points, lines, typed betweenness relations, circles, circle centres/incidence, angles and right-angle/equality predicates, events, the sample space, probability measures and sets. Formula constructors include equality, strict order, incidence, conjunction, implication, negation, universal/existential quantification, membership and named predicates. AST nodes use closed schemas: unknown fields, malformed values, incompatible sorts and sparse arrays are rejected.
+Terms include typed variables, natural numerals, successor, natural/field addition and multiplication, field and real rational literals, points, lines, typed betweenness relations, circles, circle centres/incidence, angles, right-angle/equality and parallel-intersection predicates, events, the sample space, probability measures and sets. Formula constructors include equality, strict order, incidence, conjunction, implication, negation, universal/existential quantification, membership and named predicates. AST nodes use closed schemas: unknown fields, malformed values, incompatible sorts and sparse arrays are rejected.
 
 The `Real` sort is deliberately narrow: rational real literals and probability-measure results are represented, but general real arithmetic and a complete real-field signature are not implemented.
 
@@ -17,7 +17,7 @@ Seven contexts are declared and do not inherit axioms from one another:
 - `PEANO_N`: Peano arithmetic. Executable finite axioms: PEANO-02 and PEANO-03. PEANO-04 is an explicit induction schema, available only through the dedicated induction rule.
 - `REAL_FIELD`: all nine researched field axioms FIELD-01 through FIELD-09 are represented as exact typed formulas.
 - `ORDERED_FIELD` and `COMPLETE_REAL`: declared but have no executable axioms yet.
-- `EUCLID_GEOMETRY`: EUCLID-01, the existence of a common line through two distinct points; EUCLID-02, extension of a nonzero segment to a further point on the same line; EUCLID-03, construction of a circle with any chosen centre and a radius fixed by a point; and EUCLID-04, equality of all right angles.
+- `EUCLID_GEOMETRY`: EUCLID-01, the existence of a common line through two distinct points; EUCLID-02, extension of a nonzero segment to a further point on the same line; EUCLID-03, construction of a circle with any chosen centre and a radius fixed by a point; EUCLID-04, equality of all right angles; and EUCLID-05, the same-side interior-angle parallel postulate.
 - `KOLMOGOROV`: PROB-01 (nonnegative measure) and PROB-02 (sample-space measure one).
 - `ZFC`: ZFC-01 extensionality, ZFC-02 empty-set existence, ZFC-03 pairing, ZFC-04 union, ZFC-05 power set, ZFC-06 infinity and ZFC-09 foundation.
 
@@ -25,6 +25,11 @@ Each executable axiom is bound to its exact Axiom Bank identifier and active con
 
 
 
+
+
+## Euclidean parallel postulate
+
+The Euclidean signature includes typed relations for a pair of same-side interior angles formed by two lines and a transversal, for their sum being less than two right angles, and for the two lines meeting on that same side. EUCLID-05 universally states that the first two conditions imply the third. This is the Axiom Bank's original-form statement at the relation level. The relations are primitive: the checker does not yet calculate angle sums or construct the transversal configuration from coordinates.
 
 ## Euclidean right-angle equality
 
@@ -69,7 +74,7 @@ A working trace must use the exact `ultron-proof-trace` envelope and contain a s
 ## Deliberately unimplemented
 
 - PROB-03 countable additivity remains disabled: the language has no countable event sequences, countable unions or infinite sums.
-- EUCLID-05 remains disabled until a typed parallel/intersection and same-side interior-angle relation is formalized.
+- The Angle and Line relations used by EUCLID-04/05 are primitive symbols. The kernel does not calculate angle measures, derive a right angle from perpendicular lines, or construct the same-side interior-angle configuration from coordinates.
 - ZFC-07 separation and ZFC-08 replacement remain schemas; no formula-metavariable/schema-instantiation mechanism exists.
 - ZFC-10 choice remains disabled; the language does not yet model indexed families and choice functions.
 - General real arithmetic, ordered-field laws and completeness axioms remain unimplemented.
