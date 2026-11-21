@@ -1,6 +1,7 @@
 (function (root) {
 "use strict";
-const SYSTEMS=Object.freeze({
+function deepFreeze(value){if(value&&typeof value==="object"&&!Object.isFrozen(value)){Object.keys(value).forEach(key=>deepFreeze(value[key]));Object.freeze(value);}return value;}
+const SYSTEMS=deepFreeze({
  PEANO_N:{label:"Peano arithmetic",sorts:["Nat"],enabledAxioms:["PEANO-03"]},
  REAL_FIELD:{label:"Field theory",sorts:["Field"],enabledAxioms:["FIELD-01"]},
  ORDERED_FIELD:{label:"Ordered-field theory",sorts:["Field"],enabledAxioms:[]},
@@ -63,7 +64,7 @@ function substitute(node,name,replacement){
  if(node.kind==="forall"&&freeVariableNames(replacement).has(node.name))return null;
  const out={};for(const k of Object.keys(node))out[k]=Array.isArray(node[k])?node[k].map(x=>substitute(x,name,replacement)):isObj(node[k])?substitute(node[k],name,replacement):node[k];return out;
 }
-const AXIOMS=Object.freeze({
+const AXIOMS=deepFreeze({
  "PEANO-03":{system:"PEANO_N",formula:F.forall("m","Nat",F.forall("n","Nat",F.implies(F.eq(T.succ(T.variable("m","Nat")),T.succ(T.variable("n","Nat"))),F.eq(T.variable("m","Nat"),T.variable("n","Nat")))))},
  "FIELD-01":{system:"REAL_FIELD",formula:F.forall("a","Field",F.forall("b","Field",F.eq(T.add(T.variable("a","Field"),T.variable("b","Field")),T.add(T.variable("b","Field"),T.variable("a","Field")))))}
 });
