@@ -196,3 +196,19 @@ test("induction schema ID cannot be forged or substituted",()=>{
  ],"i");
  assert.equal(K.verify(proof).code,"INVALID_STEP");
 });
+
+test("Peano induction rejects an induction variable free in an open premise assumption",()=>{
+ const k=T.variable("k","Nat");
+ const P=x=>F.predicate("P",[x]);
+ const base=P(T.numeral(0));
+ const step=F.forall("j","Nat",F.implies(P(T.variable("j","Nat")),P(T.succ(T.variable("j","Nat")))));
+ const taintedBase=F.and(base,F.predicate("Q",[k]));
+ const goal=F.forall("n","Nat",P(T.variable("n","Nat")));
+ const proof=mk("PEANO_N",[{id:"tainted",formula:taintedBase},{id:"step",formula:step}],[
+  {id:"base",rule:"assumption",assumption:"tainted",formula:taintedBase},
+  {id:"base-only",rule:"and_left",premises:["base"],formula:base},
+  {id:"step-proof",rule:"assumption",assumption:"step",formula:step},
+  {id:"induction",rule:"induction",axiomId:"PEANO-04",variable:"k",premises:["base-only","step-proof"],formula:goal}
+ ],"induction");
+ assert.equal(K.verify(proof).code,"INDUCTION_VARIABLE_IN_ASSUMPTION");
+});
