@@ -1117,8 +1117,8 @@ The Stage 4 first implementation adds:
 
 - PR #111 merged at `6eaf286133462aaa7799643cd41bc0195b79bb4a`: EUCLID-01, PROB-01/02 and ZFC-01/02, with isolated contexts and typed geometry/probability syntax. All five PR checks passed.
 - PR #112 merged at `7977438ac11f9087efcbce4e9e0bc58043e6da66`: ZFC-03 pairing, ZFC-04 union and ZFC-05 power set. Exact membership characterizations and adversarial tests are now in `main`. All five PR checks passed.
-- The next branch, `feature/zfc-infinity-foundation`, adds ZFC-06 infinity and ZFC-09 foundation. Infinity is encoded as an inductive set containing an empty set and closed under the set-successor x∪{x}; foundation selects a member disjoint from each nonempty set.
+- PR #113 merged at `909d49391d08dc08de4318024ed2c0e7e7c74b86`: ZFC-06 infinity and ZFC-09 foundation, encoded as an inductive set closed under set successor and a minimal-member/disjointness condition. All five PR checks passed.
 - ZFC-07 separation and ZFC-08 replacement remain schemas; ZFC-10 choice remains disabled until the language can represent formula instantiation, indexed families and choice functions. PROB-03 countable additivity remains disabled until countable sequence/union/sum operators exist.
-- The next branch is pending Test Suite, preflight, Training Prototype Validation, Chromium and WebKit. Do not merge until all checks pass and the exact diff is reviewed.
+- The current branch, `feature/euclidean-segment-extension`, adds a typed betweenness relation and EUCLID-02 segment extension. It is pending Test Suite, preflight, Training Prototype Validation, Chromium and WebKit. Do not merge until all checks pass and the exact diff is reviewed.
 - No model training, weight/checkpoint mutation, dataset generation, Supabase change or production configuration change.
 
