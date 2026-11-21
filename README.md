@@ -1,8 +1,8 @@
 # ULTRON — current project status (2026-11-20)
 
-## Overall ULTRON completion estimate — 2026-11-20
+## Overall ULTRON completion estimate — 2026-11-21
 
-**Estimated whole-project completion: 29%.** This is a milestone-based engineering estimate, not a line-count or feature-count metric. It includes the website, security, data pipeline, model, evaluation, compute/recovery, testing and release readiness. The estimate is deliberately conservative: conversational mathematics and the Stage 3 tutoring/Axiom Bank baseline are merged and independently tested, but physical-device verification, live security checks, a machine-checked proof kernel, deeper diagnosis, remaining dashboard integration and later reasoning stages remain open; the neural model has not been trained; production training readiness is not established. The increase from 26% to 29% reflects the merged 18-topic tutor and researched 37-entry axiom catalog, with all required PR and main-branch checks passing. Increase this figure only when substantial work is implemented and independently validated. Report this estimate in every progress update and revise it when evidence changes.
+**Estimated whole-project completion: 33%.** This is a milestone-based engineering estimate, not a line-count or feature-count metric. It includes the website, security, data pipeline, model, evaluation, compute/recovery, testing and release readiness. The estimate is deliberately conservative: conversational mathematics and the Stage 3 tutoring/Axiom Bank baseline are merged and independently tested, but physical-device verification, live security checks, a machine-checked proof kernel, deeper diagnosis, remaining dashboard integration and later reasoning stages remain open; the neural model has not been trained; production training readiness is not established. The increase to 33% reflects the merged conversational tutor, researched axiom catalog, Stage 4 proof replayer, proof-soundness fixes and strict AST validation. The neural model remains untrained and production training readiness is not established. Increase this figure only when substantial work is implemented and independently validated. Report this estimate in every progress update and revise it when evidence changes.
 
 ## Legacy pull-request reconciliation — 2026-11-20
 
@@ -1054,3 +1054,14 @@ The Stage 4 first implementation adds:
 - The existing version-1 AST and inference-rule set remains unchanged; this patch adds no axioms or proof rules.
 - Branch: `hardening/proof-kernel-strict-ast`. Do not merge until full test suite, preflight, Training Prototype Validation, Chromium and WebKit pass and the exact diff is reviewed.
 - No training, model-weight updates, dataset generation, checkpoint mutation or production changes.
+
+
+## Stage 4 formal axiom expansion — in progress (2026-11-21)
+
+- PR #104 merged as `a9277359ffba4e65f841bedab7b007cee16b61b5`: implication introduction now requires the discharged assumption to be present in the derived premise's dependency set.
+- PR #105 merged as `d059afba4d45eae1ce84f878bac78fc7691d5bfa`: exact AST, proof-envelope, trace-envelope and per-rule step schemas; dense-array validation; strict claimed-conclusion comparison.
+- Both PRs passed Test Suite, preflight, Training Prototype Validation, Chromium and WebKit on their reviewed PR heads.
+- The next formalization increment adds PEANO-02 and FIELD-02, FIELD-03, FIELD-05, FIELD-06 and FIELD-09 using their exact Axiom Bank IDs. Negation is now representable as a typed formula, but no negation inference rules are enabled.
+- PEANO-01 successor closure is enforced by the typed successor constructor; it is not misrepresented as a free-standing executable axiom. PEANO induction, field inverse/identity clauses needing unsupported conditions, and ordered-field, completeness, Euclidean, probability and ZFC entries remain non-executable.
+- Branch: `feature/formalize-peano-and-field-axioms`. Merge only after code review and all required checks pass.
+- No training, model-weight update, checkpoint mutation, dataset generation or production configuration change.
