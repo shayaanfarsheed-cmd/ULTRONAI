@@ -1432,8 +1432,6 @@
       const selected = Math.max(2, Math.min(10, Number($("ramLimitSlider").value)));
       state.ramLimitGb = Math.round(selected * 2) / 2;
       $("ramLimitValue").textContent = state.ramLimitGb + " GB";
-      const localRamValue = $("deviceRamLimitValue");
-      if (localRamValue) localRamValue.textContent = state.ramLimitGb + " GB";
       try { localStorage.setItem(RAM_LIMIT_KEY, String(state.ramLimitGb)); } catch (_) {}
       $("ramLimitStatus").textContent = "Saved as " + state.ramLimitGb + " GB in this browser only. It is not sent to a remote training process and does not cap hosted-runner memory.";
     });
