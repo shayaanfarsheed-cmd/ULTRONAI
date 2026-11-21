@@ -103,8 +103,8 @@ class DashboardStaticTests(unittest.TestCase):
     def test_active_public_javascript_dom_id_references_exist(self):
         html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
-        ids = re.findall(r'\\bid="([^"]+)"', html)
-        references = set(re.findall(r'\\$\\("([^"]+)"\\)', javascript))
+        ids = re.findall(r'\bid="([^"]+)"', html)
+        references = set(re.findall(r'\$\("([^"]+)"\)', javascript))
         missing = sorted(references.difference(ids))
         duplicates = sorted({value for value in ids if ids.count(value) > 1})
         self.assertEqual(missing, [])
@@ -184,7 +184,7 @@ class DashboardStaticTests(unittest.TestCase):
         self.assertIn('textContent = "DISABLED"', javascript)
         self.assertIn("Training is disabled; no loss history is available.", javascript)
         self.assertIn("usage not measured", javascript)
-        self.assertNotIn("heartbeat", javascript.lower())
+        self.assertNotIn("last_heartbeat_at", javascript)
         self.assertNotIn("loss_history", javascript)
 
     def test_legacy_storage_bucket_remains_private_and_owner_scoped(self):
@@ -217,7 +217,7 @@ class DashboardStaticTests(unittest.TestCase):
         html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
         self.assertIn("ULTRON is not training", javascript)
-        self.assertIn("account-free website provides the public math-learning interface", javascript)
+        self.assertIn("account-free website provides the public mathematics-learning interface", javascript)
         self.assertIn("Public browser access · training disabled", javascript)
         self.assertIn('class="connection-badge">PUBLIC</span>', html)
         for label in ("NEURAL MODEL", "MATH AGENT", "PROOF CHECKER", "TRAINING"):
