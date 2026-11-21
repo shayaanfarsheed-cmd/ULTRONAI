@@ -2,11 +2,11 @@
 const test=require("node:test"),assert=require("node:assert/strict"),K=require("../dashboard/proof-kernel.js");
 const {T,F}=K, mk=(system,assumptions,steps,conclusion)=>({version:1,system,assumptions,steps,conclusion});
 test("typed expression and formula validation",()=>{assert.equal(K.validFormula(F.eq(T.numeral(1),T.numeral(1))),true);assert.equal(K.validFormula(F.eq(T.numeral(1),T.rational(1,1))),false);assert.equal(K.validFormula(F.eq(T.add(T.numeral(1),T.numeral(2)),T.numeral(3))),true);assert.equal(K.validFormula({kind:"evil"}),false);});
-test("formal contexts are separate and conservative",()=>{assert.deepEqual(K.SYSTEMS.PEANO_N.enabledAxioms,["PEANO-02","PEANO-03"]);assert.deepEqual(K.SYSTEMS.PEANO_N.enabledAxiomSchemas,["PEANO-04"]);assert.deepEqual(K.SYSTEMS.REAL_FIELD.enabledAxioms,["FIELD-01","FIELD-02","FIELD-03","FIELD-04","FIELD-05","FIELD-06","FIELD-07","FIELD-08","FIELD-09"]);assert.deepEqual(K.SYSTEMS.REAL_FIELD.enabledAxiomSchemas,[]);assert.deepEqual(K.SYSTEMS.ORDERED_FIELD.enabledAxioms,["FIELD-01","FIELD-02","FIELD-03","FIELD-04","FIELD-05","FIELD-06","FIELD-07","FIELD-08","FIELD-09","ORDER-01","ORDER-02","ORDER-03","ORDER-04"]);assert.deepEqual(K.SYSTEMS.COMPLETE_REAL.sorts,["Field","RealSet"]);assert.deepEqual(K.SYSTEMS.COMPLETE_REAL.enabledAxioms,["FIELD-01","FIELD-02","FIELD-03","FIELD-04","FIELD-05","FIELD-06","FIELD-07","FIELD-08","FIELD-09","ORDER-01","ORDER-02","ORDER-03","ORDER-04","COMPLETE-01"]);for(const s of ["ORDERED_FIELD","COMPLETE_REAL"])assert.deepEqual(K.SYSTEMS[s].enabledAxiomSchemas,[]);assert.deepEqual(K.SYSTEMS.EUCLID_GEOMETRY.enabledAxioms,["EUCLID-01","EUCLID-02","EUCLID-03","EUCLID-04","EUCLID-05"]);assert.deepEqual(K.SYSTEMS.KOLMOGOROV.enabledAxioms,["PROB-01","PROB-02","PROB-03"]);assert.deepEqual(K.SYSTEMS.ZFC.enabledAxioms,["ZFC-01","ZFC-02","ZFC-03","ZFC-04","ZFC-05","ZFC-06","ZFC-09"]);for(const s of ["EUCLID_GEOMETRY","KOLMOGOROV"])assert.deepEqual(K.SYSTEMS[s].enabledAxiomSchemas,[]);assert.deepEqual(K.SYSTEMS.ZFC.enabledAxiomSchemas,["ZFC-07","ZFC-08"]);});
+test("formal contexts are separate and conservative",()=>{assert.deepEqual(K.SYSTEMS.PEANO_N.enabledAxioms,["PEANO-02","PEANO-03"]);assert.deepEqual(K.SYSTEMS.PEANO_N.enabledAxiomSchemas,["PEANO-04"]);assert.deepEqual(K.SYSTEMS.REAL_FIELD.enabledAxioms,["FIELD-01","FIELD-02","FIELD-03","FIELD-04","FIELD-05","FIELD-06","FIELD-07","FIELD-08","FIELD-09"]);assert.deepEqual(K.SYSTEMS.REAL_FIELD.enabledAxiomSchemas,[]);assert.deepEqual(K.SYSTEMS.ORDERED_FIELD.enabledAxioms,["FIELD-01","FIELD-02","FIELD-03","FIELD-04","FIELD-05","FIELD-06","FIELD-07","FIELD-08","FIELD-09","ORDER-01","ORDER-02","ORDER-03","ORDER-04"]);assert.deepEqual(K.SYSTEMS.COMPLETE_REAL.sorts,["Field","RealSet"]);assert.deepEqual(K.SYSTEMS.COMPLETE_REAL.enabledAxioms,["FIELD-01","FIELD-02","FIELD-03","FIELD-04","FIELD-05","FIELD-06","FIELD-07","FIELD-08","FIELD-09","ORDER-01","ORDER-02","ORDER-03","ORDER-04","COMPLETE-01"]);for(const s of ["ORDERED_FIELD","COMPLETE_REAL"])assert.deepEqual(K.SYSTEMS[s].enabledAxiomSchemas,[]);assert.deepEqual(K.SYSTEMS.EUCLID_GEOMETRY.enabledAxioms,["EUCLID-01","EUCLID-02","EUCLID-03","EUCLID-04","EUCLID-05"]);assert.deepEqual(K.SYSTEMS.KOLMOGOROV.enabledAxioms,["PROB-01","PROB-02","PROB-03"]);assert.deepEqual(K.SYSTEMS.ZFC.enabledAxioms,["ZFC-01","ZFC-02","ZFC-03","ZFC-04","ZFC-05","ZFC-06","ZFC-09","ZFC-10"]);for(const s of ["EUCLID_GEOMETRY","KOLMOGOROV"])assert.deepEqual(K.SYSTEMS[s].enabledAxiomSchemas,[]);assert.deepEqual(K.SYSTEMS.ZFC.enabledAxiomSchemas,["ZFC-07","ZFC-08"]);});
 test("reflexivity replays and forged conclusion fails",()=>{const x=T.variable("x","Nat"),p=mk("PEANO_N",[],[{id:"r",rule:"eq_refl",term:x,formula:F.eq(x,x)}],"r");assert.equal(K.verify(p).valid,true);p.steps[0].formula=F.eq(x,T.numeral(2));assert.equal(K.verify(p).code,"RULE_MISMATCH");});
 test("assumptions, conjunction and implication introduction",()=>{const a=F.predicate("A"),b=F.predicate("B"),p=mk("PEANO_N",[{id:"ha",formula:a},{id:"hb",formula:b}],[{id:"a",rule:"assumption",assumption:"ha",formula:a},{id:"b",rule:"assumption",assumption:"hb",formula:b},{id:"ab",rule:"and_intro",premises:["a","b"],formula:F.and(a,b)},{id:"imp",rule:"imp_intro",premises:["b"],discharge:"hb",formula:F.implies(b,b)}],"imp");assert.equal(K.verify(p).valid,true);});
 test("unknown, forward and duplicate references rejected",()=>{const a=F.predicate("A"),p=mk("PEANO_N",[],[{id:"x",rule:"and_left",premises:["future"],formula:a}],"x");assert.equal(K.verify(p).code,"UNKNOWN_PREMISE");const d=mk("PEANO_N",[{id:"x",formula:a}],[{id:"x",rule:"assumption",assumption:"x",formula:a}],"x");assert.equal(K.verify(d).code,"INVALID_STEP");});
-test("axiom dependencies bind to exact formal-system IDs",()=>{const ax=K.AXIOMS["PEANO-03"].formula,g=mk("PEANO_N",[],[{id:"a",rule:"axiom",axiomId:"PEANO-03",formula:ax}],"a");assert.equal(K.verify(g).valid,true);const wrong=mk("REAL_FIELD",[],[{id:"a",rule:"axiom",axiomId:"PEANO-03",formula:ax}],"a");assert.equal(K.verify(wrong).code,"AXIOM_NOT_AVAILABLE");const natural=mk("ZFC",[],[{id:"a",rule:"axiom",axiomId:"ZFC-10",formula:F.predicate("Choice")}],"a");assert.equal(K.verify(natural).code,"AXIOM_NOT_AVAILABLE");});
+test("axiom dependencies bind to exact formal-system IDs",()=>{const ax=K.AXIOMS["PEANO-03"].formula,g=mk("PEANO_N",[],[{id:"a",rule:"axiom",axiomId:"PEANO-03",formula:ax}],"a");assert.equal(K.verify(g).valid,true);const wrong=mk("REAL_FIELD",[],[{id:"a",rule:"axiom",axiomId:"PEANO-03",formula:ax}],"a");assert.equal(K.verify(wrong).code,"AXIOM_NOT_AVAILABLE");const natural=mk("ZFC",[],[{id:"a",rule:"axiom",axiomId:"ZFC-10",formula:F.predicate("Choice")}],"a");assert.equal(K.verify(natural).code,"RULE_MISMATCH");});
 test("working trace rejects forged or unstructured evidence",()=>{const x=T.numeral(3),p=mk("PEANO_N",[],[{id:"r",rule:"eq_refl",term:x,formula:F.eq(x,x)}],"r");assert.equal(K.verifyWorkingTrace({kind:"ultron-proof-trace",proof:p,claimedConclusion:F.eq(x,x)}).diagnosisEligible,true);assert.equal(K.verifyWorkingTrace({kind:"ultron-proof-trace",proof:p,claimedConclusion:F.eq(x,T.numeral(4))}).code,"FORGED_TRACE");assert.equal(K.verifyWorkingTrace({steps:[]}).code,"UNTRUSTED_TRACE");});
 test("quantifier elimination rejects incompatible replacement sort",()=>{const q=K.AXIOMS["PEANO-03"].formula,p=mk("PEANO_N",[],[{id:"q",rule:"axiom",axiomId:"PEANO-03",formula:q},{id:"bad",rule:"forall_elim",premises:["q"],term:T.rational(1,2),formula:F.predicate("bad")}],"bad");assert.equal(K.verify(p).valid,false);});
 
@@ -785,4 +785,30 @@ test("ordered-field arithmetic axioms reject incompatible natural-number terms",
  assert.equal(K.validFormula(F.lt(T.variable("x","Field"),T.variable("y","Field")),{},sorts),true);
  assert.equal(K.validFormula(F.lt(T.variable("x","Nat"),T.variable("y","Nat")),{},sorts),false);
  assert.equal(K.validFormula(F.lt(T.variable("x","Field"),T.variable("y","Nat")),{},sorts),false);
+});
+
+test("ZFC-10 choice axiom replays with the typed family and choice-function relations",()=>{
+ const formula=K.AXIOMS["ZFC-10"].formula;
+ assert.equal(K.validFormula(formula,{},new Set(K.SYSTEMS.ZFC.sorts)),true);
+ const proof=mk("ZFC",[],[{id:"choice",rule:"axiom",axiomId:"ZFC-10",formula}],"choice");
+ const result=K.verify(proof);
+ assert.equal(result.valid,true);
+ assert.deepEqual(result.usedAxioms,["ZFC-10"]);
+ const wrong=mk("REAL_FIELD",[],[{id:"choice",rule:"axiom",axiomId:"ZFC-10",formula}],"choice");
+ assert.equal(K.verify(wrong).code,"AXIOM_NOT_AVAILABLE");
+});
+test("choice relations require set-valued family, index set and choice function",()=>{
+ const sorts=new Set(K.SYSTEMS.ZFC.sorts);
+ assert.equal(K.validFormula(F.familyOfNonemptySets(T.set("A"),T.set("I")),{},sorts),true);
+ assert.equal(K.validFormula(F.choiceFunction(T.set("f"),T.set("I"),T.set("A")),{},sorts),true);
+ assert.equal(K.validFormula(F.familyOfNonemptySets(T.event("A"),T.set("I")),{},sorts),false);
+ assert.equal(K.validFormula(F.choiceFunction(T.set("f"),T.set("I"),T.event("A")),{},sorts),false);
+ assert.equal(K.validFormula({...F.choiceFunction(T.set("f"),T.set("I"),T.set("A")),extra:true},{},sorts),false);
+ assert.equal(K.validFormula({...F.familyOfNonemptySets(T.set("A"),T.set("I")),extra:true},{},sorts),false);
+});
+test("ZFC-10 rejects forged choice statements and ordinary cross-context use",()=>{
+ const forged=mk("ZFC",[],[{id:"choice",rule:"axiom",axiomId:"ZFC-10",formula:F.predicate("forged",[])}],"choice");
+ assert.equal(K.verify(forged).code,"RULE_MISMATCH");
+ const wrong=mk("PEANO_N",[],[{id:"choice",rule:"axiom",axiomId:"ZFC-10",formula:K.AXIOMS["ZFC-10"].formula}],"choice");
+ assert.equal(K.verify(wrong).code,"AXIOM_NOT_AVAILABLE");
 });

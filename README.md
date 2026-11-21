@@ -1125,7 +1125,7 @@ The Stage 4 first implementation adds:
 - PR #118 merged at `9922f577edc6f77e0321f9b76652f177259e6422`: EventSequence sort, typed countable-union/sum operators, pairwise-disjointness and PROB-03 countable additivity. All five PR checks passed. The sequence and operators are primitive; no infinite-series evaluator or convergence proof is claimed.
 - PR #121 merged at `e879dd82bcc275b2c03f27b46c66cc6e928a7eeb`: introduced a closed-schema typed non-strict order relation and rewrote PROB-01 directly as `0 ≤ μ(A)`. All five required CI gates passed.
 - PR #122 merged at `6edb164dac824de4ed0503e962186960b5e0a040`: enabled ZFC-07 separation and ZFC-08 replacement through dedicated schema-instance rules, with exact proof-step shapes, capture-safe binder checks, source-set/predicate variable collision rejection, and schema IDs/parameters preserved in validated traces. All five required CI gates passed.
-- ZFC-10 choice remains disabled until indexed families and choice functions are represented. Separation and replacement are bounded schema-instance rules, not a general formula-metavariable engine.
+- ZFC-10 choice is being added on `feature/zfc-choice-relation-signature` with typed family-of-nonempty-sets and choice-function relations. Their internal ordered-pair/function-graph semantics remain a documented limitation. Separation and replacement remain bounded schema-instance rules, not a general formula-metavariable engine.
 - No model training, weight/checkpoint mutation, dataset generation, Supabase change or production configuration change.
 
 
@@ -1140,8 +1140,16 @@ The Stage 4 first implementation adds:
 - No training, model weights, checkpoints, dataset generation, Supabase or production configuration changes.
 
 
-### COMPLETE-01 order-definition follow-up (in progress)
+### COMPLETE-01 order-definition follow-up — PR #129 merged
 
-- Branch: `fix/complete-real-strict-order-encoding`.
-- The least-upper-bound formula now expresses each non-strict comparison as the negation of the reverse strict comparison, relying on ORDER-01 trichotomy. This prevents the completeness axiom from silently using an unrelated primitive `le` relation.
-- Added a regression asserting that COMPLETE-01 contains strict-order nodes and no standalone `le` nodes. Validation pending.
+- PR #129 merged at `ccdd642aa60e16b5021620bf951f5c9014f301a5`: COMPLETE-01 now expresses every non-strict comparison as the negation of the reverse strict comparison, relying on ORDER-01 trichotomy rather than an unrelated primitive `le` relation.
+- Regression tests ensure COMPLETE-01 contains strict-order nodes and no standalone `le` nodes. Test Suite, preflight, Training Prototype Validation, Chromium and WebKit all passed.
+
+
+## Stage 4 — ZFC-10 axiom of choice (in progress, 2026-11-21)
+
+- Branch: `feature/zfc-choice-relation-signature`.
+- Adds the exact ZFC-10 statement using typed relations for a family of nonempty sets over an index set and a choice function defined on that index set.
+- The relations accept only Set-valued arguments and are available only in the ZFC context; tests cover exact axiom replay, forged formulas, cross-context denial and malformed/sort-incompatible nodes.
+- The current signature is relation-level and uses primitive symbols. The checker validates their closed AST shapes, Set sorts, exact ZFC-10 formula and ZFC-only availability; it does not yet define/evaluate that a family is a function with domain I, that every indexed set is nonempty, or that a choice function selects an element from each indexed set. Function graphs as sets of ordered pairs, domain/application semantics and constructive selection are not implemented. This is an axiom representation, not an executable choice-function constructor or a complete formalization of indexed families.
+- Validation pending. No training, model weights, checkpoints, dataset generation, Supabase or production configuration changes.

@@ -8,7 +8,7 @@ const SYSTEMS=deepFreeze({
  COMPLETE_REAL:{label:"Complete real field",sorts:["Field","RealSet"],enabledAxioms:["FIELD-01","FIELD-02","FIELD-03","FIELD-04","FIELD-05","FIELD-06","FIELD-07","FIELD-08","FIELD-09"].concat(["ORDER-01","ORDER-02","ORDER-03","ORDER-04","COMPLETE-01"]),enabledAxiomSchemas:[]},
  EUCLID_GEOMETRY:{label:"Euclidean geometry",sorts:["Point","Line","Circle","Angle"],enabledAxioms:["EUCLID-01","EUCLID-02","EUCLID-03","EUCLID-04","EUCLID-05"],enabledAxiomSchemas:[]},
  KOLMOGOROV:{label:"Kolmogorov probability",sorts:["Event","Real","EventSequence"],enabledAxioms:["PROB-01","PROB-02","PROB-03"],enabledAxiomSchemas:[]},
- ZFC:{label:"Zermelo–Fraenkel set theory with Choice",sorts:["Set"],enabledAxioms:["ZFC-01","ZFC-02","ZFC-03","ZFC-04","ZFC-05","ZFC-06","ZFC-09"],enabledAxiomSchemas:["ZFC-07","ZFC-08"]}
+ ZFC:{label:"Zermelo–Fraenkel set theory with Choice",sorts:["Set"],enabledAxioms:["ZFC-01","ZFC-02","ZFC-03","ZFC-04","ZFC-05","ZFC-06","ZFC-09","ZFC-10"],enabledAxiomSchemas:["ZFC-07","ZFC-08"]}
 });
 const T=Object.freeze({
  variable:(name,sort)=>({kind:"var",name,sort}), numeral:value=>({kind:"nat",value}),
@@ -23,7 +23,7 @@ const F=Object.freeze({
  eq:(left,right)=>({kind:"eq",left,right}), lt:(left,right)=>({kind:"lt",left,right}), le:(left,right)=>({kind:"le",left,right}),
  and:(left,right)=>({kind:"and",left,right}), implies:(left,right)=>({kind:"implies",left,right}),
  forall:(name,sort,body)=>({kind:"forall",name,sort,body}), exists:(name,sort,body)=>({kind:"exists",name,sort,body}), not:formula=>({kind:"not",formula}),
- member:(term,set)=>({kind:"member",term,set}), incident:(point,line)=>({kind:"incident",point,line}), between:(first,middle,last)=>({kind:"between",first,middle,last}), circleCenter:(circle,center)=>({kind:"circleCenter",circle,center}), onCircle:(point,circle)=>({kind:"onCircle",point,circle}), rightAngle:angle=>({kind:"rightAngle",angle}), angleEqual:(left,right)=>({kind:"angleEqual",left,right}), sameSideInteriorAngles:(firstAngle,secondAngle,firstLine,secondLine,transversal)=>({kind:"sameSideInteriorAngles",firstAngle,secondAngle,firstLine,secondLine,transversal}), angleSumLessThanTwoRightAngles:(firstAngle,secondAngle)=>({kind:"angleSumLessThanTwoRightAngles",firstAngle,secondAngle}), linesMeetOnSameSide:(firstLine,secondLine,transversal)=>({kind:"linesMeetOnSameSide",firstLine,secondLine,transversal}), pairwiseDisjoint:sequence=>({kind:"pairwiseDisjoint",sequence}), predicate:(name,args)=>({kind:"predicate",name,args:args||[]})
+ member:(term,set)=>({kind:"member",term,set}), incident:(point,line)=>({kind:"incident",point,line}), between:(first,middle,last)=>({kind:"between",first,middle,last}), circleCenter:(circle,center)=>({kind:"circleCenter",circle,center}), onCircle:(point,circle)=>({kind:"onCircle",point,circle}), rightAngle:angle=>({kind:"rightAngle",angle}), angleEqual:(left,right)=>({kind:"angleEqual",left,right}), sameSideInteriorAngles:(firstAngle,secondAngle,firstLine,secondLine,transversal)=>({kind:"sameSideInteriorAngles",firstAngle,secondAngle,firstLine,secondLine,transversal}), angleSumLessThanTwoRightAngles:(firstAngle,secondAngle)=>({kind:"angleSumLessThanTwoRightAngles",firstAngle,secondAngle}), linesMeetOnSameSide:(firstLine,secondLine,transversal)=>({kind:"linesMeetOnSameSide",firstLine,secondLine,transversal}), pairwiseDisjoint:sequence=>({kind:"pairwiseDisjoint",sequence}), familyOfNonemptySets:(family,indexSet)=>({kind:"familyOfNonemptySets",family,indexSet}), choiceFunction:(choice,indexSet,family)=>({kind:"choiceFunction",choice,indexSet,family}), predicate:(name,args)=>({kind:"predicate",name,args:args||[]})
 });
 const isObj=x=>!!x&&typeof x==="object"&&!Array.isArray(x), stable=x=>JSON.stringify(x), clone=x=>JSON.parse(JSON.stringify(x));
 function exactKeys(value,required,optional=[]){if(!isObj(value))return false;const allowed=new Set(required.concat(optional));const keys=Reflect.ownKeys(value);return required.every(key=>Object.prototype.hasOwnProperty.call(value,key))&&keys.every(key=>typeof key==="string"&&allowed.has(key));}
@@ -88,6 +88,8 @@ function validFormula(f,bound={},allowedSorts=null) {
  case "angleSumLessThanTwoRightAngles":return exactKeys(f,["kind","firstAngle","secondAngle"])&&termSort(f.firstAngle,bound)==="Angle"&&termSort(f.secondAngle,bound)==="Angle"&&(!allowedSorts||allowedSorts.has("Angle"));
  case "linesMeetOnSameSide":return exactKeys(f,["kind","firstLine","secondLine","transversal"])&&termSort(f.firstLine,bound)==="Line"&&termSort(f.secondLine,bound)==="Line"&&termSort(f.transversal,bound)==="Line"&&(!allowedSorts||allowedSorts.has("Line"));
  case "pairwiseDisjoint":return exactKeys(f,["kind","sequence"])&&termSort(f.sequence,bound)==="EventSequence"&&(!allowedSorts||allowedSorts.has("EventSequence"));
+ case "familyOfNonemptySets":return exactKeys(f,["kind","family","indexSet"])&&termSort(f.family,bound)==="Set"&&termSort(f.indexSet,bound)==="Set"&&(!allowedSorts||allowedSorts.has("Set"));
+ case "choiceFunction":return exactKeys(f,["kind","choice","indexSet","family"])&&termSort(f.choice,bound)==="Set"&&termSort(f.indexSet,bound)==="Set"&&termSort(f.family,bound)==="Set"&&(!allowedSorts||allowedSorts.has("Set"));
  case "predicate":return exactKeys(f,["kind","name","args"])&&typeof f.name==="string"&&!!f.name&&denseArray(f.args)&&f.args.every(x=>{const sort=termSort(x,bound);return !!sort&&(!allowedSorts||allowedSorts.has(sort));});
  default:return false;
  }
@@ -310,7 +312,11 @@ const AXIOMS=deepFreeze({
    F.member(T.variable("y","Set"),T.variable("X","Set")),
    F.forall("z","Set",F.implies(F.member(T.variable("z","Set"),T.variable("y","Set")),F.not(F.member(T.variable("z","Set"),T.variable("X","Set")))))
   ))
- ))}
+ ))},
+ "ZFC-10":{system:"ZFC",formula:F.forall("I","Set",F.forall("A","Set",F.implies(
+  F.familyOfNonemptySets(T.variable("A","Set"),T.variable("I","Set")),
+  F.exists("f","Set",F.choiceFunction(T.variable("f","Set"),T.variable("I","Set"),T.variable("A","Set")))
+ )))}
 });
 function axiomAvailable(axiom,system){return !!axiom&&(axiom.system===system||(Array.isArray(axiom.systems)&&axiom.systems.includes(system)));}
 const AXIOM_SCHEMAS=deepFreeze({
