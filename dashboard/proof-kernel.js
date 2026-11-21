@@ -44,8 +44,9 @@ function boundedProofData(root){
    active.add(value);stack.push({value,depth:item.depth,exit:true});
    const keys=Reflect.ownKeys(value);
    if(Array.isArray(value)){
-    if(value.length>LIMITS.arrayLength||keys.length!==value.length+1)return false;
-    for(let i=value.length-1;i>=0;i--){if(!Object.prototype.hasOwnProperty.call(value,i))return false;stack.push({value:value[i],depth:item.depth+1,exit:false});}
+    if(value.length>LIMITS.arrayLength)return false;
+    for(const key of keys){if(key==="length")continue;if(typeof key!=="string"||!/^(0|[1-9][0-9]*)$/.test(key)||Number(key)>=value.length)return false;}
+    for(let i=value.length-1;i>=0;i--){if(!Object.prototype.hasOwnProperty.call(value,i))continue;const descriptor=Object.getOwnPropertyDescriptor(value,String(i));if(!descriptor||!Object.prototype.hasOwnProperty.call(descriptor,"value"))return false;stack.push({value:descriptor.value,depth:item.depth+1,exit:false});}
    }else{
     const proto=Object.getPrototypeOf(value);
     if((proto!==Object.prototype&&proto!==null)||keys.length>LIMITS.objectKeys)return false;
