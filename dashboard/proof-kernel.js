@@ -89,7 +89,7 @@ const AXIOMS=deepFreeze({
  "FIELD-03":{system:"REAL_FIELD",formula:F.forall("a","Field",F.and(F.eq(T.add(T.variable("a","Field"),T.rational(0,1)),T.variable("a","Field")),F.eq(T.add(T.rational(0,1),T.variable("a","Field")),T.variable("a","Field"))))},
  "FIELD-05":{system:"REAL_FIELD",formula:F.forall("a","Field",F.forall("b","Field",F.eq(T.multiply(T.variable("a","Field"),T.variable("b","Field")),T.multiply(T.variable("b","Field"),T.variable("a","Field")))))},
  "FIELD-06":{system:"REAL_FIELD",formula:F.forall("a","Field",F.forall("b","Field",F.forall("c","Field",F.eq(T.multiply(T.multiply(T.variable("a","Field"),T.variable("b","Field")),T.variable("c","Field")),T.multiply(T.variable("a","Field"),T.multiply(T.variable("b","Field"),T.variable("c","Field")))))))},
- "FIELD-09":{system:"REAL_FIELD",formula:F.forall("a","Field",F.forall("b","Field",F.forall("c","Field",F.eq(T.multiply(T.variable("a","Field"),T.add(T.variable("b","Field"),T.variable("c","Field"))),T.add(T.multiply(T.variable("a","Field"),T.variable("b","Field")),T.multiply(T.variable("a","Field"),T.variable("c","Field"))))))))}
+ "FIELD-09":{system:"REAL_FIELD",formula:F.forall("a","Field",F.forall("b","Field",F.forall("c","Field",F.eq(T.multiply(T.variable("a","Field"),T.add(T.variable("b","Field"),T.variable("c","Field"))),T.add(T.multiply(T.variable("a","Field"),T.variable("b","Field")),T.multiply(T.variable("a","Field"),T.variable("c","Field")))))))}
 });
 const err=(code,message,stepId)=>({valid:false,code,message,stepId:stepId||null});
 function verify(p){
