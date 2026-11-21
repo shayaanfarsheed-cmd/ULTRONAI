@@ -87,7 +87,7 @@
       ];
       return { available: true, topic, hints, verifiedSource: true, scope: "Hints are derived from the deterministic solver's independently verified solution; they are not a formal proof." };
     }
-    function diagnose(topic, question, answer, work) {
+    function diagnose(topic, question, answer, work, trace) {
       if (!owns(PREREQUISITES, topic) || typeof question !== "string" || typeof answer !== "string") {
         return { status: "invalid", message: "A supported topic, question and text answer are required.", misconception: null };
       }
@@ -104,7 +104,21 @@
       const correct = agent.verify(topic, question, answer.trim()) && answer.trim() === expected;
       if (correct) return { status: "correct", message: "Correct — the answer passed the independent checker.", expected, misconception: null };
       const hasWork = Array.isArray(work) && work.some(line => typeof line === "string" && line.trim());
-      if (!hasWork) return {
+      let traceEvidence = null;
+      if (trace !== undefined && trace !== null) {
+        const kernel = root.ULTRON_PROOF_KERNEL;
+        traceEvidence = kernel && typeof kernel.verifyWorkingTrace === "function"
+          ? kernel.verifyWorkingTrace(trace)
+          : { valid: false, code: "KERNEL_UNAVAILABLE", message: "The formal proof checker is not loaded." };
+      }
+      if (traceEvidence && traceEvidence.valid) return {
+        status: "incorrect_trace_validated",
+        message: "The supplied working trace is a valid derivation in its declared formal system. The final answer is still incorrect; the checked proof does not establish the submitted answer.",
+        expected,
+        misconception: null,
+        traceEvidence
+      };
+      if (!hasWork && !traceEvidence) return {
         status: "incorrect_unclassified",
         message: "That answer did not pass the independent checker. I cannot identify the cause from the final answer alone; show your working for a more specific diagnosis.",
         expected,
@@ -115,7 +129,8 @@
         message: "The answer is not correct. I can see that you supplied working, but this release does not yet classify individual error patterns.",
         expected,
         misconception: null,
-        diagnosisLimit: "No misconception label is assigned until a validated step-by-step work parser exists."
+        diagnosisLimit: "No misconception label is assigned until validated error-pattern rules exist.",
+        traceEvidence
       };
     }
     function recordAttempt(topic, correct) {
@@ -191,6 +206,11 @@
     return Object.freeze({
       getHints,
       diagnose,
+      validateWorkingTrace: trace => {
+        const kernel = root.ULTRON_PROOF_KERNEL;
+        if (!kernel || typeof kernel.verifyWorkingTrace !== "function") return { valid: false, code: "KERNEL_UNAVAILABLE", message: "The formal proof checker is not loaded." };
+        return kernel.verifyWorkingTrace(trace);
+      },
       recordAttempt,
       nextExercise,
       getSnapshot,
