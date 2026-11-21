@@ -146,7 +146,7 @@ const AXIOMS=deepFreeze({
  "EUCLID-03":{system:"EUCLID_GEOMETRY",formula:F.forall("O","Point",F.forall("A","Point",F.exists("c","Circle",F.and(
   F.circleCenter(T.variable("c","Circle"),T.variable("O","Point")),
   F.onCircle(T.variable("A","Point"),T.variable("c","Circle"))
- ))))},,
+ ))))},
  "EUCLID-04":{system:"EUCLID_GEOMETRY",formula:F.forall("A","Angle",F.forall("B","Angle",F.implies(
   F.and(F.rightAngle(T.variable("A","Angle")),F.rightAngle(T.variable("B","Angle"))),
   F.angleEqual(T.variable("A","Angle"),T.variable("B","Angle"))
