@@ -789,6 +789,11 @@ test("ordered-field arithmetic axioms reject incompatible natural-number terms",
 
 test("ZFC-10 choice axiom replays with the typed family and choice-function relations",()=>{
  const formula=K.AXIOMS["ZFC-10"].formula;
+ const serialized=JSON.stringify(formula);
+ assert.equal(serialized.includes('"kind":"familyOfNonemptySets"'),false);
+ assert.equal(serialized.includes('"kind":"choiceFunction"'),false);
+ assert.equal(serialized.includes('"kind":"member"'),true);
+ assert.equal(serialized.includes('"kind":"eq"'),true);
  assert.equal(K.validFormula(formula,{},new Set(K.SYSTEMS.ZFC.sorts)),true);
  const proof=mk("ZFC",[],[{id:"choice",rule:"axiom",axiomId:"ZFC-10",formula}],"choice");
  const result=K.verify(proof);
