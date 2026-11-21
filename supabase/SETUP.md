@@ -1,92 +1,48 @@
-# Supabase and owner-access architecture
+# Supabase and private backend architecture
 
-**Status (2026-11-18): owner-only cloud data library implementation is proposed on an unmerged branch. Its SQL has not been applied to production. Do not apply migrations or policy changes without separate explicit approval.**
+**Current website contract:** ULTRON's public GitHub Pages dashboard is account-free. It does not sign users in, restore browser sessions, access private training history, read or write checkpoints, upload user data, or call Supabase Auth/REST/Storage APIs. Its only network reads are the public repository's `servers.json` and `config.json` files.
 
-## Product access model
+## Public dashboard configuration
 
-ULTRON's accepted product design is:
+- `dashboard/config.js` is an empty compatibility stub and is not loaded by `dashboard/index.html`.
+- No Supabase URL, publishable key, owner identifier, access token or refresh token is required by the public dashboard.
+- `dashboard/app.js` clears stale legacy session/cache keys from older releases once, but never restores, creates or refreshes a session.
+- Never put `sb_secret_...`, service-role credentials, device credentials, recovery tokens or private keys in any browser asset.
 
-- Exactly one intended owner account, with one identity across the website and private system operations.
-- Guest Mode for public dashboard and public mathematics information.
-- Guests cannot access private training history, checkpoints, device pairing, or remote training controls.
-- Public self-registration must remain disabled. Owner provisioning must be restricted to the intended owner.
-- Passwords must be handled by a trusted authentication provider and never stored in source code, browser storage, plaintext configuration, or notebooks.
-- The browser must never receive a Supabase secret/service-role key.
-- Private operations must derive the owner ID from a verified server-side identity. A browser-supplied owner ID is not authorization.
+## Historical private backend resources
 
-**Implementation status:** the current dashboard is public-mode only. The owner login, restricted owner provisioning, recovery flow, and backend authorization boundary are not implemented. Do not treat the legacy instructions in earlier project notes as live setup steps.
+The repository has documented a Supabase project named `ultron-memory`, a `training_api` schema, owner-scoped RLS policies, lease/checkpoint RPCs and private Storage buckets. Those are historical repository records, not a fresh verification of live production state. Do not assume that live resources match the repository without a separately approved inspection.
 
-## Existing Supabase resources — historical repository documentation
+The owner-gated `training-control` Edge Function and its server-side authorization code remain in the repository for controlled backend diagnostics. The public dashboard does not load `training-control.js`, does not expose its controls and does not dispatch its actions. Keep its origin checks, JWT verification, owner identity checks, least-privilege GitHub permissions and secret redaction intact. Do not deploy functions, run diagnostics or change production configuration as part of frontend cleanup.
 
-The repository documents an existing Supabase project named `ultron-memory` with project reference `euhmejpaswmdpsutbtse`. The repository also documents an existing `training_api` schema, owner-scoped RLS policies, lease/checkpoint RPCs, and a private `checkpoints` Storage bucket.
+## Legacy data-library SQL
 
-These statements describe the last repository inspection; they are not a fresh live verification. Do not assume the live project still matches them without a separately approved inspection.
+`supabase/storage-setup.sql` documents an owner-scoped private `data-library` bucket. The corresponding upload, download, listing, search and deletion client has been removed from the public dashboard. The SQL is retained as historical backend documentation; it is not an active product feature and must not be applied or changed as part of this frontend work.
 
-Existing training API tables documented by the repository:
-- `training_status`
-- `server_log`
-- `switch_requests`
+If the private bucket or policies already exist in production, preserve their private visibility and owner-scoped RLS. Do not make the bucket public or weaken policies. Do not assume the UI's removal deletes existing storage objects.
 
-Existing lease/fencing and checkpoint functions must remain the sole authoritative training-writer mechanism. Device control must not create a competing lease.
+## Training credentials and compute
 
-## Safe browser configuration
+The training worker may require `SUPABASE_URL`, `SUPABASE_SECRET_KEY` and `SUPABASE_OWNER_ID`. These belong only in a trusted provider/runner secret manager. Never copy them into ChatGPT, browser storage, GitHub source files, notebook output or public configuration.
 
-- `dashboard/config.js` may contain only the project URL and publishable/anon key.
-- A publishable key is public and does not authenticate the owner.
-- Never place `sb_secret_...`, service-role credentials, device credentials, pairing codes, recovery tokens, or private keys in the dashboard.
-- The current publishable-key value is a placeholder. Do not ask the user to paste a key into chat.
+GitHub Actions CPU is the only planned remote training provider; Google Colab is manual-only. Any future provider change requires checking its current free-tier terms and resource limits. Budget remains $0.
 
-## Future owner authentication work package
+No provider job, private diagnostic, migration, Edge Function deployment, checkpoint write or live training run is authorized by this document.
 
-Before owner login is implemented, the design and tests must cover:
+## Security invariants
 
-1. One intended owner identity; no public self-registration.
-2. Secure login and logout.
-3. Secure password recovery.
-4. Session expiry, refresh, revocation and multi-device access.
-5. Server-side authorization on every private operation.
-6. Anonymous Guest Mode denial for all private tables, RPCs, storage objects and device endpoints.
-7. Cross-owner isolation and attempts to spoof owner IDs.
-8. Rate limiting, audit events, secret redaction and account recovery abuse cases.
+- No public signup or owner-login UI.
+- No browser token persistence or account-specific cache.
+- No anonymous access to private tables, RPCs or Storage objects.
+- Private backend operations remain server-authorized and fail closed.
+- The public dashboard exposes no remote training start/stop or checkpoint controls.
+- Keep server-side authorization, RLS and origin restrictions even when their browser client is absent.
 
-The exact provisioning mechanism must be selected before implementation. Do not enable an open signup endpoint and rely on hiding the signup button.
+## Prohibited actions
 
-## Future device-control backend
-
-Device registry, one-time expiring pairing challenges, per-device credentials, command queue, heartbeat and revocation are not present in the inspected repository. They require a separate non-public control plane and narrow trusted server endpoints.
-
-- Keep device-control records out of browser-exposed schemas.
-- Do not grant anonymous users access to device records or privileged RPCs.
-- Authenticate the agent independently from the owner.
-- Derive owner/device relationships on the server.
-- Use atomic command claim and idempotent acknowledgement.
-- Validate command expiry, nonce, action allowlist, payload size and current fencing token.
-- Reuse the existing training lease/fencing design.
-- Keep checkpoint storage private and verify SHA-256 before restore.
-
-No migration SQL or Edge Function deployment is authorized by this guide.
-
-## Provider and training secrets
-
-The training worker may require environment secrets such as `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, and `SUPABASE_OWNER_ID`. These belong only in a trusted provider/runner secret manager. They are not website configuration and must never be copied into ChatGPT, GitHub source files, notebook output, or browser storage.
-
-GitHub Actions CPU is the only remote training provider. Google Colab is manual-only. Any future provider change requires confirmation that it is genuinely free, needs no payment method, and complies with published limits. Budget remains $0.
-
-No provider job or live training run may start without separate explicit approval.
-
-## What not to do
-
-- Do not follow legacy instructions to create an unrestricted Supabase Auth account.
-- Do not enable public signup.
-- Do not alter exposed schemas, grants, RLS policies, Storage policies, RPC permissions, or production secrets.
+- Do not enable public signup or reintroduce owner login by assumption.
+- Do not expose a Supabase secret/service-role key in browser code.
+- Do not alter exposed schemas, grants, RLS policies, Storage policies, RPC permissions or production secrets.
 - Do not deploy Edge Functions or migrations.
 - Do not start training, pair a device, or launch a provider job.
-- Do not add billing, a payment method, paid trials, or quota workarounds.
-
-
-
-## Owner-only shared data library (proposed)
-
-The dashboard branch `feature/owner-data-library-sync` adds a private Supabase Storage bucket named `data-library`. Each object path is `<verified-owner-auth-uuid>/<filename>`. The SQL in `storage-setup.sql` creates the private bucket (20 MiB per file) and owner-folder SELECT, INSERT, UPDATE, and DELETE policies based on `auth.uid()`. No anonymous or guest policy is created.
-
-Every browser must sign in to the same owner account. The dashboard lists the cloud bucket and refreshes every 20 seconds while visible, so changes propagate to other signed-in browsers. This is polling-based sync, not instantaneous push. The UI stores uploaded bytes as opaque data and never executes them or starts training. The SQL remains unapplied until separately approved.
+- Do not add billing, paid trials, payment methods or quota workarounds.
