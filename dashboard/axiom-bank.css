@@ -11,3 +11,6 @@
 .axiom-source-list { padding-left: 20px; }
 .axiom-source-list a { color: var(--text); }
 @media (max-width: 760px) { .axiom-bank-layout { grid-template-columns: minmax(0, 1fr); } .axiom-results { max-height: 240px; } }
+
+.proof-kernel-panel textarea{width:100%;min-height:150px;resize:vertical;background:#090909;color:#f2f2f2;border:1px solid #6d1c28;border-radius:10px;padding:12px;font:12px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace}
+.proof-trace-result{white-space:pre-wrap;overflow-wrap:anywhere;background:#090909;border:1px solid #333;border-radius:10px;padding:12px;min-height:54px;color:#ddd}

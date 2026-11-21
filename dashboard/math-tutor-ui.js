@@ -19,6 +19,7 @@
     let hints = [];
     let hintIndex = 0;
     let answered = false;
+    let verifiedTrace = null;
 
     function text(parent, tag, className, value) {
       const node = document.createElement(tag);
@@ -56,6 +57,7 @@
         hints = tutor.getHints(exercise.topic, exercise.question).hints;
         hintIndex = 0;
         answered = false;
+        verifiedTrace = null;
         topicNode.textContent = agent.TOPICS[exercise.topic].label + " · fixed foundation difficulty";
         axiomContext.replaceChildren();
         const relatedAxioms = window.ULTRON_AXIOM_BANK ? window.ULTRON_AXIOM_BANK.forTopic(exercise.topic) : [];
@@ -101,7 +103,7 @@
         return;
       }
       if (answered) { feedback.textContent = "This question has already been recorded. Generate a new question to continue."; return; }
-      const diagnosis = tutor.diagnose(exercise.topic, exercise.question, answerNode.value, workingNode.value.split("\n").filter(line => line.trim()));
+      const diagnosis = tutor.diagnose(exercise.topic, exercise.question, answerNode.value, workingNode.value.split("\n").filter(line => line.trim()), verifiedTrace);
       if (!["correct", "incorrect_unclassified", "incorrect_work_submitted"].includes(diagnosis.status)) {
         feedback.textContent = diagnosis.message;
         return;
@@ -126,6 +128,41 @@
       feedback.textContent = "Session mastery and review schedule reset. Nothing was saved.";
       hintNode.textContent = "Hints are available one step at a time.";
       renderMastery();
+    });
+    const traceInput = document.getElementById("proofTraceInput");
+    const traceResult = document.getElementById("proofTraceResult");
+    const traceExample = {
+      kind: "ultron-proof-trace",
+      proof: {
+        version: 1, system: "PEANO_N", assumptions: [],
+        steps: [{
+          id: "reflexive-equality", rule: "eq_refl",
+          term: { kind: "nat", value: 2 },
+          formula: { kind: "eq", left: { kind: "nat", value: 2 }, right: { kind: "nat", value: 2 } }
+        }],
+        conclusion: "reflexive-equality"
+      },
+      claimedConclusion: { kind: "eq", left: { kind: "nat", value: 2 }, right: { kind: "nat", value: 2 } }
+    };
+    const exampleButton = document.getElementById("proofTraceExampleButton");
+    const checkButton = document.getElementById("proofTraceCheckButton");
+    if (exampleButton && traceInput) exampleButton.addEventListener("click", () => {
+      traceInput.value = JSON.stringify(traceExample, null, 2);
+      verifiedTrace = null;
+      if (traceResult) traceResult.textContent = "Example loaded. Select Verify proof trace to replay it.";
+    });
+    if (checkButton && traceInput && traceResult) checkButton.addEventListener("click", () => {
+      try {
+        const parsed = JSON.parse(traceInput.value);
+        const result = tutor.validateWorkingTrace(parsed);
+        verifiedTrace = result.valid ? parsed : null;
+        traceResult.textContent = result.valid
+          ? "VALID · " + result.system + " · " + result.checkedSteps + " steps · open assumptions: " + (result.openAssumptions.join(", ") || "none") + " · axiom dependencies: " + (result.usedAxioms.join(", ") || "none") + "\nThe trace may be used as verified evidence; it is not automatically a diagnosis."
+          : "REJECTED · " + result.code + " · " + result.message;
+      } catch (error) {
+        verifiedTrace = null;
+        traceResult.textContent = "INVALID JSON · " + (error.message || "Could not parse proof trace.");
+      }
     });
     renderMastery();
     next();

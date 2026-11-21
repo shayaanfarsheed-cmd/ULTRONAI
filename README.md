@@ -989,3 +989,29 @@ Validation after merge: Python and Node test suites passed; preflight passed; tr
 Stage 3 boundary: this is the safe baseline. Written work is accepted but not parsed into misconception classes yet; adaptive sequencing chooses topics, while difficulty remains fixed at foundation level. The axiom catalog is a researched educational reference linked into tutor practice, not a formal proof engine and not neural-model training data.
 
 Next — Stage 4: design and implement a small auditable proof kernel. Define typed terms/formulas, explicit formal-system contexts, inference rules, proof objects, axiom/theorem references, and a checker that rejects invalid derivations. Add step-level work parsing only where the proof checker can validate it. Preserve the separation between Peano arithmetic, field/order/completeness, Euclidean geometry, probability and ZFC. Add negative tests for scope mixing, invalid substitutions, unsupported inference steps and forged proof traces. No actual model training until separately authorized.
+
+## Stage 4 — Formal proof kernel (in progress)
+
+**Overall project completion estimate: 32%.** This is a conservative project-wide estimate, not a claim that the neural model is trained or production-ready.
+
+The Stage 4 first implementation adds:
+- `dashboard/proof-kernel.js`: typed term/formula AST, seven isolated formal-system contexts, deterministic proof replay, and a deliberately small inference-rule set.
+- Explicit executable Axiom Bank links for `PEANO-03` and `FIELD-01` only. Other bank entries remain educational references; schemas and unformalized statements cannot be invoked as proof rules.
+- A browser proof-trace checker panel and a tutoring API that accepts structured traces only after replay validation.
+- Rejection paths for malformed proofs, unknown/forward premises, duplicate IDs, wrong-system axioms, unsupported rules, forged conclusions, ill-typed expressions and variable-capture substitution.
+- Adversarial JavaScript tests in `tests/proof_kernel.test.js`.
+- Design and trust-boundary notes in `docs/FORMAL_PROOF_KERNEL.md`.
+
+**Important limitations:** the checker is a small proof replayer, not a general theorem prover. It does not yet parse free-form working, handwriting, existential quantifiers, negation, induction, inequality arithmetic, geometric constructions, probability measure derivations or ZFC schemas. Universal introduction is intentionally withheld until eigenvariable side conditions are implemented. The seven contexts exist, but only Peano successor injectivity and real-field addition commutativity are currently executable axiom entries. A validated proof trace is evidence of a checked derivation, not an automatic misconception diagnosis.
+
+**Training remains disabled.** No neural training, model-weight update, checkpoint mutation or dataset generation was performed.
+
+### Next-chat handoff — continue Stage 4
+
+1. Check PR for `feature/formal-proof-kernel`; run all required Python, JavaScript, preflight, Chromium and WebKit checks.
+2. Fix every regression before merge. Do not bypass or weaken existing tests.
+3. Review proof-kernel soundness carefully, especially assumption scoping, substitution, AST validation and cross-system axiom gating. Add tests for every discovered edge case.
+4. Expand machine-formalized axioms incrementally, preserving exact Axiom Bank IDs and explicit system boundaries. Do not mark natural-language-only entries executable.
+5. Add validated trace-to-step diagnostic rules only after the trace parser and checker can prove each transformation; otherwise abstain.
+6. Keep the dashboard usable on iPad and Android. No training until the separate readiness gates and explicit authorization are satisfied.
+7. Update this README at every meaningful milestone.
