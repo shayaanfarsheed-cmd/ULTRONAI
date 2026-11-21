@@ -86,7 +86,6 @@ const AXIOMS=deepFreeze({
 });
 const err=(code,message,stepId)=>({valid:false,code,message,stepId:stepId||null});
 function verify(p){
- exactKeys(p,["version","system","assumptions","steps","conclusion"])&&p.version===1&&Object.hasOwn(SYSTEMS,p.system)&&denseArray(p.assumptions)&&denseArray(p.steps)&&p.steps.length&&typeof p.conclusion==="string"||false;
  if(!exactKeys(p,["version","system","assumptions","steps","conclusion"])||p.version!==1||!Object.hasOwn(SYSTEMS,p.system)||!denseArray(p.assumptions)||!denseArray(p.steps)||!p.steps.length||typeof p.conclusion!=="string")return err("MALFORMED_PROOF","Malformed proof envelope or unknown system.");
  const sys=SYSTEMS[p.system],allowedSorts=new Set(sys.sorts),available=new Map(),used=[];
  for(const a of p.assumptions){if(!exactKeys(a,["id","formula"])||typeof a.id!=="string"||available.has(a.id)||!validFormula(a.formula,{},allowedSorts))return err("INVALID_ASSUMPTION","Assumptions need unique IDs and well-typed formulas.");available.set(a.id,{formula:a.formula,origin:"assumption",dependencies:new Set([a.id])});}
@@ -125,7 +124,7 @@ function verify(p){
 function verifyWorkingTrace(trace){
  if(!exactKeys(trace,["kind","proof"],["claimedConclusion"])||trace.kind!=="ultron-proof-trace")return err("UNTRUSTED_TRACE","Working must be a strictly shaped structured proof trace.");
  const r=verify(trace.proof);if(!r.valid)return r;
- if(trace.claimedConclusion&&stable(trace.claimedConclusion)!==stable(r.conclusion))return err("FORGED_TRACE","Claimed conclusion differs from replayed derivation.");
+ if(Object.prototype.hasOwnProperty.call(trace,"claimedConclusion")&&stable(trace.claimedConclusion)!==stable(r.conclusion))return err("FORGED_TRACE","Claimed conclusion differs from replayed derivation.");
  return Object.assign({},r,{traceValidated:true,diagnosisEligible:true});
 }
 const api=Object.freeze({SYSTEMS,AXIOMS,T,F,termSort,validFormula,verify,verifyWorkingTrace});
