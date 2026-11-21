@@ -1065,3 +1065,17 @@ The Stage 4 first implementation adds:
 - PEANO-01 successor closure is enforced by the typed successor constructor; it is not misrepresented as a free-standing executable axiom. PEANO induction, field inverse/identity clauses needing unsupported conditions, and ordered-field, completeness, Euclidean, probability and ZFC entries remain non-executable.
 - Branch: `feature/formalize-peano-and-field-axioms`. Merge only after code review and all required checks pass.
 - No training, model-weight update, checkpoint mutation, dataset generation or production configuration change.
+
+
+## Stage 4 — Peano induction schema — in progress (2026-11-21)
+
+- PR #106 merged at `ee070248c99a03d83a58fbffb6b2afb69ea5c058`; executable PEANO-02/03 and FIELD-01/02/03/05/06/09 statements are bound to exact Axiom Bank IDs.
+- This follow-up represents PEANO-04 as a dedicated schema-gated induction rule rather than pretending the schema is one finite axiom formula.
+- The rule requires two backward-referenced premises: P(0) and ∀k(P(k)→P(S(k))). It constructs expected instances from the quantified conclusion, checks that the induction variable is fresh, and records PEANO-04 separately in usedAxiomSchemas.
+- Added tests for valid induction, forged base cases, cross-system attempts, variable capture and schema-ID substitution.
+- Induction is enabled only in the Peano context. No induction rule is enabled in field, geometry, probability, completeness or ZFC contexts.
+- Branch: `feature/peano-induction-schema`. Do not merge until full Test Suite, preflight, Training Prototype Validation, Chromium and WebKit checks pass.
+- No model training, dataset generation, weight/checkpoint mutation or production configuration change.
+
+
+- Additional induction soundness guard: the induction variable must not occur free in any still-open assumption on which either premise depends. Added a regression where a derived base case depends on an unrelated assumption containing that variable.

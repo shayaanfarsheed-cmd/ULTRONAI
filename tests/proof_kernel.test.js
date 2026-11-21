@@ -2,7 +2,7 @@
 const test=require("node:test"),assert=require("node:assert/strict"),K=require("../dashboard/proof-kernel.js");
 const {T,F}=K, mk=(system,assumptions,steps,conclusion)=>({version:1,system,assumptions,steps,conclusion});
 test("typed expression and formula validation",()=>{assert.equal(K.validFormula(F.eq(T.numeral(1),T.numeral(1))),true);assert.equal(K.validFormula(F.eq(T.numeral(1),T.rational(1,1))),false);assert.equal(K.validFormula(F.eq(T.add(T.numeral(1),T.numeral(2)),T.numeral(3))),true);assert.equal(K.validFormula({kind:"evil"}),false);});
-test("formal contexts are separate and conservative",()=>{assert.deepEqual(K.SYSTEMS.PEANO_N.enabledAxioms,["PEANO-02","PEANO-03"]);assert.deepEqual(K.SYSTEMS.REAL_FIELD.enabledAxioms,["FIELD-01","FIELD-02","FIELD-03","FIELD-05","FIELD-06","FIELD-09"]);for(const s of ["ORDERED_FIELD","COMPLETE_REAL","EUCLID_GEOMETRY","KOLMOGOROV","ZFC"])assert.deepEqual(K.SYSTEMS[s].enabledAxioms,[]);});
+test("formal contexts are separate and conservative",()=>{assert.deepEqual(K.SYSTEMS.PEANO_N.enabledAxioms,["PEANO-02","PEANO-03"]);assert.deepEqual(K.SYSTEMS.PEANO_N.enabledAxiomSchemas,["PEANO-04"]);assert.deepEqual(K.SYSTEMS.REAL_FIELD.enabledAxioms,["FIELD-01","FIELD-02","FIELD-03","FIELD-05","FIELD-06","FIELD-09"]);assert.deepEqual(K.SYSTEMS.REAL_FIELD.enabledAxiomSchemas,[]);for(const s of ["ORDERED_FIELD","COMPLETE_REAL","EUCLID_GEOMETRY","KOLMOGOROV","ZFC"]){assert.deepEqual(K.SYSTEMS[s].enabledAxioms,[]);assert.deepEqual(K.SYSTEMS[s].enabledAxiomSchemas,[]);}});
 test("reflexivity replays and forged conclusion fails",()=>{const x=T.variable("x","Nat"),p=mk("PEANO_N",[],[{id:"r",rule:"eq_refl",term:x,formula:F.eq(x,x)}],"r");assert.equal(K.verify(p).valid,true);p.steps[0].formula=F.eq(x,T.numeral(2));assert.equal(K.verify(p).code,"RULE_MISMATCH");});
 test("assumptions, conjunction and implication introduction",()=>{const a=F.predicate("A"),b=F.predicate("B"),p=mk("PEANO_N",[{id:"ha",formula:a},{id:"hb",formula:b}],[{id:"a",rule:"assumption",assumption:"ha",formula:a},{id:"b",rule:"assumption",assumption:"hb",formula:b},{id:"ab",rule:"and_intro",premises:["a","b"],formula:F.and(a,b)},{id:"imp",rule:"imp_intro",premises:["b"],discharge:"hb",formula:F.implies(b,b)}],"imp");assert.equal(K.verify(p).valid,true);});
 test("unknown, forward and duplicate references rejected",()=>{const a=F.predicate("A"),p=mk("PEANO_N",[],[{id:"x",rule:"and_left",premises:["future"],formula:a}],"x");assert.equal(K.verify(p).code,"UNKNOWN_PREMISE");const d=mk("PEANO_N",[{id:"x",formula:a}],[{id:"x",rule:"assumption",assumption:"x",formula:a}],"x");assert.equal(K.verify(d).code,"INVALID_STEP");});
@@ -141,4 +141,74 @@ test("formalized field axiom cannot be replaced by a forged statement",()=>{
  const proof=mk("REAL_FIELD",[],[{id:"ax",rule:"axiom",axiomId:"FIELD-09",formula:changed}],"ax");
  assert.equal(K.verify(proof).code,"RULE_MISMATCH");
  assert.equal(K.validFormula(original,{},new Set(K.SYSTEMS.REAL_FIELD.sorts)),true);
+});
+
+test("Peano induction schema replays a valid base case and successor step",()=>{
+ const conclusionVariable="n",inductionVariable="k";
+ const P=x=>F.predicate("EvenLike",[x]);
+ const base=P(T.numeral(0));
+ const step=F.forall(inductionVariable,"Nat",F.implies(P(T.variable(inductionVariable,"Nat")),P(T.succ(T.variable(inductionVariable,"Nat")))));
+ const goal=F.forall(conclusionVariable,"Nat",P(T.variable(conclusionVariable,"Nat")));
+ const proof=mk("PEANO_N",[{id:"base",formula:base},{id:"step",formula:step}],[
+  {id:"base-proof",rule:"assumption",assumption:"base",formula:base},
+  {id:"step-proof",rule:"assumption",assumption:"step",formula:step},
+  {id:"induction",rule:"induction",axiomId:"PEANO-04",variable:inductionVariable,premises:["base-proof","step-proof"],formula:goal}
+ ],"induction");
+ const result=K.verify(proof);
+ assert.equal(result.valid,true);
+ assert.deepEqual(result.usedAxiomSchemas,["PEANO-04"]);
+ assert.deepEqual(result.openAssumptions,["base","step"]);
+});
+test("Peano induction rejects a forged base case",()=>{
+ const P=x=>F.predicate("P",[x]);
+ const base=P(T.numeral(1));
+ const step=F.forall("k","Nat",F.implies(P(T.variable("k","Nat")),P(T.succ(T.variable("k","Nat")))));
+ const goal=F.forall("n","Nat",P(T.variable("n","Nat")));
+ const proof=mk("PEANO_N",[{id:"b",formula:base},{id:"s",formula:step}],[
+  {id:"b0",rule:"assumption",assumption:"b",formula:base},
+  {id:"s0",rule:"assumption",assumption:"s",formula:step},
+  {id:"i",rule:"induction",axiomId:"PEANO-04",variable:"k",premises:["b0","s0"],formula:goal}
+ ],"i");
+ assert.equal(K.verify(proof).code,"RULE_MISMATCH");
+});
+test("Peano induction schema is unavailable outside Peano arithmetic",()=>{
+ const proof=mk("REAL_FIELD",[],[
+  {id:"i",rule:"induction",axiomId:"PEANO-04",variable:"k",premises:["base","step"],formula:F.forall("n","Field",F.predicate("P",[T.variable("n","Field")]))}
+ ],"i");
+ assert.equal(K.verify(proof).code,"AXIOM_SCHEMA_NOT_AVAILABLE");
+});
+test("Peano induction rejects a capture-prone induction variable",()=>{
+ const P=x=>F.predicate("P",[x]);
+ const body=F.and(P(T.variable("n","Nat")),F.forall("k","Nat",F.predicate("Q",[T.variable("n","Nat")])));
+ const goal=F.forall("n","Nat",body);
+ const base=F.and(P(T.numeral(0)),F.forall("k","Nat",F.predicate("Q",[T.numeral(0)])));
+ const dummy=F.predicate("dummy");
+ const proof=mk("PEANO_N",[{id:"b",formula:base},{id:"s",formula:dummy}],[
+  {id:"b0",rule:"assumption",assumption:"b",formula:base},
+  {id:"s0",rule:"assumption",assumption:"s",formula:dummy},
+  {id:"i",rule:"induction",axiomId:"PEANO-04",variable:"k",premises:["b0","s0"],formula:goal}
+ ],"i");
+ assert.equal(K.verify(proof).code,"INVALID_INDUCTION_VARIABLE");
+});
+test("induction schema ID cannot be forged or substituted",()=>{
+ const proof=mk("PEANO_N",[],[
+  {id:"i",rule:"induction",axiomId:"FIELD-01",variable:"k",premises:["b","s"],formula:F.forall("n","Nat",F.predicate("P",[T.variable("n","Nat")]))}
+ ],"i");
+ assert.equal(K.verify(proof).code,"INVALID_STEP");
+});
+
+test("Peano induction rejects an induction variable free in an open premise assumption",()=>{
+ const k=T.variable("k","Nat");
+ const P=x=>F.predicate("P",[x]);
+ const base=P(T.numeral(0));
+ const step=F.forall("j","Nat",F.implies(P(T.variable("j","Nat")),P(T.succ(T.variable("j","Nat")))));
+ const taintedBase=F.and(base,F.predicate("Q",[k]));
+ const goal=F.forall("n","Nat",P(T.variable("n","Nat")));
+ const proof=mk("PEANO_N",[{id:"tainted",formula:taintedBase},{id:"step",formula:step}],[
+  {id:"base",rule:"assumption",assumption:"tainted",formula:taintedBase},
+  {id:"base-only",rule:"and_left",premises:["base"],formula:base},
+  {id:"step-proof",rule:"assumption",assumption:"step",formula:step},
+  {id:"induction",rule:"induction",axiomId:"PEANO-04",variable:"k",premises:["base-only","step-proof"],formula:goal}
+ ],"induction");
+ assert.equal(K.verify(proof).code,"INDUCTION_VARIABLE_IN_ASSUMPTION");
 });
