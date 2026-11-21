@@ -416,3 +416,29 @@ test("existential elimination rejects a mismatched witness assumption",()=>{
  ],"eliminated");
  assert.equal(K.verify(proof).code,"RULE_MISMATCH");
 });
+
+test("existential elimination rejects an eigenvariable already free in the major premise",()=>{
+ const witness=T.variable("k","Field"),P=(x,y)=>F.predicate("P",[x,y]);
+ const major=F.exists("x","Field",P(T.variable("x","Field"),witness));
+ const caseFormula=P(witness,witness),conclusion=F.eq(T.rational(1,1),T.rational(1,1));
+ const proof=mk("REAL_FIELD",[{id:"major",formula:major},{id:"case",formula:caseFormula}],[
+  {id:"major-step",rule:"assumption",assumption:"major",formula:major},
+  {id:"case-step",rule:"assumption",assumption:"case",formula:caseFormula},
+  {id:"truth",rule:"eq_refl",term:T.rational(1,1),formula:conclusion},
+  {id:"combined",rule:"and_intro",premises:["case-step","truth"],formula:F.and(caseFormula,conclusion)},
+  {id:"minor-proof",rule:"and_right",premises:["combined"],formula:conclusion},
+  {id:"eliminated",rule:"exists_elim",premises:["major-step","minor-proof"],variable:"k",discharge:"case",formula:conclusion}
+ ],"eliminated");
+ assert.equal(K.verify(proof).code,"INVALID_EXISTS_EIGENVARIABLE");
+});
+test("existential elimination requires its witness assumption in the minor proof",()=>{
+ const witness=T.variable("k","Field"),P=x=>F.predicate("P",[x]);
+ const major=F.exists("x","Field",P(T.variable("x","Field"))),conclusion=F.eq(T.rational(1,1),T.rational(1,1));
+ const proof=mk("REAL_FIELD",[{id:"major",formula:major},{id:"case",formula:P(witness)}],[
+  {id:"major-step",rule:"assumption",assumption:"major",formula:major},
+  {id:"case-unused",rule:"assumption",assumption:"case",formula:P(witness)},
+  {id:"truth",rule:"eq_refl",term:T.rational(1,1),formula:conclusion},
+  {id:"eliminated",rule:"exists_elim",premises:["major-step","truth"],variable:"k",discharge:"case",formula:conclusion}
+ ],"eliminated");
+ assert.equal(K.verify(proof).code,"INVALID_EXISTS_ELIMINATION_SCOPE");
+});
