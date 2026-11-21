@@ -2,13 +2,13 @@
 "use strict";
 function deepFreeze(value){if(value&&typeof value==="object"&&!Object.isFrozen(value)){Object.keys(value).forEach(key=>deepFreeze(value[key]));Object.freeze(value);}return value;}
 const SYSTEMS=deepFreeze({
- PEANO_N:{label:"Peano arithmetic",sorts:["Nat"],enabledAxioms:["PEANO-02","PEANO-03"]},
- REAL_FIELD:{label:"Field theory",sorts:["Field"],enabledAxioms:["FIELD-01","FIELD-02","FIELD-03","FIELD-05","FIELD-06","FIELD-09"]},
- ORDERED_FIELD:{label:"Ordered-field theory",sorts:["Field"],enabledAxioms:[]},
- COMPLETE_REAL:{label:"Complete real field",sorts:["Field"],enabledAxioms:[]},
- EUCLID_GEOMETRY:{label:"Euclidean geometry",sorts:["Point","Line"],enabledAxioms:[]},
- KOLMOGOROV:{label:"Kolmogorov probability",sorts:["Event","Probability"],enabledAxioms:[]},
- ZFC:{label:"Zermelo–Fraenkel set theory with Choice",sorts:["Set"],enabledAxioms:[]}
+ PEANO_N:{label:"Peano arithmetic",sorts:["Nat"],enabledAxioms:["PEANO-02","PEANO-03"],enabledAxiomSchemas:["PEANO-04"]},
+ REAL_FIELD:{label:"Field theory",sorts:["Field"],enabledAxioms:["FIELD-01","FIELD-02","FIELD-03","FIELD-05","FIELD-06","FIELD-09"],enabledAxiomSchemas:[]},
+ ORDERED_FIELD:{label:"Ordered-field theory",sorts:["Field"],enabledAxioms:[],enabledAxiomSchemas:[]},
+ COMPLETE_REAL:{label:"Complete real field",sorts:["Field"],enabledAxioms:[],enabledAxiomSchemas:[]},
+ EUCLID_GEOMETRY:{label:"Euclidean geometry",sorts:["Point","Line"],enabledAxioms:[],enabledAxiomSchemas:[]},
+ KOLMOGOROV:{label:"Kolmogorov probability",sorts:["Event","Probability"],enabledAxioms:[],enabledAxiomSchemas:[]},
+ ZFC:{label:"Zermelo–Fraenkel set theory with Choice",sorts:["Set"],enabledAxioms:[],enabledAxiomSchemas:[]}
 });
 const T=Object.freeze({
  variable:(name,sort)=>({kind:"var",name,sort}), numeral:value=>({kind:"nat",value}),
@@ -37,6 +37,7 @@ function validStepShape(step){
   case "eq_symm":case "eq_trans":case "and_intro":case "and_left":case "and_right":case "imp_elim":return exactKeys(step,base.concat("premises"))&&denseArray(step.premises);
   case "imp_intro":return exactKeys(step,base.concat(["premises","discharge"]))&&denseArray(step.premises)&&Object.prototype.hasOwnProperty.call(step,"discharge")&&typeof step.discharge==="string";
   case "forall_elim":return exactKeys(step,base.concat(["premises","term"]))&&denseArray(step.premises)&&Object.prototype.hasOwnProperty.call(step,"term");
+  case "induction":return exactKeys(step,base.concat(["premises","axiomId","variable"]))&&denseArray(step.premises)&&step.premises.length===2&&Object.prototype.hasOwnProperty.call(step,"axiomId")&&step.axiomId==="PEANO-04"&&Object.prototype.hasOwnProperty.call(step,"variable")&&typeof step.variable==="string"&&step.variable.length>0;
   default:return false;
  }
 }
@@ -74,6 +75,12 @@ function freeVariableNames(node,bound=new Set(),out=new Set()){
  for(const value of Object.values(node)){if(Array.isArray(value))value.forEach(x=>freeVariableNames(x,bound,out));else if(isObj(value))freeVariableNames(value,bound,out);}
  return out;
 }
+function allVariableNames(node,out=new Set()){
+ if(!isObj(node))return out;
+ if(node.kind==="var"||node.kind==="forall")out.add(node.name);
+ for(const value of Object.values(node)){if(Array.isArray(value))value.forEach(x=>allVariableNames(x,out));else if(isObj(value))allVariableNames(value,out);}
+ return out;
+}
 function substitute(node,name,replacement){
  if(!isObj(node))return node;
  if(node.kind==="var"&&node.name===name)return clone(replacement);
@@ -91,15 +98,19 @@ const AXIOMS=deepFreeze({
  "FIELD-06":{system:"REAL_FIELD",formula:F.forall("a","Field",F.forall("b","Field",F.forall("c","Field",F.eq(T.multiply(T.multiply(T.variable("a","Field"),T.variable("b","Field")),T.variable("c","Field")),T.multiply(T.variable("a","Field"),T.multiply(T.variable("b","Field"),T.variable("c","Field")))))))},
  "FIELD-09":{system:"REAL_FIELD",formula:F.forall("a","Field",F.forall("b","Field",F.forall("c","Field",F.eq(T.multiply(T.variable("a","Field"),T.add(T.variable("b","Field"),T.variable("c","Field"))),T.add(T.multiply(T.variable("a","Field"),T.variable("b","Field")),T.multiply(T.variable("a","Field"),T.variable("c","Field")))))))}
 });
+const AXIOM_SCHEMAS=deepFreeze({
+ "PEANO-04":{system:"PEANO_N",rule:"induction",description:"From P(0) and ∀k(P(k)→P(S(k))), derive ∀n P(n)."}
+});
 const err=(code,message,stepId)=>({valid:false,code,message,stepId:stepId||null});
 function verify(p){
  if(!exactKeys(p,["version","system","assumptions","steps","conclusion"])||p.version!==1||!Object.hasOwn(SYSTEMS,p.system)||!denseArray(p.assumptions)||!denseArray(p.steps)||!p.steps.length||typeof p.conclusion!=="string")return err("MALFORMED_PROOF","Malformed proof envelope or unknown system.");
- const sys=SYSTEMS[p.system],allowedSorts=new Set(sys.sorts),available=new Map(),used=[];
+ const sys=SYSTEMS[p.system],allowedSorts=new Set(sys.sorts),available=new Map(),used=[],usedSchemas=[];
  for(const a of p.assumptions){if(!exactKeys(a,["id","formula"])||typeof a.id!=="string"||available.has(a.id)||!validFormula(a.formula,{},allowedSorts))return err("INVALID_ASSUMPTION","Assumptions need unique IDs and well-typed formulas.");available.set(a.id,{formula:a.formula,origin:"assumption",dependencies:new Set([a.id])});}
  for(const s of p.steps){
   if(!isObj(s)||typeof s.id!=="string"||available.has(s.id))return err("INVALID_STEP","Each step needs a unique ID.",s&&s.id);
-  if(!validStepShape(s)){if(typeof s.rule==="string"&&!["assumption","axiom","eq_refl","eq_symm","eq_trans","and_intro","and_left","and_right","imp_elim","imp_intro","forall_elim"].includes(s.rule))return err("UNKNOWN_RULE","Rule is not part of the audited kernel.",s.id);return err("INVALID_STEP","Step contains missing, unexpected, or malformed fields.",s.id);}
+  if(!validStepShape(s)){if(typeof s.rule==="string"&&!["assumption","axiom","eq_refl","eq_symm","eq_trans","and_intro","and_left","and_right","imp_elim","imp_intro","forall_elim","induction"].includes(s.rule))return err("UNKNOWN_RULE","Rule is not part of the audited kernel.",s.id);return err("INVALID_STEP","Step contains missing, unexpected, or malformed fields.",s.id);}
   if(s.rule==="axiom"){const registered=AXIOMS[s.axiomId];if(!registered||registered.system!==p.system||!sys.enabledAxioms.includes(s.axiomId))return err("AXIOM_NOT_AVAILABLE","Axiom is unknown, not formalized, or unavailable in this system.",s.id);}
+  if(s.rule==="induction"){const schema=AXIOM_SCHEMAS[s.axiomId];if(!schema||schema.system!==p.system||!sys.enabledAxiomSchemas.includes(s.axiomId))return err("AXIOM_SCHEMA_NOT_AVAILABLE","Axiom schema is unknown or unavailable in this formal system.",s.id);}
   if(!validFormula(s.formula,{},allowedSorts))return err("INVALID_STEP","Proof step formula is not well-typed in its declared formal system.",s.id);
   const ids=s.premises||[];if(!Array.isArray(ids))return err("INVALID_PREMISES","Premises must be an array.",s.id);
   const refs=ids.map(id=>available.get(id));if(refs.some(x=>!x))return err("UNKNOWN_PREMISE","Missing or forward proof reference.",s.id);
@@ -116,9 +127,22 @@ function verify(p){
    case "imp_elim":if(refs.length===2){const i=refs.find(x=>x.formula.kind==="implies"),a=refs.find(x=>x!==i);if(i&&a&&stable(i.formula.left)===stable(a.formula))e=i.formula.right;}break;
    case "imp_intro":{const r=refs.length===1?refs[0]:null,d=available.get(s.discharge);if(r&&d&&d.origin==="assumption"&&r.dependencies.has(s.discharge)&&s.formula.kind==="implies"&&stable(d.formula)===stable(s.formula.left)&&stable(r.formula)===stable(s.formula.right))e=s.formula;break;}
    case "forall_elim":if(refs.length===1&&refs[0].formula.kind==="forall"&&s.term&&termSort(s.term)===refs[0].formula.sort){const candidate=substitute(refs[0].formula.body,refs[0].formula.name,s.term);if(candidate&&validFormula(candidate,{},allowedSorts))e=candidate;}break;
+   case "induction":{
+    const goal=s.formula,variable=s.variable;
+    if(goal.kind!=="forall"||goal.sort!=="Nat"||variable===goal.name||allVariableNames(goal.body).has(variable))return err("INVALID_INDUCTION_VARIABLE","Induction variable must be fresh and distinct from every variable and binder in the property.",s.id);
+    const base=substitute(goal.body,goal.name,T.numeral(0));
+    const inductionVariable=T.variable(variable,"Nat");
+    const before=substitute(goal.body,goal.name,inductionVariable);
+    const after=substitute(goal.body,goal.name,T.succ(inductionVariable));
+    if(!base||!before||!after||!validFormula(base,{},allowedSorts))break;
+    const requiredStep=F.forall(variable,"Nat",F.implies(before,after));
+    if(validFormula(requiredStep,{},allowedSorts)&&stable(refs[0].formula)===stable(base)&&stable(refs[1].formula)===stable(requiredStep))e=goal;
+    break;
+   }
    default:return err("UNKNOWN_RULE","Rule is not part of the audited kernel.",s.id);
   }
   if(!e||stable(e)!==stable(s.formula))return err("RULE_MISMATCH","Conclusion does not follow from the selected rule and premises.",s.id);
+  if(s.rule==="induction")usedSchemas.push(s.axiomId);
   const dependencies=new Set();
   if(s.rule==="assumption")dependencies.add(s.assumption);
   else refs.forEach(ref=>ref.dependencies.forEach(id=>dependencies.add(id)));
@@ -126,7 +150,7 @@ function verify(p){
   available.set(s.id,{formula:s.formula,origin:s.rule,dependencies});
  }
  const last=available.get(p.conclusion);if(!last||!p.steps.some(x=>x.id===p.conclusion))return err("MISSING_CONCLUSION","Conclusion must reference a derived step.");
- return {valid:true,system:p.system,conclusion:clone(last.formula),openAssumptions:[...last.dependencies].sort(),usedAxioms:[...new Set(used)],checkedSteps:p.steps.length,trace:p.steps.map(x=>({id:x.id,rule:x.rule,formula:clone(x.formula),premises:(x.premises||[]).slice(),axiomId:x.axiomId||null}))};
+ return {valid:true,system:p.system,conclusion:clone(last.formula),openAssumptions:[...last.dependencies].sort(),usedAxioms:[...new Set(used)],usedAxiomSchemas:[...new Set(usedSchemas)],checkedSteps:p.steps.length,trace:p.steps.map(x=>({id:x.id,rule:x.rule,formula:clone(x.formula),premises:(x.premises||[]).slice(),axiomId:x.axiomId||null,variable:x.variable||null}))};
 }
 function verifyWorkingTrace(trace){
  if(!exactKeys(trace,["kind","proof"],["claimedConclusion"])||trace.kind!=="ultron-proof-trace")return err("UNTRUSTED_TRACE","Working must be a strictly shaped structured proof trace.");
@@ -134,6 +158,6 @@ function verifyWorkingTrace(trace){
  if(Object.prototype.hasOwnProperty.call(trace,"claimedConclusion")&&stable(trace.claimedConclusion)!==stable(r.conclusion))return err("FORGED_TRACE","Claimed conclusion differs from replayed derivation.");
  return Object.assign({},r,{traceValidated:true,diagnosisEligible:true});
 }
-const api=Object.freeze({SYSTEMS,AXIOMS,T,F,termSort,validFormula,verify,verifyWorkingTrace});
+const api=Object.freeze({SYSTEMS,AXIOMS,AXIOM_SCHEMAS,T,F,termSort,validFormula,verify,verifyWorkingTrace});
 if(typeof module!=="undefined"&&module.exports)module.exports=api;root.ULTRON_PROOF_KERNEL=api;
 })(typeof globalThis!=="undefined"?globalThis:this);
