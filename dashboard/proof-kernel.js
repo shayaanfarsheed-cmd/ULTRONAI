@@ -28,6 +28,39 @@ const F=Object.freeze({
 const isObj=x=>!!x&&typeof x==="object"&&!Array.isArray(x), stable=x=>JSON.stringify(x), clone=x=>JSON.parse(JSON.stringify(x));
 function exactKeys(value,required,optional=[]){if(!isObj(value))return false;const allowed=new Set(required.concat(optional));const keys=Reflect.ownKeys(value);return required.every(key=>Object.prototype.hasOwnProperty.call(value,key))&&keys.every(key=>typeof key==="string"&&allowed.has(key));}
 function denseArray(value){if(!Array.isArray(value))return false;for(let i=0;i<value.length;i++)if(!Object.prototype.hasOwnProperty.call(value,i))return false;return true;}
+
+const LIMITS=Object.freeze({proofSteps:4096,assumptions:4096,nodes:100000,depth:256,arrayLength:8192,objectKeys:64,stringLength:16384});
+function boundedProofData(root){
+ const stack=[{value:root,depth:0,exit:false}],active=new WeakSet();let nodes=0;
+ try{
+  while(stack.length){
+   const item=stack.pop(),value=item.value;
+   if(item.exit){active.delete(value);continue;}
+   if(value===null||typeof value==="boolean")continue;
+   if(typeof value==="string"){if(value.length>LIMITS.stringLength)return false;continue;}
+   if(typeof value==="number"){if(!Number.isFinite(value))return false;continue;}
+   if(typeof value!=="object")return false;
+   if(item.depth>LIMITS.depth||++nodes>LIMITS.nodes||active.has(value))return false;
+   active.add(value);stack.push({value,depth:item.depth,exit:true});
+   const keys=Reflect.ownKeys(value);
+   if(Array.isArray(value)){
+    if(value.length>LIMITS.arrayLength||keys.length!==value.length+1)return false;
+    for(let i=value.length-1;i>=0;i--){if(!Object.prototype.hasOwnProperty.call(value,i))return false;stack.push({value:value[i],depth:item.depth+1,exit:false});}
+   }else{
+    const proto=Object.getPrototypeOf(value);
+    if((proto!==Object.prototype&&proto!==null)||keys.length>LIMITS.objectKeys)return false;
+    for(let i=keys.length-1;i>=0;i--){
+     const key=keys[i];if(typeof key!=="string")return false;
+     const descriptor=Object.getOwnPropertyDescriptor(value,key);
+     if(!descriptor||!Object.prototype.hasOwnProperty.call(descriptor,"value"))return false;
+     stack.push({value:descriptor.value,depth:item.depth+1,exit:false});
+    }
+   }
+  }
+ }catch(_){return false;}
+ return true;
+}
+
 function validStepShape(step){
  if(!isObj(step)||typeof step.rule!=="string")return false;
  const base=["id","rule","formula"];
@@ -378,7 +411,9 @@ const AXIOM_SCHEMAS=deepFreeze({
 });
 const err=(code,message,stepId)=>({valid:false,code,message,stepId:stepId||null});
 function verify(p){
+ if(!boundedProofData(p))return err("RESOURCE_LIMIT","Proof contains unsupported, cyclic, accessor-backed, or oversized data.");
  if(!exactKeys(p,["version","system","assumptions","steps","conclusion"])||p.version!==1||!Object.hasOwn(SYSTEMS,p.system)||!denseArray(p.assumptions)||!denseArray(p.steps)||!p.steps.length||typeof p.conclusion!=="string")return err("MALFORMED_PROOF","Malformed proof envelope or unknown system.");
+ if(p.assumptions.length>LIMITS.assumptions||p.steps.length>LIMITS.proofSteps)return err("RESOURCE_LIMIT","Proof exceeds the configured assumption or step limit.");
  const sys=SYSTEMS[p.system],allowedSorts=new Set(sys.sorts),available=new Map(),used=[],usedSchemas=[];
  for(const a of p.assumptions){if(!exactKeys(a,["id","formula"])||typeof a.id!=="string"||available.has(a.id)||!validFormula(a.formula,{},allowedSorts))return err("INVALID_ASSUMPTION","Assumptions need unique IDs and well-typed formulas.");available.set(a.id,{formula:a.formula,origin:"assumption",dependencies:new Set([a.id])});}
  for(const s of p.steps){
@@ -459,6 +494,7 @@ function verify(p){
  return {valid:true,system:p.system,conclusion:clone(last.formula),openAssumptions:[...last.dependencies].sort(),usedAxioms:[...new Set(used)],usedAxiomSchemas:[...new Set(usedSchemas)],checkedSteps:p.steps.length,trace:p.steps.map(x=>({id:x.id,rule:x.rule,formula:clone(x.formula),premises:(x.premises||[]).slice(),axiomId:x.axiomId||null,schemaId:x.schemaId||null,sourceSet:x.sourceSet?clone(x.sourceSet):null,predicate:x.predicate?clone(x.predicate):null,predicateVariable:x.predicateVariable||null,elementVariable:x.elementVariable||null,subsetVariable:x.subsetVariable||null,inputVariable:x.inputVariable||null,outputVariable:x.outputVariable||null,uniquenessVariable:x.uniquenessVariable||null,imageElementVariable:x.imageElementVariable||null,imageSetVariable:x.imageSetVariable||null,term:x.term?clone(x.term):null,variable:x.variable||null,discharge:x.discharge||null}))};
 }
 function verifyWorkingTrace(trace){
+ if(!boundedProofData(trace))return err("RESOURCE_LIMIT","Trace contains unsupported, cyclic, accessor-backed, or oversized data.");
  if(!exactKeys(trace,["kind","proof"],["claimedConclusion"])||trace.kind!=="ultron-proof-trace")return err("UNTRUSTED_TRACE","Working must be a strictly shaped structured proof trace.");
  const r=verify(trace.proof);if(!r.valid)return r;
  if(Object.prototype.hasOwnProperty.call(trace,"claimedConclusion")&&stable(trace.claimedConclusion)!==stable(r.conclusion))return err("FORGED_TRACE","Claimed conclusion differs from replayed derivation.");
