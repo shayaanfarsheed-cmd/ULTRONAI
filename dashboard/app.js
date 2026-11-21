@@ -890,7 +890,6 @@
       servers: ["SERVERS", "Free compute servers"],
       math: ["MATH AGENT", "Solve mathematics"],
       settings: ["SETTINGS", "System settings"],
-      devices: ["LOCAL TRAINING", "Local training"]
     };
     $("viewName").textContent = labels[view][0];
     $("pageTitle").textContent = labels[view][1];
