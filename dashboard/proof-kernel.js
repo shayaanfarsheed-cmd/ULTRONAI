@@ -118,7 +118,19 @@ const AXIOMS=deepFreeze({
  "PROB-01":{system:"KOLMOGOROV",formula:F.forall("A","Event",F.not(F.lt(T.measure(T.variable("A","Event")),T.real(0,1))))},
  "PROB-02":{system:"KOLMOGOROV",formula:F.eq(T.measure(T.sampleSpace()),T.real(1,1))},
  "ZFC-01":{system:"ZFC",formula:F.forall("A","Set",F.forall("B","Set",F.implies(F.forall("z","Set",F.and(F.implies(F.member(T.variable("z","Set"),T.variable("A","Set")),F.member(T.variable("z","Set"),T.variable("B","Set"))),F.implies(F.member(T.variable("z","Set"),T.variable("B","Set")),F.member(T.variable("z","Set"),T.variable("A","Set"))))),F.eq(T.variable("A","Set"),T.variable("B","Set")))))},
- "ZFC-02":{system:"ZFC",formula:F.exists("E","Set",F.forall("x","Set",F.not(F.member(T.variable("x","Set"),T.variable("E","Set")))))}
+ "ZFC-02":{system:"ZFC",formula:F.exists("E","Set",F.forall("x","Set",F.not(F.member(T.variable("x","Set"),T.variable("E","Set")))))},
+ "ZFC-03":{system:"ZFC",formula:F.forall("a","Set",F.forall("b","Set",F.exists("c","Set",F.forall("x","Set",F.and(
+  F.implies(F.member(T.variable("x","Set"),T.variable("c","Set")),F.not(F.and(F.not(F.eq(T.variable("x","Set"),T.variable("a","Set"))),F.not(F.eq(T.variable("x","Set"),T.variable("b","Set")))))),
+  F.implies(F.not(F.and(F.not(F.eq(T.variable("x","Set"),T.variable("a","Set"))),F.not(F.eq(T.variable("x","Set"),T.variable("b","Set"))))),F.member(T.variable("x","Set"),T.variable("c","Set")))
+ ))))))},
+ "ZFC-04":{system:"ZFC",formula:F.forall("A","Set",F.exists("B","Set",F.forall("x","Set",F.and(
+  F.implies(F.member(T.variable("x","Set"),T.variable("B","Set")),F.exists("y","Set",F.and(F.member(T.variable("y","Set"),T.variable("A","Set")),F.member(T.variable("x","Set"),T.variable("y","Set"))))),
+  F.implies(F.exists("y","Set",F.and(F.member(T.variable("y","Set"),T.variable("A","Set")),F.member(T.variable("x","Set"),T.variable("y","Set")))),F.member(T.variable("x","Set"),T.variable("B","Set")))
+ )))))},
+ "ZFC-05":{system:"ZFC",formula:F.forall("A","Set",F.exists("P","Set",F.forall("X","Set",F.and(
+  F.implies(F.member(T.variable("X","Set"),T.variable("P","Set")),F.forall("y","Set",F.implies(F.member(T.variable("y","Set"),T.variable("X","Set")),F.member(T.variable("y","Set"),T.variable("A","Set"))))),
+  F.implies(F.forall("y","Set",F.implies(F.member(T.variable("y","Set"),T.variable("X","Set")),F.member(T.variable("y","Set"),T.variable("A","Set")))),F.member(T.variable("X","Set"),T.variable("P","Set")))
+ )))))}
 });
 const AXIOM_SCHEMAS=deepFreeze({
  "PEANO-04":{system:"PEANO_N",rule:"induction",description:"From P(0) and ∀k(P(k)→P(S(k))), derive ∀n P(n)."}
