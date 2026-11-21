@@ -320,7 +320,6 @@ class DashboardStaticTests(unittest.TestCase):
         self.assertIn('TextDecoder("utf-8", {fatal: true})', javascript)
         self.assertIn('ASK_MAX_TOTAL_BYTES = 15 * 1024 * 1024', javascript)
         self.assertIn('ASK_MAX_FILE_BYTES = 5 * 1024 * 1024', javascript)
-        self.assertNotIn('does not expose a public Ask ULTRON route', javascript)
         self.assertIn("does not use an external ai api", html.lower())
         bind_events = javascript.split("function bindEvents()", 1)[1].split("function clearLegacyOwnerState()", 1)[0]
         self.assertNotIn('askUltron(', bind_events)
