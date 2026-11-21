@@ -171,7 +171,7 @@ const AXIOMS=deepFreeze({
  "EUCLID-04":{system:"EUCLID_GEOMETRY",formula:F.forall("A","Angle",F.forall("B","Angle",F.implies(
   F.and(F.rightAngle(T.variable("A","Angle")),F.rightAngle(T.variable("B","Angle"))),
   F.angleEqual(T.variable("A","Angle"),T.variable("B","Angle"))
- )))},,
+ )))},
  "EUCLID-05":{system:"EUCLID_GEOMETRY",formula:EUCLID_PARALLEL_POSTULATE},
  "PROB-01":{system:"KOLMOGOROV",formula:F.forall("A","Event",F.not(F.lt(T.measure(T.variable("A","Event")),T.real(0,1))))},
  "PROB-02":{system:"KOLMOGOROV",formula:F.eq(T.measure(T.sampleSpace()),T.real(1,1))},
