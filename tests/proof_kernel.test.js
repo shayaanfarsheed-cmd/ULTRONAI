@@ -761,6 +761,8 @@ test("field axioms are explicitly available in ordered and complete-real context
 });
 test("complete-real least-upper-bound axiom is fully typed over real subsets",()=>{
  const formula=K.AXIOMS["COMPLETE-01"].formula;
+ assert.equal(JSON.stringify(formula).includes('"kind":"le"'),false);
+ assert.equal(JSON.stringify(formula).includes('"kind":"lt"'),true);
  assert.equal(K.validFormula(formula,{},new Set(K.SYSTEMS.COMPLETE_REAL.sorts)),true);
  const proof=mk("COMPLETE_REAL",[],[{id:"ax",rule:"axiom",axiomId:"COMPLETE-01",formula}],"ax");
  const result=K.verify(proof);
