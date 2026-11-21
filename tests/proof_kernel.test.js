@@ -312,3 +312,100 @@ test("universal introduction treats existential binders as variable-name collisi
  ],"generalized");
  assert.equal(K.verify(proof).code,"INVALID_EIGENVARIABLE");
 });
+
+test("existential introduction verifies a concrete witness",()=>{
+ const witness=T.variable("a","Field"),instance=F.predicate("P",[witness]);
+ const goal=F.exists("x","Field",F.predicate("P",[T.variable("x","Field")]));
+ const proof=mk("REAL_FIELD",[{id:"pa",formula:instance}],[
+  {id:"given",rule:"assumption",assumption:"pa",formula:instance},
+  {id:"some",rule:"exists_intro",premises:["given"],term:witness,formula:goal}
+ ],"some");
+ const result=K.verify(proof);
+ assert.equal(result.valid,true);
+ assert.deepEqual(result.openAssumptions,["pa"]);
+ assert.deepEqual(result.trace[1].term,witness);
+});
+test("existential introduction rejects a witness that would be captured by a nested binder",()=>{
+ const witness=T.variable("a","Field");
+ const goal=F.exists("x","Field",F.exists("a","Field",F.predicate("P",[T.variable("x","Field"),T.variable("a","Field")])));
+ const instance=F.predicate("P",[witness,witness]);
+ const proof=mk("REAL_FIELD",[{id:"pa",formula:instance}],[
+  {id:"given",rule:"assumption",assumption:"pa",formula:instance},
+  {id:"some",rule:"exists_intro",premises:["given"],term:witness,formula:goal}
+ ],"some");
+ assert.equal(K.verify(proof).code,"RULE_MISMATCH");
+});
+test("existential elimination discharges only the temporary witness assumption",()=>{
+ const witness=T.variable("k","Field"),P=x=>F.predicate("P",[x]);
+ const existential=F.exists("x","Field",P(T.variable("x","Field")));
+ const witnessAssumption=P(witness);
+ const conclusion=F.eq(T.rational(1,1),T.rational(1,1));
+ const proof=mk("REAL_FIELD",[
+  {id:"major",formula:existential},
+  {id:"case",formula:witnessAssumption}
+ ],[
+  {id:"major-step",rule:"assumption",assumption:"major",formula:existential},
+  {id:"case-step",rule:"assumption",assumption:"case",formula:witnessAssumption},
+  {id:"truth",rule:"eq_refl",term:T.rational(1,1),formula:conclusion},
+  {id:"combined",rule:"and_intro",premises:["case-step","truth"],formula:F.and(witnessAssumption,conclusion)},
+  {id:"minor-proof",rule:"and_right",premises:["combined"],formula:conclusion},
+  {id:"eliminated",rule:"exists_elim",premises:["major-step","minor-proof"],variable:"k",discharge:"case",formula:conclusion}
+ ],"eliminated");
+ const result=K.verify(proof);
+ assert.equal(result.valid,true);
+ assert.deepEqual(result.openAssumptions,["major"]);
+ assert.equal(result.trace.at(-1).discharge,"case");
+});
+test("existential elimination rejects a witness leaked into the conclusion",()=>{
+ const witness=T.variable("k","Field"),P=x=>F.predicate("P",[x]);
+ const existential=F.exists("x","Field",P(T.variable("x","Field")));
+ const minor=P(witness);
+ const proof=mk("REAL_FIELD",[{id:"major",formula:existential},{id:"case",formula:minor}],[
+  {id:"major-step",rule:"assumption",assumption:"major",formula:existential},
+  {id:"case-step",rule:"assumption",assumption:"case",formula:minor},
+  {id:"eliminated",rule:"exists_elim",premises:["major-step","case-step"],variable:"k",discharge:"case",formula:minor}
+ ],"eliminated");
+ assert.equal(K.verify(proof).code,"INVALID_EXISTS_EIGENVARIABLE");
+});
+test("existential elimination rejects witness leakage through another open assumption",()=>{
+ const witness=T.variable("k","Field"),P=x=>F.predicate("P",[x]),Q=x=>F.predicate("Q",[x]);
+ const existential=F.exists("x","Field",P(T.variable("x","Field")));
+ const witnessAssumption=P(witness),other=Q(witness);
+ const conclusion=F.eq(T.rational(1,1),T.rational(1,1));
+ const proof=mk("REAL_FIELD",[
+  {id:"major",formula:existential},{id:"case",formula:witnessAssumption},{id:"other",formula:other}
+ ],[
+  {id:"major-step",rule:"assumption",assumption:"major",formula:existential},
+  {id:"case-step",rule:"assumption",assumption:"case",formula:witnessAssumption},
+  {id:"other-step",rule:"assumption",assumption:"other",formula:other},
+  {id:"truth",rule:"eq_refl",term:T.rational(1,1),formula:conclusion},
+  {id:"combined",rule:"and_intro",premises:["truth","other-step"],formula:F.and(conclusion,other)},
+  {id:"minor-proof",rule:"and_left",premises:["combined"],formula:conclusion},
+  {id:"eliminated",rule:"exists_elim",premises:["major-step","minor-proof"],variable:"k",discharge:"case",formula:conclusion}
+ ],"eliminated");
+ assert.equal(K.verify(proof).code,"EXISTS_EIGENVARIABLE_IN_ASSUMPTION");
+});
+test("existential elimination rejects discharging the major-premise dependency",()=>{
+ const witness=T.variable("k","Field"),P=x=>F.predicate("P",[x]);
+ const instance=P(witness),existential=F.exists("x","Field",P(T.variable("x","Field")));
+ const conclusion=F.eq(T.rational(1,1),T.rational(1,1));
+ const proof=mk("REAL_FIELD",[{id:"case",formula:instance}],[
+  {id:"case-step",rule:"assumption",assumption:"case",formula:instance},
+  {id:"major-step",rule:"exists_intro",premises:["case-step"],term:witness,formula:existential},
+  {id:"truth",rule:"eq_refl",term:T.rational(1,1),formula:conclusion},
+  {id:"combined",rule:"and_intro",premises:["case-step","truth"],formula:F.and(instance,conclusion)},
+  {id:"minor-proof",rule:"and_right",premises:["combined"],formula:conclusion},
+  {id:"eliminated",rule:"exists_elim",premises:["major-step","minor-proof"],variable:"k",discharge:"case",formula:conclusion}
+ ],"eliminated");
+ assert.equal(K.verify(proof).code,"INVALID_EXISTS_ELIMINATION_SCOPE");
+});
+test("existential elimination rejects a mismatched witness assumption",()=>{
+ const witness=T.variable("k","Field"),P=x=>F.predicate("P",[x]),Q=x=>F.predicate("Q",[x]);
+ const existential=F.exists("x","Field",P(T.variable("x","Field")));
+ const proof=mk("REAL_FIELD",[{id:"major",formula:existential},{id:"case",formula:Q(witness)}],[
+  {id:"major-step",rule:"assumption",assumption:"major",formula:existential},
+  {id:"case-step",rule:"assumption",assumption:"case",formula:Q(witness)},
+  {id:"eliminated",rule:"exists_elim",premises:["major-step","case-step"],variable:"k",discharge:"case",formula:Q(witness)}
+ ],"eliminated");
+ assert.equal(K.verify(proof).code,"INVALID_EXISTS_EIGENVARIABLE");
+});
