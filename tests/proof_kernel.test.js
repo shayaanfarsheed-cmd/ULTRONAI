@@ -2,7 +2,7 @@
 const test=require("node:test"),assert=require("node:assert/strict"),K=require("../dashboard/proof-kernel.js");
 const {T,F}=K, mk=(system,assumptions,steps,conclusion)=>({version:1,system,assumptions,steps,conclusion});
 test("typed expression and formula validation",()=>{assert.equal(K.validFormula(F.eq(T.numeral(1),T.numeral(1))),true);assert.equal(K.validFormula(F.eq(T.numeral(1),T.rational(1,1))),false);assert.equal(K.validFormula(F.eq(T.add(T.numeral(1),T.numeral(2)),T.numeral(3))),true);assert.equal(K.validFormula({kind:"evil"}),false);});
-test("formal contexts are separate and conservative",()=>{assert.deepEqual(K.SYSTEMS.PEANO_N.enabledAxioms,["PEANO-03"]);assert.deepEqual(K.SYSTEMS.REAL_FIELD.enabledAxioms,["FIELD-01"]);for(const s of ["ORDERED_FIELD","COMPLETE_REAL","EUCLID_GEOMETRY","KOLMOGOROV","ZFC"])assert.deepEqual(K.SYSTEMS[s].enabledAxioms,[]);});
+test("formal contexts are separate and conservative",()=>{assert.deepEqual(K.SYSTEMS.PEANO_N.enabledAxioms,["PEANO-02","PEANO-03"]);assert.deepEqual(K.SYSTEMS.REAL_FIELD.enabledAxioms,["FIELD-01","FIELD-02","FIELD-03","FIELD-05","FIELD-06","FIELD-09"]);for(const s of ["ORDERED_FIELD","COMPLETE_REAL","EUCLID_GEOMETRY","KOLMOGOROV","ZFC"])assert.deepEqual(K.SYSTEMS[s].enabledAxioms,[]);});
 test("reflexivity replays and forged conclusion fails",()=>{const x=T.variable("x","Nat"),p=mk("PEANO_N",[],[{id:"r",rule:"eq_refl",term:x,formula:F.eq(x,x)}],"r");assert.equal(K.verify(p).valid,true);p.steps[0].formula=F.eq(x,T.numeral(2));assert.equal(K.verify(p).code,"RULE_MISMATCH");});
 test("assumptions, conjunction and implication introduction",()=>{const a=F.predicate("A"),b=F.predicate("B"),p=mk("PEANO_N",[{id:"ha",formula:a},{id:"hb",formula:b}],[{id:"a",rule:"assumption",assumption:"ha",formula:a},{id:"b",rule:"assumption",assumption:"hb",formula:b},{id:"ab",rule:"and_intro",premises:["a","b"],formula:F.and(a,b)},{id:"imp",rule:"imp_intro",premises:["b"],discharge:"hb",formula:F.implies(b,b)}],"imp");assert.equal(K.verify(p).valid,true);});
 test("unknown, forward and duplicate references rejected",()=>{const a=F.predicate("A"),p=mk("PEANO_N",[],[{id:"x",rule:"and_left",premises:["future"],formula:a}],"x");assert.equal(K.verify(p).code,"UNKNOWN_PREMISE");const d=mk("PEANO_N",[{id:"x",formula:a}],[{id:"x",rule:"assumption",assumption:"x",formula:a}],"x");assert.equal(K.verify(d).code,"INVALID_STEP");});
@@ -102,4 +102,43 @@ test("a present but null claimed conclusion cannot bypass trace comparison",()=>
 test("rule-specific step schemas reject malformed premise types",()=>{
  const proof=mk("PEANO_N",[],[{id:"x",rule:"and_left",premises:"not-an-array",formula:F.predicate("A")}],"x");
  assert.equal(K.verify(proof).code,"INVALID_STEP");
+});
+
+test("Peano zero-not-successor axiom is formalized and typed",()=>{
+ const formula=K.AXIOMS["PEANO-02"].formula;
+ assert.equal(K.validFormula(formula,{},new Set(K.SYSTEMS.PEANO_N.sorts)),true);
+ const proof=mk("PEANO_N",[],[{id:"ax",rule:"axiom",axiomId:"PEANO-02",formula}],"ax");
+ const result=K.verify(proof);
+ assert.equal(result.valid,true);
+ assert.deepEqual(result.usedAxioms,["PEANO-02"]);
+});
+test("selected field axioms replay with exact Axiom Bank identifiers",()=>{
+ for(const id of ["FIELD-02","FIELD-03","FIELD-05","FIELD-06","FIELD-09"]){
+  const formula=K.AXIOMS[id].formula;
+  assert.equal(K.validFormula(formula,{},new Set(K.SYSTEMS.REAL_FIELD.sorts)),true,id);
+  const proof=mk("REAL_FIELD",[],[{id:"ax",rule:"axiom",axiomId:id,formula}],"ax");
+  const result=K.verify(proof);
+  assert.equal(result.valid,true,id);
+  assert.deepEqual(result.usedAxioms,[id],id);
+ }
+});
+test("negation is a typed formula constructor, not an unvalidated payload",()=>{
+ assert.equal(K.validFormula(F.not(F.eq(T.numeral(0),T.numeral(1)))),true);
+ assert.equal(K.validFormula(F.not({kind:"untrusted"})),false);
+ assert.equal(K.validFormula({...F.not(F.predicate("P")),extra:true}),false);
+});
+test("new Peano and field axioms remain isolated by their contexts",()=>{
+ const peano=K.AXIOMS["PEANO-02"].formula;
+ const field=K.AXIOMS["FIELD-09"].formula;
+ const wrongPeano=mk("REAL_FIELD",[],[{id:"ax",rule:"axiom",axiomId:"PEANO-02",formula:peano}],"ax");
+ const wrongField=mk("PEANO_N",[],[{id:"ax",rule:"axiom",axiomId:"FIELD-09",formula:field}],"ax");
+ assert.equal(K.verify(wrongPeano).code,"AXIOM_NOT_AVAILABLE");
+ assert.equal(K.verify(wrongField).code,"AXIOM_NOT_AVAILABLE");
+});
+test("formalized field axiom cannot be replaced by a forged statement",()=>{
+ const original=K.AXIOMS["FIELD-09"].formula;
+ const changed=F.forall("a","Field",F.eq(T.variable("a","Field"),T.variable("a","Field")));
+ const proof=mk("REAL_FIELD",[],[{id:"ax",rule:"axiom",axiomId:"FIELD-09",formula:changed}],"ax");
+ assert.equal(K.verify(proof).code,"RULE_MISMATCH");
+ assert.equal(K.validFormula(original,{},new Set(K.SYSTEMS.REAL_FIELD.sorts)),true);
 });
