@@ -577,13 +577,14 @@ The first run is not proof that the project is finished. Use held-out results to
 
 ## Current next-chat starting point — 2026-11-21
 
-1. **PR #138 is merged** at `a4abe0b986ec72a50f04e63bb504116e9c37ddbf`. The account-free dashboard changes passed Test Suite, preflight, Training Prototype Validation, Chromium and WebKit checks. The GitHub Pages build and deployment also succeeded.
-2. The current next website task is to replace misleading empty training telemetry on the public overview with accurate capability status: neural model untrained, deterministic Math Agent available, proof checker limited to documented rules, and training disabled. PR #139 carries this small UI and regression-test change.
-3. Continue the frontend audit after that: inspect every visible route, keyboard/touch accessibility, iPad/mobile/desktop layouts, empty/error states, and whether every visible control has a real, accurately described action. Work in small, independently tested PRs.
-4. **PR #137** remains a separate formal proof-kernel change. Keep it separate from frontend work; review it on its own merits and do not let it displace the website-first priority.
-5. **PR #130 was closed without merging.** Its README-only changes are not in main; use this current README as the source of truth.
-6. Keep actual training disabled. Do not generate training data, dispatch diagnostic/training workflows, change weights, or write checkpoints. A code PR or green CI is not training authorization.
-7. Do not jump to Stage 13. The first real training run requires every Stage 12 readiness gate and separate explicit authorization for that specific run.
+1. **PR #138 is merged** at `a4abe0b986ec72a50f04e63bb504116e9c37ddbf`. It made the GitHub Pages dashboard account-free: no sign-in/sign-up, no owner session restoration, no public owner ID, no private history/checkpoint navigation, and no remote training controls. Test Suite, preflight, Training Prototype Validation, Chromium and WebKit passed; the Pages build/deployment succeeded.
+2. **PR #139 is merged** at `3d36cb5710f98a8795fbd0015f0372cfdcd64e9b`. The public overview now reports the real status: neural model UNTRAINED, deterministic foundation Math Agent AVAILABLE, proof checker LIMITED to documented typed rules, and training DISABLED. Static/browser tests enforce those labels. Recheck the latest main workflows and Pages deployment status before further edits.
+3. The next website task is a focused audit and cleanup of unreachable legacy account code and hidden private views. First map every remaining reference in `dashboard/app.js`, `dashboard/index.html`, and tests. Remove only code that is no longer reachable from the public interface; preserve the account-free RAM preference, Math Agent, provider directory, theme, and supported proof tools. Add regression tests before deleting legacy helpers.
+4. Continue the visible-route audit: keyboard/touch accessibility, iPad/mobile/desktop layouts, empty/error states, and whether every visible control has a real, accurately described action. Work in small, independently tested PRs.
+5. **PR #137** remains a separate formal proof-kernel change. Keep it separate from frontend work; review it on its own merits and do not let it displace the website-first priority.
+6. **PR #130 was closed without merging.** Its README-only changes are not in main; this README is the current source of truth.
+7. Keep actual training disabled. Do not generate training data, dispatch diagnostic/training workflows, change weights, or write checkpoints. A code PR or green CI is not training authorization.
+8. Do not jump to Stage 13. The first real training run requires every Stage 12 readiness gate and separate explicit authorization for that specific run.
 
 ## Stage 4 — ZFC choice macro capture hardening (parked while website-first work continues)
 
