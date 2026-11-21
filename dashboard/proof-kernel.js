@@ -233,7 +233,7 @@ const COMPLETE_LEAST_UPPER_BOUND=F.forall("A","RealSet",F.implies(
   )),
   F.forall("u","Field",F.implies(
    F.forall("ux","Field",F.implies(
-    F.member(fieldVar("ux"),T.variable("A","RealSet")),F.le(fieldVar("ux"),fieldVar("u"))
+    F.member(fieldVar("ux"),T.variable("A","RealSet")),F.not(F.lt(fieldVar("u"),fieldVar("ux")))
    )),
    F.not(F.lt(fieldVar("u"),fieldVar("s")))
   ))
