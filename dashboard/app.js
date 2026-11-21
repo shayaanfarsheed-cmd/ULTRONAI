@@ -672,13 +672,13 @@
 
   function renderMetrics() {
     if (state.publicMode) {
-      $("metricState").textContent = "DISABLED";
-      $("metricStateDetail").textContent = "Training cannot be started here";
-      $("metricStep").textContent = "—";
-      $("metricTopic").textContent = "No active training run";
-      $("metricLoss").textContent = "—";
-      $("metricTimeLeft").textContent = "—";
-      $("metricSessionAge").textContent = "Training is disabled";
+      $("metricState").textContent = "UNTRAINED";
+      $("metricStateDetail").textContent = "No neural weights have been trained";
+      $("metricStep").textContent = "AVAILABLE";
+      $("metricTopic").textContent = "Deterministic foundation solver";
+      $("metricLoss").textContent = "LIMITED";
+      $("metricTimeLeft").textContent = "DISABLED";
+      $("metricSessionAge").textContent = "No training run is authorized";
       $("heartbeatAge").textContent = "DISABLED";
       $("checkpointAge").textContent = "NOT USED";
       $("activeServer").textContent = "NOT CONNECTED";

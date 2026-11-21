@@ -577,10 +577,10 @@ The first run is not proof that the project is finished. Use held-out results to
 
 ## Current next-chat starting point — 2026-11-21
 
-1. Inspect **PR #138 — Make the public ULTRON dashboard account-free**. Review the latest head, all required checks, and the exact diff. Do not merge unless every required check passes and the change is reviewed.
-2. PR #138 is the current website-first work item. It removes sign-in/sign-up UI, prevents old owner-session restoration, clears only ULTRON's legacy account cache, removes account-specific views and remote training controls from public navigation, and removes the owner user ID from public configuration. Verify these behaviors in Chromium and WebKit and confirm the RAM preference still persists locally.
-3. Continue the frontend audit after PR #138: inspect all visible routes, accessibility, iPad/mobile/desktop layouts, empty/error states, and whether every visible control has a real, accurately described action. Work in small, independently tested PRs.
-4. **PR #137** is a separate formal proof-kernel change. Keep it separate from frontend work; review it on its own merits and do not let it displace the website-first priority.
+1. **PR #138 is merged** at `a4abe0b986ec72a50f04e63bb504116e9c37ddbf`. The account-free dashboard changes passed Test Suite, preflight, Training Prototype Validation, Chromium and WebKit checks. The GitHub Pages build and deployment also succeeded.
+2. The current next website task is to replace misleading empty training telemetry on the public overview with accurate capability status: neural model untrained, deterministic Math Agent available, proof checker limited to documented rules, and training disabled. PR #139 carries this small UI and regression-test change.
+3. Continue the frontend audit after that: inspect every visible route, keyboard/touch accessibility, iPad/mobile/desktop layouts, empty/error states, and whether every visible control has a real, accurately described action. Work in small, independently tested PRs.
+4. **PR #137** remains a separate formal proof-kernel change. Keep it separate from frontend work; review it on its own merits and do not let it displace the website-first priority.
 5. **PR #130 was closed without merging.** Its README-only changes are not in main; use this current README as the source of truth.
 6. Keep actual training disabled. Do not generate training data, dispatch diagnostic/training workflows, change weights, or write checkpoints. A code PR or green CI is not training authorization.
 7. Do not jump to Stage 13. The first real training run requires every Stage 12 readiness gate and separate explicit authorization for that specific run.

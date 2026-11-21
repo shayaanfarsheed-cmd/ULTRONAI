@@ -217,13 +217,18 @@ class DashboardStaticTests(unittest.TestCase):
         self.assertIn("if (state.publicMode || !hasVerifiedOwnerSession())", javascript)
         self.assertIn("renderActivity();", javascript)
 
-    def test_public_overview_discloses_training_disabled_without_account_controls(self):
+    def test_public_overview_reports_capabilities_without_fake_training_metrics(self):
         html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
         self.assertIn("ULTRON is not training", javascript)
         self.assertIn("account-free website provides the public math-learning interface", javascript)
         self.assertIn("Public browser access · training disabled", javascript)
         self.assertIn('class="connection-badge">PUBLIC</span>', html)
+        for label in ("NEURAL MODEL", "MATH AGENT", "PROOF CHECKER", "TRAINING"):
+            self.assertIn(label, html)
+        for status in ("UNTRAINED", "AVAILABLE", "LIMITED", "DISABLED"):
+            self.assertIn('textContent = "' + status + '"', javascript)
+        self.assertIn("No neural model has been trained", html)
         self.assertNotIn("Read-only status", html)
         self.assertNotIn('id="autoStartToggle"', html)
         self.assertNotIn("autoStartToggle", javascript)
