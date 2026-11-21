@@ -2,7 +2,7 @@
 const test=require("node:test"),assert=require("node:assert/strict"),K=require("../dashboard/proof-kernel.js");
 const {T,F}=K, mk=(system,assumptions,steps,conclusion)=>({version:1,system,assumptions,steps,conclusion});
 test("typed expression and formula validation",()=>{assert.equal(K.validFormula(F.eq(T.numeral(1),T.numeral(1))),true);assert.equal(K.validFormula(F.eq(T.numeral(1),T.rational(1,1))),false);assert.equal(K.validFormula(F.eq(T.add(T.numeral(1),T.numeral(2)),T.numeral(3))),true);assert.equal(K.validFormula({kind:"evil"}),false);});
-test("formal contexts are separate and conservative",()=>{assert.deepEqual(K.SYSTEMS.PEANO_N.enabledAxioms,["PEANO-02","PEANO-03"]);assert.deepEqual(K.SYSTEMS.PEANO_N.enabledAxiomSchemas,["PEANO-04"]);assert.deepEqual(K.SYSTEMS.REAL_FIELD.enabledAxioms,["FIELD-01","FIELD-02","FIELD-03","FIELD-04","FIELD-05","FIELD-06","FIELD-07","FIELD-08","FIELD-09"]);assert.deepEqual(K.SYSTEMS.REAL_FIELD.enabledAxiomSchemas,[]);for(const s of ["ORDERED_FIELD","COMPLETE_REAL"]){assert.deepEqual(K.SYSTEMS[s].enabledAxioms,[]);assert.deepEqual(K.SYSTEMS[s].enabledAxiomSchemas,[]);}assert.deepEqual(K.SYSTEMS.EUCLID_GEOMETRY.enabledAxioms,["EUCLID-01"]);assert.deepEqual(K.SYSTEMS.KOLMOGOROV.enabledAxioms,["PROB-01","PROB-02"]);assert.deepEqual(K.SYSTEMS.ZFC.enabledAxioms,["ZFC-01","ZFC-02","ZFC-03","ZFC-04","ZFC-05"]);for(const s of ["EUCLID_GEOMETRY","KOLMOGOROV","ZFC"])assert.deepEqual(K.SYSTEMS[s].enabledAxiomSchemas,[]);});
+test("formal contexts are separate and conservative",()=>{assert.deepEqual(K.SYSTEMS.PEANO_N.enabledAxioms,["PEANO-02","PEANO-03"]);assert.deepEqual(K.SYSTEMS.PEANO_N.enabledAxiomSchemas,["PEANO-04"]);assert.deepEqual(K.SYSTEMS.REAL_FIELD.enabledAxioms,["FIELD-01","FIELD-02","FIELD-03","FIELD-04","FIELD-05","FIELD-06","FIELD-07","FIELD-08","FIELD-09"]);assert.deepEqual(K.SYSTEMS.REAL_FIELD.enabledAxiomSchemas,[]);for(const s of ["ORDERED_FIELD","COMPLETE_REAL"]){assert.deepEqual(K.SYSTEMS[s].enabledAxioms,[]);assert.deepEqual(K.SYSTEMS[s].enabledAxiomSchemas,[]);}assert.deepEqual(K.SYSTEMS.EUCLID_GEOMETRY.enabledAxioms,["EUCLID-01"]);assert.deepEqual(K.SYSTEMS.KOLMOGOROV.enabledAxioms,["PROB-01","PROB-02"]);assert.deepEqual(K.SYSTEMS.ZFC.enabledAxioms,["ZFC-01","ZFC-02","ZFC-03","ZFC-04","ZFC-05","ZFC-06","ZFC-09"]);for(const s of ["EUCLID_GEOMETRY","KOLMOGOROV","ZFC"])assert.deepEqual(K.SYSTEMS[s].enabledAxiomSchemas,[]);});
 test("reflexivity replays and forged conclusion fails",()=>{const x=T.variable("x","Nat"),p=mk("PEANO_N",[],[{id:"r",rule:"eq_refl",term:x,formula:F.eq(x,x)}],"r");assert.equal(K.verify(p).valid,true);p.steps[0].formula=F.eq(x,T.numeral(2));assert.equal(K.verify(p).code,"RULE_MISMATCH");});
 test("assumptions, conjunction and implication introduction",()=>{const a=F.predicate("A"),b=F.predicate("B"),p=mk("PEANO_N",[{id:"ha",formula:a},{id:"hb",formula:b}],[{id:"a",rule:"assumption",assumption:"ha",formula:a},{id:"b",rule:"assumption",assumption:"hb",formula:b},{id:"ab",rule:"and_intro",premises:["a","b"],formula:F.and(a,b)},{id:"imp",rule:"imp_intro",premises:["b"],discharge:"hb",formula:F.implies(b,b)}],"imp");assert.equal(K.verify(p).valid,true);});
 test("unknown, forward and duplicate references rejected",()=>{const a=F.predicate("A"),p=mk("PEANO_N",[],[{id:"x",rule:"and_left",premises:["future"],formula:a}],"x");assert.equal(K.verify(p).code,"UNKNOWN_PREMISE");const d=mk("PEANO_N",[{id:"x",formula:a}],[{id:"x",rule:"assumption",assumption:"x",formula:a}],"x");assert.equal(K.verify(d).code,"INVALID_STEP");});
@@ -525,6 +525,32 @@ test("ZFC construction axioms reject forged formulas and foreign sorts",()=>{
  }
  for(const term of [T.point("P"),T.event("E"),T.line("l"),T.real(1,1)]){
   assert.equal(K.validFormula(F.eq(term,term),{},new Set(K.SYSTEMS.ZFC.sorts)),false);
+ }
+});
+test("ZFC infinity axiom defines an inductive set containing an empty set",()=>{
+ const formula=K.AXIOMS["ZFC-06"].formula;
+ assert.equal(K.validFormula(formula,{},new Set(K.SYSTEMS.ZFC.sorts)),true);
+ const proof=mk("ZFC",[],[{id:"ax",rule:"axiom",axiomId:"ZFC-06",formula}],"ax");
+ const result=K.verify(proof);
+ assert.equal(result.valid,true);
+ assert.deepEqual(result.usedAxioms,["ZFC-06"]);
+ const wrong=mk("REAL_FIELD",[],[{id:"ax",rule:"axiom",axiomId:"ZFC-06",formula}],"ax");
+ assert.equal(K.verify(wrong).code,"AXIOM_NOT_AVAILABLE");
+});
+test("ZFC foundation axiom selects an element disjoint from every nonempty set",()=>{
+ const formula=K.AXIOMS["ZFC-09"].formula;
+ assert.equal(K.validFormula(formula,{},new Set(K.SYSTEMS.ZFC.sorts)),true);
+ const proof=mk("ZFC",[],[{id:"ax",rule:"axiom",axiomId:"ZFC-09",formula}],"ax");
+ const result=K.verify(proof);
+ assert.equal(result.valid,true);
+ assert.deepEqual(result.usedAxioms,["ZFC-09"]);
+ const wrong=mk("PEANO_N",[],[{id:"ax",rule:"axiom",axiomId:"ZFC-09",formula}],"ax");
+ assert.equal(K.verify(wrong).code,"AXIOM_NOT_AVAILABLE");
+});
+test("ZFC infinity and foundation reject forged statements",()=>{
+ for(const id of ["ZFC-06","ZFC-09"]){
+  const forged=mk("ZFC",[],[{id:"ax",rule:"axiom",axiomId:id,formula:F.predicate("forged",[])}],"ax");
+  assert.equal(K.verify(forged).code,"RULE_MISMATCH",id);
  }
 });
 test("countable additivity remains disabled until sequence and sum operators exist",()=>{

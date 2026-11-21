@@ -1110,29 +1110,15 @@ The Stage 4 first implementation adds:
 - PR #108 merged at `c54f8e5ca4ff16c04304387b52237f3b64c3768e`: eigenvariable-checked universal introduction.
 - PR #109 merged at `122d309ed401329f020f229c7d7910d6f128c6a5`: typed existential formulas, capture-aware substitution and exact FIELD-04, FIELD-07 and FIELD-08; REAL_FIELD now contains all nine researched field axioms.
 - PR #110 merged at `cb5cb021e006c930c673f1f4b9c1e9747663252a`: witness-checked `exists_intro` and scoped `exists_elim`, with adversarial tests for witness capture, leakage, incorrect scope and dependency discharge. Test Suite, preflight, Training Prototype Validation, Chromium and WebKit all passed.
-- PR #111 merged at `6eaf286133462aaa7799643cd41bc0195b79bb4a`: exact, context-isolated EUCLID-01, PROB-01/02 and ZFC-01/02. Test Suite, preflight, Training Prototype Validation, Chromium and WebKit all passed on the PR head.
-- The next branch adds ZFC-03 pairing, ZFC-04 union and ZFC-05 power set using exact quantified membership characterizations. It is pending full validation.
 - No model training, weight/checkpoint mutation, dataset generation or production configuration change.
 
 
-## Stage 4 — geometry, probability and set-theory foundation increment (2026-11-21)
+## Stage 4 — formal foundations and ZFC expansion (2026-11-21)
 
-- The current branch `feature/geometry-probability-set-foundations` adds exact, context-isolated formulas for `EUCLID-01`, `PROB-01`, `PROB-02`, `ZFC-01` and `ZFC-02`.
-- Geometry adds a typed Line term and `incident(Point, Line)`; the Euclidean first postulate requires two distinct points and states existence of a common incident line.
-- Probability adds a dedicated Real sort, sample-space and measure terms, nonnegativity and normalization. The Real sort is deliberately not treated as a full real field.
-- ZFC adds extensionality and empty-set existence. The empty set is expressed as an existential set with no members.
-- Regression tests cover exact axiom replay, context isolation, forged formulas, incompatible sorts, malformed real literals and the explicit deferral of countable additivity.
-- `PROB-03` and the remaining geometry/ZFC entries remain disabled. Sequence, countable-union, infinite-sum and set-construction/schema operators must be formalized before those axioms can safely become executable.
-- This increment is pending full Test Suite, preflight, Training Prototype Validation, Chromium and WebKit checks. It has not been merged.
-- No model training, weight/checkpoint mutation, dataset generation, Supabase change or production configuration change.
-
-
-
-## Stage 4 — ZFC construction axioms (pending validation, 2026-11-21)
-
-- Branch: `feature/zfc-construction-axioms`.
-- Adds exact ZFC-03 pairing, ZFC-04 union and ZFC-05 power-set formulas using existing typed set variables, membership, conjunction, negation and quantifiers. Pairing's membership disjunction is represented by De Morgan's law.
-- Adds positive exact-ID replay tests, cross-context rejection, forged-formula rejection and incompatible-sort tests.
-- ZFC separation, replacement, foundation and choice remain disabled. Probability countable additivity remains disabled until countable sequence/union/sum operators and the necessary schema side conditions exist.
+- PR #111 merged at `6eaf286133462aaa7799643cd41bc0195b79bb4a`: EUCLID-01, PROB-01/02 and ZFC-01/02, with isolated contexts and typed geometry/probability syntax. All five PR checks passed.
+- PR #112 merged at `7977438ac11f9087efcbce4e9e0bc58043e6da66`: ZFC-03 pairing, ZFC-04 union and ZFC-05 power set. Exact membership characterizations and adversarial tests are now in `main`. All five PR checks passed.
+- The next branch, `feature/zfc-infinity-foundation`, adds ZFC-06 infinity and ZFC-09 foundation. Infinity is encoded as an inductive set containing an empty set and closed under the set-successor x∪{x}; foundation selects a member disjoint from each nonempty set.
+- ZFC-07 separation and ZFC-08 replacement remain schemas; ZFC-10 choice remains disabled until the language can represent formula instantiation, indexed families and choice functions. PROB-03 countable additivity remains disabled until countable sequence/union/sum operators exist.
+- The next branch is pending Test Suite, preflight, Training Prototype Validation, Chromium and WebKit. Do not merge until all checks pass and the exact diff is reviewed.
 - No model training, weight/checkpoint mutation, dataset generation, Supabase change or production configuration change.
 

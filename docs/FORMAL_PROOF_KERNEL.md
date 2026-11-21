@@ -1,61 +1,63 @@
 # ULTRON Formal Proof Kernel — Stage 4
 
 ## Trust boundary
-The browser-side kernel is a deterministic proof replayer. It checks typed syntax, system boundaries, references and inference rules. It is not a general theorem prover or a Lean/Coq replacement, and it does not prove the neural model has learned mathematics.
+
+The browser-side kernel is a deterministic proof replayer. It validates typed syntax, isolated formal-system contexts, exact axiom identifiers, proof references, inference rules and assumption dependencies. It is not a general theorem prover or a Lean/Coq replacement. It does not establish consistency of the axioms and does not prove that the neural model has learned mathematics.
 
 ## Typed language
-Terms: typed variables, natural numerals, successor, natural/field addition and multiplication, field and real literals, points, lines, events, sample spaces, probability measures, sets. Empty-set existence is expressed by the ZFC-02 existential formula. Formulas: equality, strict order, incidence, conjunction, implication, negation, universal and existential quantification, membership and named predicates. Unknown nodes and ill-typed equalities are rejected.
 
-## Formal contexts
-Seven isolated contexts are declared: Peano arithmetic, real fields, ordered fields, complete real fields, Euclidean geometry, Kolmogorov probability and ZFC. No context inherits another system's axioms. Only explicitly machine-formalized entries are executable. The currently executable entries are PEANO-02 (zero is not a successor), PEANO-03 (successor injectivity), FIELD-01 (addition commutativity), FIELD-02 (addition associativity), FIELD-03 (additive identity), FIELD-04 (additive inverse existence), FIELD-05 (multiplication commutativity), FIELD-06 (multiplication associativity), FIELD-07 (multiplicative identity and 0≠1), FIELD-08 (multiplicative inverse for nonzero values), and FIELD-09 (distributivity), EUCLID-01 (a line through any two distinct points), PROB-01 (nonnegative probability), PROB-02 (sample-space probability one), ZFC-01 (extensionality), and ZFC-02 (empty-set existence), ZFC-03 (pairing), ZFC-04 (union) and ZFC-05 (power set). PROB-03 countable additivity and the remaining geometric and set-theoretic entries remain reference-only until their full signatures and side conditions are represented. PEANO-04 is handled by its dedicated schema rule rather than a finite axiom formula.
+Terms include typed variables, natural numerals, successor, natural/field addition and multiplication, field and real rational literals, points, lines, events, the sample space, probability measures and sets. Formula constructors include equality, strict order, incidence, conjunction, implication, negation, universal/existential quantification, membership and named predicates. AST nodes use closed schemas: unknown fields, malformed values, incompatible sorts and sparse arrays are rejected.
 
-## Audited rules
-assumption, axiom, eq_refl, eq_symm, eq_trans, and_intro, and_left, and_right, imp_elim, imp_intro, forall_elim, eigenvariable-checked forall_intro, witness-checked exists_intro, scoped exists_elim and the schema-gated induction rule are replayed. The induction rule is enabled only for PEANO-04 in the Peano context and requires a checked base instance P(0) plus the checked successor step ∀k(P(k)→P(S(k))). Each proof records PEANO-04 as a schema dependency. For forall_intro, the eigenvariable must be fresh from every variable and binder inside the quantified property and must not occur free in any undischarged assumption used by the premise. For induction, the induction variable has the same freshness requirement across both premises. Every premise must refer backward to an existing assumption or step. The checker recomputes the conclusion. Axiom IDs are checked against the exact active context.
+The `Real` sort is deliberately narrow: rational real literals and probability-measure results are represented, but general real arithmetic and a complete real-field signature are not implemented.
 
+## Isolated formal contexts
 
+Seven contexts are declared and do not inherit axioms from one another:
 
-## ZFC construction axioms
+- `PEANO_N`: Peano arithmetic. Executable finite axioms: PEANO-02 and PEANO-03. PEANO-04 is an explicit induction schema, available only through the dedicated induction rule.
+- `REAL_FIELD`: all nine researched field axioms FIELD-01 through FIELD-09 are represented as exact typed formulas.
+- `ORDERED_FIELD` and `COMPLETE_REAL`: declared but have no executable axioms yet.
+- `EUCLID_GEOMETRY`: EUCLID-01, the existence of a common line through two distinct points.
+- `KOLMOGOROV`: PROB-01 (nonnegative measure) and PROB-02 (sample-space measure one).
+- `ZFC`: ZFC-01 extensionality, ZFC-02 empty-set existence, ZFC-03 pairing, ZFC-04 union, ZFC-05 power set, ZFC-06 infinity and ZFC-09 foundation.
 
-The ZFC context includes exact formulas for pairing (`ZFC-03`), union (`ZFC-04`) and power set (`ZFC-05`). Each is expressed through nested quantifiers and membership, with biconditional membership conditions expanded into two implications. Pairing's “equals either member” disjunction is represented by De Morgan's law using the existing negation and conjunction nodes. These are finite axiom formulas; the checker does not implement general set construction, a separation/replacement schema mechanism, or a set-theory decision procedure.
+Each executable axiom is bound to its exact Axiom Bank identifier and active context. A proof cannot use an axiom from another system or replace its formula with a forged statement.
 
-## Newly executable formal foundations — pending validation
+## ZFC formulas
 
-The following initial statements are represented by exact Axiom Bank IDs and are enabled only in their own contexts:
+- **ZFC-01 — Extensionality:** two sets are equal when every set is a member of one exactly when it is a member of the other.
+- **ZFC-02 — Empty set:** a set exists with no members.
+- **ZFC-03 — Pairing:** for any two sets, a set exists whose members are exactly those two sets. The membership disjunction is expressed using De Morgan's law over the existing negation and conjunction nodes.
+- **ZFC-04 — Union:** for every set of sets, a set exists whose members are exactly the elements of members of that family.
+- **ZFC-05 — Power set:** for every set, a set exists whose members are exactly its subsets.
+- **ZFC-06 — Infinity:** an inductive set exists. The formula requires an empty set as a member and, for every member x, a member Y whose elements are exactly the elements of x together with x (the set-theoretic successor x∪{x}).
+- **ZFC-09 — Foundation:** every nonempty set has a member y such that no element of y is also a member of the original set. This is the formula-level statement that y is disjoint from the original set.
 
-- `EUCLID-01`: for any two distinct points, there exists a line incident with both. The AST now has a distinct `Line` term sort and a typed `incident(Point, Line)` formula. The antecedent explicitly requires point inequality.
-- `PROB-01`: every event has nonnegative measure, represented as the negation of a strictly negative measure.
-- `PROB-02`: the sample space has measure one. The probability context uses a dedicated `Real` sort, a sample-space term and a measure term whose argument must have sort `Event`.
-- `ZFC-01`: extensionality, represented as equality of sets whose members are equivalent in both directions for every set.
-- `ZFC-02`: existence of a set with no members, i.e. the empty-set existence axiom.
+These are finite axiom formulas. They do not add a general set-construction evaluator or a set-theory decision procedure.
 
-These are exact finite formulas, not a claim that the complete theories are implemented. The probability context does not yet implement countable additivity (`PROB-03)): the language lacks sequence, countable-union and infinite-sum operators. The geometry context does not yet implement construction rules beyond the first postulate. ZFC pairing, union, power set, separation, replacement, foundation and choice remain disabled. The ordered-field and complete-real contexts remain isolated and currently have no executable axioms. The `Real` sort is currently limited to typed rational literals and probability-measure results; general real arithmetic and field laws over that sort are not implemented.
+## Audited inference rules
+
+The replayed rules are assumption, axiom, equality reflexivity/symmetry/transitivity, conjunction introduction/elimination, implication elimination/introduction, universal elimination/introduction, existential introduction/elimination and the schema-gated induction rule.
+
+- Implication introduction must discharge an assumption that is actually present in the premise dependency set.
+- Universal introduction reconstructs the quantified goal instance and enforces eigenvariable freshness against the property and every undischarged assumption used by the premise.
+- Existential introduction reconstructs the existential body from the explicit witness and verified premise.
+- Existential elimination checks the major existential premise, the matching temporary witness assumption, use of that assumption by the minor proof, no major-premise dependency on the discharged assumption, and no eigenvariable leakage into the conclusion or other open assumptions.
+- Induction is enabled only for PEANO-04 and checks both P(0) and the successor step ∀k(P(k)→P(S(k))), including freshness and open-assumption side conditions.
+
+Every premise must refer backward to an existing assumption or step. The checker recomputes each conclusion and tracks open assumptions, used axioms and schema dependencies.
 
 ## Validated working traces
-A trace must use kind "ultron-proof-trace" and contain a proof envelope. verifyWorkingTrace replays every step and compares an optional claimed conclusion. Free-form prose, unknown rules and forged conclusions are rejected. Tutoring may use a trace as evidence only after validation; this is not yet a misconception classifier.
 
-## Limitations
-No free-form/handwriting parser, negation introduction/elimination rules, general arithmetic over the Real sort, geometric construction rules beyond EUCLID-01, countable probability additivity, or ZFC separation/replacement/foundation/choice rules. ZFC pairing, union and power set are represented by their exact existential membership characterizations. Ordered/completeness contexts currently have no executable axioms. Universal introduction is restricted to the single checked-premise rule with explicit eigenvariable side conditions. The kernel does not establish consistency of the underlying axioms.
+A working trace must use the exact `ultron-proof-trace` envelope and contain a structured proof. The checker replays every step and compares an optional claimed conclusion with the replayed result. Free-form prose, unknown rules and forged conclusions are rejected. A validated trace is evidence for later tutoring; it is not yet a full misconception classifier.
 
+## Deliberately unimplemented
 
-The negation connective is now representable in well-typed formulas, but the kernel intentionally has no general negation introduction or elimination rules. Only exact registered axiom statements can currently use it. PEANO-01 successor closure remains enforced as a typed-constructor/sort invariant rather than an independently replayable formula. FIELD-04, FIELD-07 and FIELD-08 are enabled with typed existential formulas and distinguished rational constants 0 and 1. Their witness reasoning is governed by the scoped exists_intro and exists_elim rules. Ordered-field, completeness, Euclidean, probability and ZFC entries remain reference-only until their signatures and side conditions are formalized.
+- PROB-03 countable additivity remains disabled: the language has no countable event sequences, countable unions or infinite sums.
+- EUCLID-02 through EUCLID-05 remain disabled: segment extension, circle construction, angle measure and parallel behavior need additional geometric objects and side conditions.
+- ZFC-07 separation and ZFC-08 replacement remain schemas; no formula-metavariable/schema-instantiation mechanism exists.
+- ZFC-10 choice remains disabled; the language does not yet model indexed families and choice functions.
+- General real arithmetic, ordered-field laws and completeness axioms remain unimplemented.
+- There is no free-form or handwriting proof parser, and no general negation introduction/elimination rule.
+- The kernel does not decide theoremhood, prove axiom consistency or establish soundness of axioms beyond the trusted formalization assumptions.
 
-
-The PEANO-04 induction schema is represented as a dedicated inference rule rather than a fabricated finite axiom formula. Its proof step names `axiomId: "PEANO-04"`, a fresh `variable`, and exactly two premises in base/step order. The checker constructs the expected instances from the quantified conclusion and rejects mismatched base cases, successor steps, cross-system use and variable capture. It reports the schema separately in `usedAxiomSchemas`.
-
-
-Universal introduction (`forall_intro`) takes exactly one verified premise and a fresh eigenvariable. The checker reconstructs the expected premise by substituting that variable into the quantified goal body, then rejects the step when the eigenvariable is free in any undischarged assumption supporting the premise. It is not a parser for natural-language universal claims.
-
-
-Existential formulas now have a typed AST node and capture-aware substitution under nested existential binders. This allows the proof kernel to represent the full FIELD-04 and FIELD-08 existence clauses. FIELD-07 uses rational field literals as the distinguished 0 and 1 constants in this field signature and explicitly records 0≠1. Existential introduction checks an explicit witness by reconstructing the quantified body. Existential elimination requires a temporary witness assumption used only by the minor proof, checks that assumption against the existential body, rejects witness leakage into the conclusion or other open assumptions, and removes the discharged assumption from the resulting dependency set.
-
-
-The `exists_elim` rule takes exactly two premises in order: an existential major premise and a minor proof. Its `variable` is an eigenvariable and `discharge` names the temporary assumption matching the existential body instantiated at that variable. The eigenvariable must not occur free in the major premise, conclusion or any other undischarged assumption. The temporary assumption must occur in the minor proof's dependency set and must not support the major premise. A successful rule removes only that assumption from the result's open assumptions.
-
-
-## Newly formalized contexts
-
-The geometry context has a typed `Line` term and an incidence formula. EUCLID-01 includes the distinct-points antecedent and an existential line incident with both points; it is not asserted for coincident points.
-
-The probability context has sample-space and measure terms whose output sort is a dedicated `Real` sort. PROB-01 is represented as the negation of a negative measure, and PROB-02 fixes the probability of the whole sample space to one. PROB-03 remains disabled because the language does not yet represent countable event sequences, countable unions and infinite sums.
-
-The ZFC context formalizes extensionality as two-way membership implication for every set and existence of an empty set. Remaining ZFC construction and schema axioms stay disabled until their full operators and side conditions are implemented.

@@ -8,7 +8,7 @@ const SYSTEMS=deepFreeze({
  COMPLETE_REAL:{label:"Complete real field",sorts:["Field"],enabledAxioms:[],enabledAxiomSchemas:[]},
  EUCLID_GEOMETRY:{label:"Euclidean geometry",sorts:["Point","Line"],enabledAxioms:["EUCLID-01"],enabledAxiomSchemas:[]},
  KOLMOGOROV:{label:"Kolmogorov probability",sorts:["Event","Real"],enabledAxioms:["PROB-01","PROB-02"],enabledAxiomSchemas:[]},
- ZFC:{label:"Zermelo–Fraenkel set theory with Choice",sorts:["Set"],enabledAxioms:["ZFC-01","ZFC-02","ZFC-03","ZFC-04","ZFC-05"],enabledAxiomSchemas:[]}
+ ZFC:{label:"Zermelo–Fraenkel set theory with Choice",sorts:["Set"],enabledAxioms:["ZFC-01","ZFC-02","ZFC-03","ZFC-04","ZFC-05","ZFC-06","ZFC-09"],enabledAxiomSchemas:[]}
 });
 const T=Object.freeze({
  variable:(name,sort)=>({kind:"var",name,sort}), numeral:value=>({kind:"nat",value}),
@@ -138,7 +138,27 @@ const AXIOMS=deepFreeze({
    F.member(T.variable("y","Set"),T.variable("X","Set")),
    F.member(T.variable("y","Set"),T.variable("A","Set"))
   )))
- )))}
+ )))},
+ "ZFC-06":{system:"ZFC",formula:F.exists("I","Set",F.and(
+  F.exists("E","Set",F.and(
+   F.forall("z","Set",F.not(F.member(T.variable("z","Set"),T.variable("E","Set")))),
+   F.member(T.variable("E","Set"),T.variable("I","Set"))
+  )),
+  F.forall("x","Set",F.implies(F.member(T.variable("x","Set"),T.variable("I","Set")),F.exists("Y","Set",F.and(
+   F.forall("z","Set",equivalent(
+    F.member(T.variable("z","Set"),T.variable("Y","Set")),
+    disjunction(F.member(T.variable("z","Set"),T.variable("x","Set")),F.eq(T.variable("z","Set"),T.variable("x","Set")))
+   )),
+   F.member(T.variable("Y","Set"),T.variable("I","Set"))
+  ))))
+ ))},
+ "ZFC-09":{system:"ZFC",formula:F.forall("X","Set",F.implies(
+  F.exists("z","Set",F.member(T.variable("z","Set"),T.variable("X","Set"))),
+  F.exists("y","Set",F.and(
+   F.member(T.variable("y","Set"),T.variable("X","Set")),
+   F.forall("z","Set",F.implies(F.member(T.variable("z","Set"),T.variable("y","Set")),F.not(F.member(T.variable("z","Set"),T.variable("X","Set")))))
+  ))
+ ))}
 });
 const AXIOM_SCHEMAS=deepFreeze({
  "PEANO-04":{system:"PEANO_N",rule:"induction",description:"From P(0) and ∀k(P(k)→P(S(k))), derive ∀n P(n)."}
