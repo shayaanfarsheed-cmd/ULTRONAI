@@ -567,8 +567,11 @@ test("probability measure terms require an Event and real-valued order",()=>{
  assert.equal(K.termSort(T.measure(T.set("A"))),null);
  assert.equal(K.termSort(T.real(1,0)),null);
  assert.equal(K.termSort(T.real(-1,1)),"Real");
- assert.equal(K.validFormula(F.lt(T.measure(T.event("A")),T.real(0,1)),{},new Set(K.SYSTEMS.KOLMOGOROV.sorts)),true);
- assert.equal(K.validFormula(F.lt(T.rational(1,2),T.real(1,1)),{},new Set(K.SYSTEMS.KOLMOGOROV.sorts)),false);
+ assert.equal(K.validFormula(F.le(T.real(0,1),T.measure(T.event("A"))),{},new Set(K.SYSTEMS.KOLMOGOROV.sorts)),true);
+ assert.equal(K.validFormula(F.le(T.measure(T.event("A")),T.real(1,1)),{},new Set(K.SYSTEMS.KOLMOGOROV.sorts)),true);
+ assert.equal(K.validFormula(F.le(T.measure(T.event("A")),T.rational(1,1)),{},new Set(K.SYSTEMS.KOLMOGOROV.sorts)),false);
+ assert.equal(K.validFormula(F.le(T.rational(0,1),T.measure(T.event("A"))),{},new Set(K.SYSTEMS.KOLMOGOROV.sorts)),false);
+ assert.equal(K.validFormula({...F.le(T.real(0,1),T.measure(T.event("A"))),extra:true},{},new Set(K.SYSTEMS.KOLMOGOROV.sorts)),false);
 });
 test("ZFC extensionality and empty-set axioms replay with set-only terms",()=>{
  for(const id of ["ZFC-01","ZFC-02"]){
