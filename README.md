@@ -575,15 +575,17 @@ Execution sequence:
 
 The first run is not proof that the project is finished. Use held-out results to identify weaknesses, but use only separate training/validation data to make changes. Improve one measured weakness at a time: data coverage, tokenizer representation, curriculum, optimization, model architecture or inference. Version every change, repeat relevant gates and preserve prior checkpoints/reports. Every subsequent real training run also requires explicit owner authorization.
 
-## Current next-chat starting point
+## Current next-chat starting point — 2026-11-21
 
-1. Start at **Stage 0** and inspect the latest repository state and open PRs. Do not assume the earlier README PR is still mergeable.
-2. Reconcile this roadmap with current code and technical documentation.
-3. Choose one small, verifiable task from the earliest incomplete stage. Website, security, proof and data readiness take priority over training.
-4. Do not jump to Stage 13. The neural model remains untrained until every readiness gate passes and the owner explicitly authorizes the first real run.
+1. Inspect **PR #138 — Make the public ULTRON dashboard account-free**. Review the latest head, all required checks, and the exact diff. Do not merge unless every required check passes and the change is reviewed.
+2. PR #138 is the current website-first work item. It removes sign-in/sign-up UI, prevents old owner-session restoration, clears only ULTRON's legacy account cache, removes account-specific views and remote training controls from public navigation, and removes the owner user ID from public configuration. Verify these behaviors in Chromium and WebKit and confirm the RAM preference still persists locally.
+3. Continue the frontend audit after PR #138: inspect all visible routes, accessibility, iPad/mobile/desktop layouts, empty/error states, and whether every visible control has a real, accurately described action. Work in small, independently tested PRs.
+4. **PR #137** is a separate formal proof-kernel change. Keep it separate from frontend work; review it on its own merits and do not let it displace the website-first priority.
+5. **PR #130 was closed without merging.** Its README-only changes are not in main; use this current README as the source of truth.
+6. Keep actual training disabled. Do not generate training data, dispatch diagnostic/training workflows, change weights, or write checkpoints. A code PR or green CI is not training authorization.
+7. Do not jump to Stage 13. The first real training run requires every Stage 12 readiness gate and separate explicit authorization for that specific run.
 
-
-## Stage 4 — ZFC choice macro capture hardening (in progress)
+## Stage 4 — ZFC choice macro capture hardening (parked while website-first work continues)
 
 - Branch: `fix/zfc-choice-macro-capture`.
 - Generate fresh internal binders for Kuratowski-pair and function-graph formula expansions, checking against all variable names in the caller's terms.
