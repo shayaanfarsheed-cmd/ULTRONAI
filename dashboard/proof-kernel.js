@@ -6,7 +6,7 @@ const SYSTEMS=deepFreeze({
  REAL_FIELD:{label:"Field theory",sorts:["Field"],enabledAxioms:["FIELD-01","FIELD-02","FIELD-03","FIELD-04","FIELD-05","FIELD-06","FIELD-07","FIELD-08","FIELD-09"],enabledAxiomSchemas:[]},
  ORDERED_FIELD:{label:"Ordered-field theory",sorts:["Field"],enabledAxioms:[],enabledAxiomSchemas:[]},
  COMPLETE_REAL:{label:"Complete real field",sorts:["Field"],enabledAxioms:[],enabledAxiomSchemas:[]},
- EUCLID_GEOMETRY:{label:"Euclidean geometry",sorts:["Point","Line","Circle"],enabledAxioms:["EUCLID-01","EUCLID-02","EUCLID-03"],enabledAxiomSchemas:[]},
+ EUCLID_GEOMETRY:{label:"Euclidean geometry",sorts:["Point","Line","Circle","Angle"],enabledAxioms:["EUCLID-01","EUCLID-02","EUCLID-03","EUCLID-04"],enabledAxiomSchemas:[]},
  KOLMOGOROV:{label:"Kolmogorov probability",sorts:["Event","Real"],enabledAxioms:["PROB-01","PROB-02"],enabledAxiomSchemas:[]},
  ZFC:{label:"Zermelo–Fraenkel set theory with Choice",sorts:["Set"],enabledAxioms:["ZFC-01","ZFC-02","ZFC-03","ZFC-04","ZFC-05","ZFC-06","ZFC-09"],enabledAxiomSchemas:[]}
 });
@@ -23,7 +23,7 @@ const F=Object.freeze({
  eq:(left,right)=>({kind:"eq",left,right}), lt:(left,right)=>({kind:"lt",left,right}),
  and:(left,right)=>({kind:"and",left,right}), implies:(left,right)=>({kind:"implies",left,right}),
  forall:(name,sort,body)=>({kind:"forall",name,sort,body}), exists:(name,sort,body)=>({kind:"exists",name,sort,body}), not:formula=>({kind:"not",formula}),
- member:(term,set)=>({kind:"member",term,set}), incident:(point,line)=>({kind:"incident",point,line}), between:(first,middle,last)=>({kind:"between",first,middle,last}), circleCenter:(circle,center)=>({kind:"circleCenter",circle,center}), onCircle:(point,circle)=>({kind:"onCircle",point,circle}), predicate:(name,args)=>({kind:"predicate",name,args:args||[]})
+ member:(term,set)=>({kind:"member",term,set}), incident:(point,line)=>({kind:"incident",point,line}), between:(first,middle,last)=>({kind:"between",first,middle,last}), circleCenter:(circle,center)=>({kind:"circleCenter",circle,center}), onCircle:(point,circle)=>({kind:"onCircle",point,circle}), rightAngle:angle=>({kind:"rightAngle",angle}), angleEqual:(left,right)=>({kind:"angleEqual",left,right}), predicate:(name,args)=>({kind:"predicate",name,args:args||[]})
 });
 const isObj=x=>!!x&&typeof x==="object"&&!Array.isArray(x), stable=x=>JSON.stringify(x), clone=x=>JSON.parse(JSON.stringify(x));
 function exactKeys(value,required,optional=[]){if(!isObj(value))return false;const allowed=new Set(required.concat(optional));const keys=Reflect.ownKeys(value);return required.every(key=>Object.prototype.hasOwnProperty.call(value,key))&&keys.every(key=>typeof key==="string"&&allowed.has(key));}
@@ -71,12 +71,14 @@ function validFormula(f,bound={},allowedSorts=null) {
  case "lt":{if(!exactKeys(f,["kind","left","right"]))return false;const sort=termSort(f.left,bound);return ["Nat","Field","Real"].includes(sort)&&sort===termSort(f.right,bound)&&(!allowedSorts||allowedSorts.has(sort));}
  case "and":case "implies":return exactKeys(f,["kind","left","right"])&&validFormula(f.left,bound,allowedSorts)&&validFormula(f.right,bound,allowedSorts);
  case "not":return exactKeys(f,["kind","formula"])&&validFormula(f.formula,bound,allowedSorts);
- case "forall":case "exists":{if(!exactKeys(f,["kind","name","sort","body"])||typeof f.name!=="string"||!["Nat","Field","Real","Point","Line","Circle","Event","Probability","Set"].includes(f.sort)||(allowedSorts&&!allowedSorts.has(f.sort)))return false;return validFormula(f.body,Object.assign({},bound,{[f.name]:f.sort}),allowedSorts);}
+ case "forall":case "exists":{if(!exactKeys(f,["kind","name","sort","body"])||typeof f.name!=="string"||!["Nat","Field","Real","Point","Line","Circle","Angle","Event","Probability","Set"].includes(f.sort)||(allowedSorts&&!allowedSorts.has(f.sort)))return false;return validFormula(f.body,Object.assign({},bound,{[f.name]:f.sort}),allowedSorts);}
  case "member":{if(!exactKeys(f,["kind","term","set"]))return false;const a=termSort(f.term,bound),b=termSort(f.set,bound);return !!a&&b==="Set"&&(!allowedSorts||(allowedSorts.has(a)&&allowedSorts.has(b)));}
  case "incident":return exactKeys(f,["kind","point","line"])&&termSort(f.point,bound)==="Point"&&termSort(f.line,bound)==="Line"&&(!allowedSorts||(allowedSorts.has("Point")&&allowedSorts.has("Line")));
  case "between":return exactKeys(f,["kind","first","middle","last"])&&termSort(f.first,bound)==="Point"&&termSort(f.middle,bound)==="Point"&&termSort(f.last,bound)==="Point"&&(!allowedSorts||allowedSorts.has("Point"));
  case "circleCenter":return exactKeys(f,["kind","circle","center"])&&termSort(f.circle,bound)==="Circle"&&termSort(f.center,bound)==="Point"&&(!allowedSorts||(allowedSorts.has("Circle")&&allowedSorts.has("Point")));
  case "onCircle":return exactKeys(f,["kind","point","circle"])&&termSort(f.point,bound)==="Point"&&termSort(f.circle,bound)==="Circle"&&(!allowedSorts||(allowedSorts.has("Circle")&&allowedSorts.has("Point")));
+ case "rightAngle":return exactKeys(f,["kind","angle"])&&termSort(f.angle,bound)==="Angle"&&(!allowedSorts||allowedSorts.has("Angle"));
+ case "angleEqual":return exactKeys(f,["kind","left","right"])&&termSort(f.left,bound)==="Angle"&&termSort(f.right,bound)==="Angle"&&(!allowedSorts||allowedSorts.has("Angle"));
  case "predicate":return exactKeys(f,["kind","name","args"])&&typeof f.name==="string"&&!!f.name&&denseArray(f.args)&&f.args.every(x=>{const sort=termSort(x,bound);return !!sort&&(!allowedSorts||allowedSorts.has(sort));});
  default:return false;
  }
@@ -145,6 +147,10 @@ const AXIOMS=deepFreeze({
   F.circleCenter(T.variable("c","Circle"),T.variable("O","Point")),
   F.onCircle(T.variable("A","Point"),T.variable("c","Circle"))
  ))))},
+ "EUCLID-04":{system:"EUCLID_GEOMETRY",formula:F.forall("A","Angle",F.forall("B","Angle",F.implies(
+  F.and(F.rightAngle(T.variable("A","Angle")),F.rightAngle(T.variable("B","Angle"))),
+  F.angleEqual(T.variable("A","Angle"),T.variable("B","Angle"))
+ )))},
  "PROB-01":{system:"KOLMOGOROV",formula:F.forall("A","Event",F.not(F.lt(T.measure(T.variable("A","Event")),T.real(0,1))))},
  "PROB-02":{system:"KOLMOGOROV",formula:F.eq(T.measure(T.sampleSpace()),T.real(1,1))},
  "ZFC-01":{system:"ZFC",formula:F.forall("A","Set",F.forall("B","Set",F.implies(F.forall("z","Set",F.and(F.implies(F.member(T.variable("z","Set"),T.variable("A","Set")),F.member(T.variable("z","Set"),T.variable("B","Set"))),F.implies(F.member(T.variable("z","Set"),T.variable("B","Set")),F.member(T.variable("z","Set"),T.variable("A","Set"))))),F.eq(T.variable("A","Set"),T.variable("B","Set")))))},
