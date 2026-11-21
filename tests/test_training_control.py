@@ -45,7 +45,7 @@ class TrainingControlSecurityContractTests(unittest.TestCase):
         for forbidden in ("ownerSignInButton", "ownerSignOutButton"):
             self.assertNotIn(forbidden, html)
         for forbidden in ('data-view="data"', 'data-view="activity"', 'data-view="control"',
-                          'data-view="devices"', 'data-view="checkpoints"'):
+                          'data-view="devices"', 'data-view="checkpoints"', 'data-view="ask"'):
             self.assertNotIn(forbidden, nav)
         self.assertNotIn('id="ownerSignInDialog"', html)
         self.assertIn('class="connection-badge">PUBLIC</span>', html)
