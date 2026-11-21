@@ -1146,10 +1146,18 @@ The Stage 4 first implementation adds:
 - Regression tests ensure COMPLETE-01 contains strict-order nodes and no standalone `le` nodes. Test Suite, preflight, Training Prototype Validation, Chromium and WebKit all passed.
 
 
-## Stage 4 — ZFC-10 axiom of choice (in progress, 2026-11-21)
+## Stage 4 — ZFC-10 axiom of choice (PR #132 merged, 2026-11-21)
 
-- Branch: `feature/zfc-choice-relation-signature`.
-- Adds the exact ZFC-10 statement using typed relations for a family of nonempty sets over an index set and a choice function defined on that index set.
-- The relations accept only Set-valued arguments and are available only in the ZFC context; tests cover exact axiom replay, forged formulas, cross-context denial and malformed/sort-incompatible nodes.
-- The family and choice-function constructors now expand to quantified Set-membership formulas using Kuratowski ordered pairs. The expansion checks function-graph shape, exact domain I, unique outputs, nonempty indexed sets and membership of each chosen value in its indexed set. It validates the ZFC-10 statement but does not execute a choice-function constructor or provide a constructive selection algorithm.
+- PR #132 merged at `13222a0863f5f18f27b677b7f5573ea8d5c13c7f`: ZFC-10 is now expanded into quantified Set-membership formulas using Kuratowski ordered pairs.
+- The formula defines function graphs with domain exactly I and unique outputs, requires every indexed family member to be nonempty, and requires the choice graph's selected value to belong to the corresponding indexed set.
+- Test Suite, preflight, Training Prototype Validation, Chromium and WebKit all passed. The checker validates the axiom formula; it does not compute or construct a choice function for arbitrary families.
+- No training, model weights, checkpoints, dataset generation, Supabase or production configuration changes.
+
+
+## Stage 4 — proof-kernel binder-environment hardening (in progress, 2026-11-21)
+
+- Branch: `fix/proof-kernel-binder-environment`.
+- Replace inherited-property lookups with own-property checks and null-prototype nested binding environments.
+- Reject empty variable names, empty sort labels and empty quantifier binders.
+- Add regression tests for `__proto__`, `constructor`, `toString`, `hasOwnProperty`, empty names and genuine bound-sort mismatches.
 - Validation pending. No training, model weights, checkpoints, dataset generation, Supabase or production configuration changes.
