@@ -1121,7 +1121,8 @@ The Stage 4 first implementation adds:
 - PR #114 merged at `50eb5ef7eb3caba0dc85279db1c482c60dc26669`: typed betweenness and EUCLID-02 segment extension along a common line. All five PR checks passed.
 - PR #115 merged at `a76f614f87d09ed2f9bc3839c420f2344bb8a9d1`: typed Circle sort, centre/incidence formulas and EUCLID-03 circle construction. All five PR checks passed.
 - PR #116 merged at `c70917f180889cce0580fc1804e83b72e6c2804c`: typed Angle sort, right-angle/equality predicates and EUCLID-04. All five PR checks passed.
-- ZFC-07 separation and ZFC-08 replacement remain schemas; ZFC-10 choice remains disabled until the language can represent formula instantiation, indexed families and choice functions. PROB-03 countable additivity remains disabled until countable sequence/union/sum operators exist.
-- The current branch, `feature/euclidean-parallel-postulate`, adds typed same-side interior-angle and intersection relations for EUCLID-05. The relations are primitive; no angle arithmetic or coordinate construction is claimed. It is pending Test Suite, preflight, Training Prototype Validation, Chromium and WebKit.
+- PR #117 merged at `888bf1a388127b9f7a37e526a9b8c521b36a341f`: typed same-side interior-angle, angle-sum and line-intersection relations; EUCLID-05 is now formalized in its original same-side form. All five PR checks passed.
+- ZFC-07 separation and ZFC-08 replacement remain schemas; ZFC-10 choice remains disabled until the language can represent formula instantiation, indexed families and choice functions.
+- The current branch, `feature/probability-countable-additivity`, adds an EventSequence sort, typed countable-union/sum operators and pairwise-disjointness, enabling exact PROB-03 countable additivity. The sequence and operators are primitive; no infinite-series evaluator or convergence proof is claimed. It is pending Test Suite, preflight, Training Prototype Validation, Chromium and WebKit.
 - No model training, weight/checkpoint mutation, dataset generation, Supabase change or production configuration change.
 
