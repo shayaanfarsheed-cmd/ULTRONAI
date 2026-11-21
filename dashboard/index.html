@@ -14,6 +14,7 @@
   <script defer src="./runtime.js"></script>
   <script defer src="./math-agent.js"></script>
   <script defer src="./math-reasoning.js"></script>
+  <script defer src="./proof-kernel.js"></script>
   <script defer src="./math-tutor.js"></script>
   <script defer src="./math-tutor-ui.js"></script>
   <script defer src="./axiom-bank.js"></script>
@@ -478,6 +479,14 @@
               </div>
             </div>
             <p class="fine-print">Mistake diagnosis is deliberately conservative: a wrong final answer alone is not enough to identify a misconception. This release requests working but does not yet classify step-level error patterns. Difficulty is fixed at foundation level; adaptation selects topics, not difficulty. No questions, answers or mastery records are written to storage or training data.</p>
+          </article>
+          <article class="panel section-panel proof-kernel-panel">
+            <div class="section-heading"><div><div class="eyebrow">STAGE 4 / FORMAL VERIFICATION</div><h2>Proof trace checker</h2></div><span class="small-pill">DETERMINISTIC</span></div>
+            <p class="muted-text">Submit a structured JSON proof trace. ULTRON replays every inference step, checks typed expressions and verifies that axiom IDs belong to the selected formal system. Free-form working is not treated as a proof.</p>
+            <label for="proofTraceInput">Proof trace JSON</label>
+            <textarea id="proofTraceInput" rows="8" maxlength="12000" spellcheck="false" placeholder='{"kind":"ultron-proof-trace","proof":{"version":1,"system":"PEANO_N","assumptions":[],"steps":[{"id":"r","rule":"eq_refl","term":{"kind":"nat","value":2},"formula":{"kind":"eq","left":{"kind":"nat","value":2},"right":{"kind":"nat","value":2}}}],"conclusion":"r"}}'></textarea>
+            <div class="control-row"><button id="proofTraceCheckButton" class="primary-button" type="button">Verify proof trace</button><button id="proofTraceExampleButton" class="quiet-button" type="button">Load valid example</button></div>
+            <pre id="proofTraceResult" class="proof-trace-result" role="status" aria-live="polite">No proof trace checked yet.</pre>
           </article>
           <article class="panel section-panel axiom-bank-panel">
             <div class="section-heading"><div><div class="eyebrow">MATHEMATICAL FOUNDATIONS</div><h2>Axiom Bank</h2></div><span class="small-pill">RESEARCHED REFERENCE</span></div>
