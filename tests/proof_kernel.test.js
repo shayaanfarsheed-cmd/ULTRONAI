@@ -2,7 +2,7 @@
 const test=require("node:test"),assert=require("node:assert/strict"),K=require("../dashboard/proof-kernel.js");
 const {T,F}=K, mk=(system,assumptions,steps,conclusion)=>({version:1,system,assumptions,steps,conclusion});
 test("typed expression and formula validation",()=>{assert.equal(K.validFormula(F.eq(T.numeral(1),T.numeral(1))),true);assert.equal(K.validFormula(F.eq(T.numeral(1),T.rational(1,1))),false);assert.equal(K.validFormula(F.eq(T.add(T.numeral(1),T.numeral(2)),T.numeral(3))),true);assert.equal(K.validFormula({kind:"evil"}),false);});
-test("formal contexts are separate and conservative",()=>{assert.deepEqual(K.SYSTEMS.PEANO_N.enabledAxioms,["PEANO-02","PEANO-03"]);assert.deepEqual(K.SYSTEMS.PEANO_N.enabledAxiomSchemas,["PEANO-04"]);assert.deepEqual(K.SYSTEMS.REAL_FIELD.enabledAxioms,["FIELD-01","FIELD-02","FIELD-03","FIELD-04","FIELD-05","FIELD-06","FIELD-07","FIELD-08","FIELD-09"]);assert.deepEqual(K.SYSTEMS.REAL_FIELD.enabledAxiomSchemas,[]);for(const s of ["ORDERED_FIELD","COMPLETE_REAL","EUCLID_GEOMETRY","KOLMOGOROV","ZFC"]){assert.deepEqual(K.SYSTEMS[s].enabledAxioms,[]);assert.deepEqual(K.SYSTEMS[s].enabledAxiomSchemas,[]);}});
+test("formal contexts are separate and conservative",()=>{assert.deepEqual(K.SYSTEMS.PEANO_N.enabledAxioms,["PEANO-02","PEANO-03"]);assert.deepEqual(K.SYSTEMS.PEANO_N.enabledAxiomSchemas,["PEANO-04"]);assert.deepEqual(K.SYSTEMS.REAL_FIELD.enabledAxioms,["FIELD-01","FIELD-02","FIELD-03","FIELD-04","FIELD-05","FIELD-06","FIELD-07","FIELD-08","FIELD-09"]);assert.deepEqual(K.SYSTEMS.REAL_FIELD.enabledAxiomSchemas,[]);for(const s of ["ORDERED_FIELD","COMPLETE_REAL"]){assert.deepEqual(K.SYSTEMS[s].enabledAxioms,[]);assert.deepEqual(K.SYSTEMS[s].enabledAxiomSchemas,[]);}assert.deepEqual(K.SYSTEMS.EUCLID_GEOMETRY.enabledAxioms,["EUCLID-01"]);assert.deepEqual(K.SYSTEMS.KOLMOGOROV.enabledAxioms,["PROB-01","PROB-02"]);assert.deepEqual(K.SYSTEMS.ZFC.enabledAxioms,["ZFC-01","ZFC-02"]);for(const s of ["EUCLID_GEOMETRY","KOLMOGOROV","ZFC"])assert.deepEqual(K.SYSTEMS[s].enabledAxiomSchemas,[]);});
 test("reflexivity replays and forged conclusion fails",()=>{const x=T.variable("x","Nat"),p=mk("PEANO_N",[],[{id:"r",rule:"eq_refl",term:x,formula:F.eq(x,x)}],"r");assert.equal(K.verify(p).valid,true);p.steps[0].formula=F.eq(x,T.numeral(2));assert.equal(K.verify(p).code,"RULE_MISMATCH");});
 test("assumptions, conjunction and implication introduction",()=>{const a=F.predicate("A"),b=F.predicate("B"),p=mk("PEANO_N",[{id:"ha",formula:a},{id:"hb",formula:b}],[{id:"a",rule:"assumption",assumption:"ha",formula:a},{id:"b",rule:"assumption",assumption:"hb",formula:b},{id:"ab",rule:"and_intro",premises:["a","b"],formula:F.and(a,b)},{id:"imp",rule:"imp_intro",premises:["b"],discharge:"hb",formula:F.implies(b,b)}],"imp");assert.equal(K.verify(p).valid,true);});
 test("unknown, forward and duplicate references rejected",()=>{const a=F.predicate("A"),p=mk("PEANO_N",[],[{id:"x",rule:"and_left",premises:["future"],formula:a}],"x");assert.equal(K.verify(p).code,"UNKNOWN_PREMISE");const d=mk("PEANO_N",[{id:"x",formula:a}],[{id:"x",rule:"assumption",assumption:"x",formula:a}],"x");assert.equal(K.verify(d).code,"INVALID_STEP");});
@@ -443,4 +443,68 @@ test("existential elimination requires its witness assumption in the minor proof
   {id:"eliminated",rule:"exists_elim",premises:["major-step","truth"],variable:"k",discharge:"case",formula:conclusion}
  ],"eliminated");
  assert.equal(K.verify(proof).code,"INVALID_EXISTS_ELIMINATION_SCOPE");
+});
+
+test("Euclidean first postulate has typed points, incidence and a distinctness condition",()=>{
+ const formula=K.AXIOMS["EUCLID-01"].formula;
+ assert.equal(K.validFormula(formula,{},new Set(K.SYSTEMS.EUCLID_GEOMETRY.sorts)),true);
+ const proof=mk("EUCLID_GEOMETRY",[],[{id:"euclid",rule:"axiom",axiomId:"EUCLID-01",formula}],"euclid");
+ const result=K.verify(proof);
+ assert.equal(result.valid,true);
+ assert.deepEqual(result.usedAxioms,["EUCLID-01"]);
+ const wrong=mk("REAL_FIELD",[],[{id:"euclid",rule:"axiom",axiomId:"EUCLID-01",formula}],"euclid");
+ assert.equal(K.verify(wrong).code,"AXIOM_NOT_AVAILABLE");
+});
+test("line and incidence nodes reject incompatible geometric sorts",()=>{
+ assert.equal(K.termSort(T.line("l")),"Line");
+ assert.equal(K.validFormula(F.incident(T.point("A"),T.line("l")),{},new Set(K.SYSTEMS.EUCLID_GEOMETRY.sorts)),true);
+ assert.equal(K.validFormula(F.incident(T.event("A"),T.line("l")),{},new Set(K.SYSTEMS.EUCLID_GEOMETRY.sorts)),false);
+ assert.equal(K.validFormula({...F.incident(T.point("A"),T.line("l")),extra:true},{},new Set(K.SYSTEMS.EUCLID_GEOMETRY.sorts)),false);
+});
+test("Kolmogorov nonnegativity and normalization axioms replay by exact ID",()=>{
+ for(const id of ["PROB-01","PROB-02"]){
+  const formula=K.AXIOMS[id].formula;
+  assert.equal(K.validFormula(formula,{},new Set(K.SYSTEMS.KOLMOGOROV.sorts)),true,id);
+  const proof=mk("KOLMOGOROV",[],[{id:"ax",rule:"axiom",axiomId:id,formula}],"ax");
+  const result=K.verify(proof);
+  assert.equal(result.valid,true,id);
+  assert.deepEqual(result.usedAxioms,[id],id);
+  const wrong=mk("REAL_FIELD",[],[{id:"ax",rule:"axiom",axiomId:id,formula}],"ax");
+  assert.equal(K.verify(wrong).code,"AXIOM_NOT_AVAILABLE",id);
+ }
+});
+test("probability measure terms require an Event and real-valued order",()=>{
+ assert.equal(K.termSort(T.sampleSpace()),"Event");
+ assert.equal(K.termSort(T.measure(T.event("A"))),"Real");
+ assert.equal(K.termSort(T.measure(T.set("A"))),null);
+ assert.equal(K.validFormula(F.lt(T.measure(T.event("A")),T.real(0,1)),{},new Set(K.SYSTEMS.KOLMOGOROV.sorts)),true);
+ assert.equal(K.validFormula(F.lt(T.rational(1,2),T.real(1,1)),{},new Set(K.SYSTEMS.KOLMOGOROV.sorts)),false);
+});
+test("ZFC extensionality and empty-set axioms replay with set-only terms",()=>{
+ for(const id of ["ZFC-01","ZFC-02"]){
+  const formula=K.AXIOMS[id].formula;
+  assert.equal(K.validFormula(formula,{},new Set(K.SYSTEMS.ZFC.sorts)),true,id);
+  const proof=mk("ZFC",[],[{id:"ax",rule:"axiom",axiomId:id,formula}],"ax");
+  const result=K.verify(proof);
+  assert.equal(result.valid,true,id);
+  assert.deepEqual(result.usedAxioms,[id],id);
+  const wrong=mk("PEANO_N",[],[{id:"ax",rule:"axiom",axiomId:id,formula}],"ax");
+  assert.equal(K.verify(wrong).code,"AXIOM_NOT_AVAILABLE",id);
+ }
+});
+test("new formal contexts reject forged statements and incompatible terms",()=>{
+ for(const [system,id] of [["EUCLID_GEOMETRY","EUCLID-01"],["KOLMOGOROV","PROB-01"],["ZFC","ZFC-01"]]){
+  const forged=mk(system,[],[{id:"ax",rule:"axiom",axiomId:id,formula:F.predicate("forged",[])}],"ax");
+  assert.equal(K.verify(forged).code,"RULE_MISMATCH",id);
+ }
+ const fieldLine=mk("REAL_FIELD",[],[{id:"x",rule:"eq_refl",term:T.line("l"),formula:F.eq(T.line("l"),T.line("l"))}],"x");
+ const zfcPoint=mk("ZFC",[],[{id:"x",rule:"eq_refl",term:T.point("A"),formula:F.eq(T.point("A"),T.point("A"))}],"x");
+ const geometryEvent=mk("EUCLID_GEOMETRY",[],[{id:"x",rule:"eq_refl",term:T.event("e"),formula:F.eq(T.event("e"),T.event("e"))}],"x");
+ assert.equal(K.verify(fieldLine).code,"INVALID_STEP");
+ assert.equal(K.verify(zfcPoint).code,"INVALID_STEP");
+ assert.equal(K.verify(geometryEvent).code,"INVALID_STEP");
+});
+test("countable additivity remains disabled until sequence and sum operators exist",()=>{
+ assert.equal(K.AXIOMS["PROB-03"],undefined);
+ assert.deepEqual(K.SYSTEMS.KOLMOGOROV.enabledAxioms,["PROB-01","PROB-02"]);
 });
