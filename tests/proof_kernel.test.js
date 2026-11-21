@@ -932,7 +932,7 @@ test("verified proof results preserve the complete original proof and step metad
  assert.equal(result.valid,true);
  assert.deepEqual(result.proof,proof);
  assert.deepEqual(result.trace[2],proof.steps[2]);
- assert.equal(result.trace[2].template.predicate,"P");
+ assert.equal(result.trace[2].template.name,"P");
  assert.equal(result.trace[2].variable,"x");
 });
 test("equality substitution has an exact step schema and rejects extra fields",()=>{
