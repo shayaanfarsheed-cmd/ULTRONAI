@@ -4,8 +4,8 @@ function deepFreeze(value){if(value&&typeof value==="object"&&!Object.isFrozen(v
 const SYSTEMS=deepFreeze({
  PEANO_N:{label:"Peano arithmetic",sorts:["Nat"],enabledAxioms:["PEANO-02","PEANO-03"],enabledAxiomSchemas:["PEANO-04"]},
  REAL_FIELD:{label:"Field theory",sorts:["Field"],enabledAxioms:["FIELD-01","FIELD-02","FIELD-03","FIELD-04","FIELD-05","FIELD-06","FIELD-07","FIELD-08","FIELD-09"],enabledAxiomSchemas:[]},
- ORDERED_FIELD:{label:"Ordered-field theory",sorts:["Field"],enabledAxioms:[],enabledAxiomSchemas:[]},
- COMPLETE_REAL:{label:"Complete real field",sorts:["Field"],enabledAxioms:[],enabledAxiomSchemas:[]},
+ ORDERED_FIELD:{label:"Ordered-field theory",sorts:["Field"],enabledAxioms:["FIELD-01","FIELD-02","FIELD-03","FIELD-04","FIELD-05","FIELD-06","FIELD-07","FIELD-08","FIELD-09"].concat(["ORDER-01","ORDER-02","ORDER-03","ORDER-04"]),enabledAxiomSchemas:[]},
+ COMPLETE_REAL:{label:"Complete real field",sorts:["Field","RealSet"],enabledAxioms:["FIELD-01","FIELD-02","FIELD-03","FIELD-04","FIELD-05","FIELD-06","FIELD-07","FIELD-08","FIELD-09"].concat(["ORDER-01","ORDER-02","ORDER-03","ORDER-04","COMPLETE-01"]),enabledAxiomSchemas:[]},
  EUCLID_GEOMETRY:{label:"Euclidean geometry",sorts:["Point","Line","Circle","Angle"],enabledAxioms:["EUCLID-01","EUCLID-02","EUCLID-03","EUCLID-04","EUCLID-05"],enabledAxiomSchemas:[]},
  KOLMOGOROV:{label:"Kolmogorov probability",sorts:["Event","Real","EventSequence"],enabledAxioms:["PROB-01","PROB-02","PROB-03"],enabledAxiomSchemas:[]},
  ZFC:{label:"Zermelo–Fraenkel set theory with Choice",sorts:["Set"],enabledAxioms:["ZFC-01","ZFC-02","ZFC-03","ZFC-04","ZFC-05","ZFC-06","ZFC-09"],enabledAxiomSchemas:["ZFC-07","ZFC-08"]}
@@ -76,8 +76,8 @@ function validFormula(f,bound={},allowedSorts=null) {
  case "le":{if(!exactKeys(f,["kind","left","right"]))return false;const sort=termSort(f.left,bound);return ["Nat","Field","Real"].includes(sort)&&sort===termSort(f.right,bound)&&(!allowedSorts||allowedSorts.has(sort));}
  case "and":case "implies":return exactKeys(f,["kind","left","right"])&&validFormula(f.left,bound,allowedSorts)&&validFormula(f.right,bound,allowedSorts);
  case "not":return exactKeys(f,["kind","formula"])&&validFormula(f.formula,bound,allowedSorts);
- case "forall":case "exists":{if(!exactKeys(f,["kind","name","sort","body"])||typeof f.name!=="string"||!["Nat","Field","Real","Point","Line","Circle","Angle","Event","EventSequence","Probability","Set"].includes(f.sort)||(allowedSorts&&!allowedSorts.has(f.sort)))return false;return validFormula(f.body,Object.assign({},bound,{[f.name]:f.sort}),allowedSorts);}
- case "member":{if(!exactKeys(f,["kind","term","set"]))return false;const a=termSort(f.term,bound),b=termSort(f.set,bound);return !!a&&b==="Set"&&(!allowedSorts||(allowedSorts.has(a)&&allowedSorts.has(b)));}
+ case "forall":case "exists":{if(!exactKeys(f,["kind","name","sort","body"])||typeof f.name!=="string"||!["Nat","Field","Real","Point","Line","Circle","Angle","Event","EventSequence","Probability","Set","RealSet"].includes(f.sort)||(allowedSorts&&!allowedSorts.has(f.sort)))return false;return validFormula(f.body,Object.assign({},bound,{[f.name]:f.sort}),allowedSorts);}
+ case "member":{if(!exactKeys(f,["kind","term","set"]))return false;const a=termSort(f.term,bound),b=termSort(f.set,bound);const compatible=b==="Set"||(b==="RealSet"&&a==="Field");return !!a&&compatible&&(!allowedSorts||(allowedSorts.has(a)&&allowedSorts.has(b)));}
  case "incident":return exactKeys(f,["kind","point","line"])&&termSort(f.point,bound)==="Point"&&termSort(f.line,bound)==="Line"&&(!allowedSorts||(allowedSorts.has("Point")&&allowedSorts.has("Line")));
  case "between":return exactKeys(f,["kind","first","middle","last"])&&termSort(f.first,bound)==="Point"&&termSort(f.middle,bound)==="Point"&&termSort(f.last,bound)==="Point"&&(!allowedSorts||allowedSorts.has("Point"));
  case "circleCenter":return exactKeys(f,["kind","circle","center"])&&termSort(f.circle,bound)==="Circle"&&termSort(f.center,bound)==="Point"&&(!allowedSorts||(allowedSorts.has("Circle")&&allowedSorts.has("Point")));
@@ -207,18 +207,56 @@ const EUCLID_SEGMENT_EXTENSION=F.forall("A","Point",
   )
  )
 );
+const fieldVar=name=>T.variable(name,"Field");
+const orderA=fieldVar("a"),orderB=fieldVar("b"),zeroField=T.rational(0,1);
+const orderAB=F.lt(orderA,orderB),equalAB=F.eq(orderA,orderB),orderBA=F.lt(orderB,orderA);
+const ORDER_TRICHOTOMY=F.forall("a","Field",F.forall("b","Field",F.and(
+ F.not(F.and(orderAB,equalAB)),
+ F.and(
+  F.not(F.and(orderAB,orderBA)),
+  F.and(
+   F.not(F.and(equalAB,orderBA)),
+   F.not(F.and(F.not(orderAB),F.and(F.not(equalAB),F.not(orderBA))))
+  )
+ )
+)));
+const COMPLETE_LEAST_UPPER_BOUND=F.forall("A","RealSet",F.implies(
+ F.and(
+  F.exists("n","Field",F.member(fieldVar("n"),T.variable("A","RealSet"))),
+  F.exists("b","Field",F.forall("bx","Field",F.implies(
+   F.member(fieldVar("bx"),T.variable("A","RealSet")),F.le(fieldVar("bx"),fieldVar("b"))
+  )))
+ ),
+ F.exists("s","Field",F.and(
+  F.forall("sx","Field",F.implies(
+   F.member(fieldVar("sx"),T.variable("A","RealSet")),F.le(fieldVar("sx"),fieldVar("s"))
+  )),
+  F.forall("u","Field",F.implies(
+   F.forall("ux","Field",F.implies(
+    F.member(fieldVar("ux"),T.variable("A","RealSet")),F.le(fieldVar("ux"),fieldVar("u"))
+   )),
+   F.le(fieldVar("s"),fieldVar("u"))
+  ))
+ ))
+));
 const AXIOMS=deepFreeze({
  "PEANO-02":{system:"PEANO_N",formula:F.forall("n","Nat",F.not(F.eq(T.succ(T.variable("n","Nat")),T.numeral(0))))},
  "PEANO-03":{system:"PEANO_N",formula:F.forall("m","Nat",F.forall("n","Nat",F.implies(F.eq(T.succ(T.variable("m","Nat")),T.succ(T.variable("n","Nat"))),F.eq(T.variable("m","Nat"),T.variable("n","Nat")))))},
- "FIELD-01":{system:"REAL_FIELD",formula:F.forall("a","Field",F.forall("b","Field",F.eq(T.add(T.variable("a","Field"),T.variable("b","Field")),T.add(T.variable("b","Field"),T.variable("a","Field")))))},
- "FIELD-02":{system:"REAL_FIELD",formula:F.forall("a","Field",F.forall("b","Field",F.forall("c","Field",F.eq(T.add(T.add(T.variable("a","Field"),T.variable("b","Field")),T.variable("c","Field")),T.add(T.variable("a","Field"),T.add(T.variable("b","Field"),T.variable("c","Field")))))))},
- "FIELD-03":{system:"REAL_FIELD",formula:F.forall("a","Field",F.and(F.eq(T.add(T.variable("a","Field"),T.rational(0,1)),T.variable("a","Field")),F.eq(T.add(T.rational(0,1),T.variable("a","Field")),T.variable("a","Field"))))},
- "FIELD-04":{system:"REAL_FIELD",formula:F.forall("a","Field",F.exists("b","Field",F.eq(T.add(T.variable("a","Field"),T.variable("b","Field")),T.rational(0,1))))},
- "FIELD-05":{system:"REAL_FIELD",formula:F.forall("a","Field",F.forall("b","Field",F.eq(T.multiply(T.variable("a","Field"),T.variable("b","Field")),T.multiply(T.variable("b","Field"),T.variable("a","Field")))))},
- "FIELD-06":{system:"REAL_FIELD",formula:F.forall("a","Field",F.forall("b","Field",F.forall("c","Field",F.eq(T.multiply(T.multiply(T.variable("a","Field"),T.variable("b","Field")),T.variable("c","Field")),T.multiply(T.variable("a","Field"),T.multiply(T.variable("b","Field"),T.variable("c","Field")))))))},
- "FIELD-07":{system:"REAL_FIELD",formula:F.and(F.not(F.eq(T.rational(1,1),T.rational(0,1))),F.forall("a","Field",F.and(F.eq(T.multiply(T.variable("a","Field"),T.rational(1,1)),T.variable("a","Field")),F.eq(T.multiply(T.rational(1,1),T.variable("a","Field")),T.variable("a","Field")))))},
- "FIELD-08":{system:"REAL_FIELD",formula:F.forall("a","Field",F.implies(F.not(F.eq(T.variable("a","Field"),T.rational(0,1))),F.exists("b","Field",F.eq(T.multiply(T.variable("a","Field"),T.variable("b","Field")),T.rational(1,1)))))},
- "FIELD-09":{system:"REAL_FIELD",formula:F.forall("a","Field",F.forall("b","Field",F.forall("c","Field",F.eq(T.multiply(T.variable("a","Field"),T.add(T.variable("b","Field"),T.variable("c","Field"))),T.add(T.multiply(T.variable("a","Field"),T.variable("b","Field")),T.multiply(T.variable("a","Field"),T.variable("c","Field")))))))},
+ "FIELD-01":{system:"REAL_FIELD",systems:["REAL_FIELD","ORDERED_FIELD","COMPLETE_REAL"],formula:F.forall("a","Field",F.forall("b","Field",F.eq(T.add(T.variable("a","Field"),T.variable("b","Field")),T.add(T.variable("b","Field"),T.variable("a","Field")))))},
+ "FIELD-02":{system:"REAL_FIELD",systems:["REAL_FIELD","ORDERED_FIELD","COMPLETE_REAL"],formula:F.forall("a","Field",F.forall("b","Field",F.forall("c","Field",F.eq(T.add(T.add(T.variable("a","Field"),T.variable("b","Field")),T.variable("c","Field")),T.add(T.variable("a","Field"),T.add(T.variable("b","Field"),T.variable("c","Field")))))))},
+ "FIELD-03":{system:"REAL_FIELD",systems:["REAL_FIELD","ORDERED_FIELD","COMPLETE_REAL"],formula:F.forall("a","Field",F.and(F.eq(T.add(T.variable("a","Field"),T.rational(0,1)),T.variable("a","Field")),F.eq(T.add(T.rational(0,1),T.variable("a","Field")),T.variable("a","Field"))))},
+ "FIELD-04":{system:"REAL_FIELD",systems:["REAL_FIELD","ORDERED_FIELD","COMPLETE_REAL"],formula:F.forall("a","Field",F.exists("b","Field",F.eq(T.add(T.variable("a","Field"),T.variable("b","Field")),T.rational(0,1))))},
+ "FIELD-05":{system:"REAL_FIELD",systems:["REAL_FIELD","ORDERED_FIELD","COMPLETE_REAL"],formula:F.forall("a","Field",F.forall("b","Field",F.eq(T.multiply(T.variable("a","Field"),T.variable("b","Field")),T.multiply(T.variable("b","Field"),T.variable("a","Field")))))},
+ "FIELD-06":{system:"REAL_FIELD",systems:["REAL_FIELD","ORDERED_FIELD","COMPLETE_REAL"],formula:F.forall("a","Field",F.forall("b","Field",F.forall("c","Field",F.eq(T.multiply(T.multiply(T.variable("a","Field"),T.variable("b","Field")),T.variable("c","Field")),T.multiply(T.variable("a","Field"),T.multiply(T.variable("b","Field"),T.variable("c","Field")))))))},
+ "FIELD-07":{system:"REAL_FIELD",systems:["REAL_FIELD","ORDERED_FIELD","COMPLETE_REAL"],formula:F.and(F.not(F.eq(T.rational(1,1),T.rational(0,1))),F.forall("a","Field",F.and(F.eq(T.multiply(T.variable("a","Field"),T.rational(1,1)),T.variable("a","Field")),F.eq(T.multiply(T.rational(1,1),T.variable("a","Field")),T.variable("a","Field")))))},
+ "FIELD-08":{system:"REAL_FIELD",systems:["REAL_FIELD","ORDERED_FIELD","COMPLETE_REAL"],formula:F.forall("a","Field",F.implies(F.not(F.eq(T.variable("a","Field"),T.rational(0,1))),F.exists("b","Field",F.eq(T.multiply(T.variable("a","Field"),T.variable("b","Field")),T.rational(1,1)))))},
+ "FIELD-09":{system:"REAL_FIELD",systems:["REAL_FIELD","ORDERED_FIELD","COMPLETE_REAL"],formula:F.forall("a","Field",F.forall("b","Field",F.forall("c","Field",F.eq(T.multiply(T.variable("a","Field"),T.add(T.variable("b","Field"),T.variable("c","Field"))),T.add(T.multiply(T.variable("a","Field"),T.variable("b","Field")),T.multiply(T.variable("a","Field"),T.variable("c","Field")))))))},
+ "ORDER-01":{system:"ORDERED_FIELD",systems:["ORDERED_FIELD","COMPLETE_REAL"],formula:ORDER_TRICHOTOMY},
+ "ORDER-02":{system:"ORDERED_FIELD",systems:["ORDERED_FIELD","COMPLETE_REAL"],formula:F.forall("a","Field",F.forall("b","Field",F.forall("c","Field",F.implies(F.and(F.lt(fieldVar("a"),fieldVar("b")),F.lt(fieldVar("b"),fieldVar("c"))),F.lt(fieldVar("a"),fieldVar("c"))))))},
+ "ORDER-03":{system:"ORDERED_FIELD",systems:["ORDERED_FIELD","COMPLETE_REAL"],formula:F.forall("a","Field",F.forall("b","Field",F.forall("c","Field",F.implies(F.lt(fieldVar("a"),fieldVar("b")),F.lt(T.add(fieldVar("a"),fieldVar("c")),T.add(fieldVar("b"),fieldVar("c")))))))},
+ "ORDER-04":{system:"ORDERED_FIELD",systems:["ORDERED_FIELD","COMPLETE_REAL"],formula:F.forall("a","Field",F.forall("b","Field",F.forall("c","Field",F.implies(F.and(F.lt(fieldVar("a"),fieldVar("b")),F.lt(zeroField,fieldVar("c"))),F.lt(T.multiply(fieldVar("a"),fieldVar("c")),T.multiply(fieldVar("b"),fieldVar("c")))))))},
+ "COMPLETE-01":{system:"COMPLETE_REAL",formula:COMPLETE_LEAST_UPPER_BOUND},
+
  "EUCLID-01":{system:"EUCLID_GEOMETRY",formula:F.forall("A","Point",F.forall("B","Point",F.implies(F.not(F.eq(T.variable("A","Point"),T.variable("B","Point"))),F.exists("l","Line",F.and(F.incident(T.variable("A","Point"),T.variable("l","Line")),F.incident(T.variable("B","Point"),T.variable("l","Line")))))))},
  "EUCLID-02":{system:"EUCLID_GEOMETRY",formula:EUCLID_SEGMENT_EXTENSION},
  "EUCLID-03":{system:"EUCLID_GEOMETRY",formula:F.forall("O","Point",F.forall("A","Point",F.exists("c","Circle",F.and(
@@ -274,6 +312,7 @@ const AXIOMS=deepFreeze({
   ))
  ))}
 });
+function axiomAvailable(axiom,system){return !!axiom&&(axiom.system===system||(Array.isArray(axiom.systems)&&axiom.systems.includes(system)));}
 const AXIOM_SCHEMAS=deepFreeze({
  "PEANO-04":{system:"PEANO_N",rule:"induction",description:"From P(0) and ∀k(P(k)→P(S(k))), derive ∀n P(n)."},
  "ZFC-07":{system:"ZFC",rule:"separation",description:"For any formula φ(x), the elements of a set X satisfying φ form a set."},
@@ -287,7 +326,7 @@ function verify(p){
  for(const s of p.steps){
   if(!isObj(s)||typeof s.id!=="string"||available.has(s.id))return err("INVALID_STEP","Each step needs a unique ID.",s&&s.id);
   if(!validStepShape(s)){if(typeof s.rule==="string"&&!["assumption","axiom","eq_refl","eq_symm","eq_trans","and_intro","and_left","and_right","imp_elim","imp_intro","forall_elim","forall_intro","exists_intro","exists_elim","induction","separation","replacement"].includes(s.rule))return err("UNKNOWN_RULE","Rule is not part of the audited kernel.",s.id);return err("INVALID_STEP","Step contains missing, unexpected, or malformed fields.",s.id);}
-  if(s.rule==="axiom"){const registered=AXIOMS[s.axiomId];if(!registered||registered.system!==p.system||!sys.enabledAxioms.includes(s.axiomId))return err("AXIOM_NOT_AVAILABLE","Axiom is unknown, not formalized, or unavailable in this system.",s.id);}
+  if(s.rule==="axiom"){const registered=AXIOMS[s.axiomId];if(!axiomAvailable(registered,p.system)||!sys.enabledAxioms.includes(s.axiomId))return err("AXIOM_NOT_AVAILABLE","Axiom is unknown, not formalized, or unavailable in this system.",s.id);}
   if(s.rule==="induction"){const schema=AXIOM_SCHEMAS[s.axiomId];if(!schema||schema.system!==p.system||!sys.enabledAxiomSchemas.includes(s.axiomId))return err("AXIOM_SCHEMA_NOT_AVAILABLE","Axiom schema is unknown or unavailable in this formal system.",s.id);}
   if(s.rule==="separation"||s.rule==="replacement"){const schema=AXIOM_SCHEMAS[s.schemaId];if(!schema||schema.rule!==s.rule||schema.system!==p.system||!sys.enabledAxiomSchemas.includes(s.schemaId))return err("AXIOM_SCHEMA_NOT_AVAILABLE","Axiom schema is unknown or unavailable in this formal system.",s.id);}
   if(!validFormula(s.formula,{},allowedSorts))return err("INVALID_STEP","Proof step formula is not well-typed in its declared formal system.",s.id);
@@ -296,7 +335,7 @@ function verify(p){
   let e=null;
   switch(s.rule){
    case "assumption":{const a=p.assumptions.find(x=>x.id===s.assumption);if(a&&!ids.length)e=a.formula;break;}
-   case "axiom":{const a=AXIOMS[s.axiomId];if(ids.length)return err("RULE_MISMATCH","Axiom steps cannot have premises.",s.id);if(!a||a.system!==p.system||!sys.enabledAxioms.includes(s.axiomId))return err("AXIOM_NOT_AVAILABLE","Axiom is unknown, not formalized, or unavailable in this system.",s.id);e=a.formula;used.push(s.axiomId);break;}
+   case "axiom":{const a=AXIOMS[s.axiomId];if(ids.length)return err("RULE_MISMATCH","Axiom steps cannot have premises.",s.id);if(!axiomAvailable(a,p.system)||!sys.enabledAxioms.includes(s.axiomId))return err("AXIOM_NOT_AVAILABLE","Axiom is unknown, not formalized, or unavailable in this system.",s.id);e=a.formula;used.push(s.axiomId);break;}
    case "eq_refl":if(s.term&&termSort(s.term)&&!ids.length)e=F.eq(s.term,s.term);break;
    case "eq_symm":if(refs.length===1&&refs[0].formula.kind==="eq")e=F.eq(refs[0].formula.right,refs[0].formula.left);break;
    case "eq_trans":if(refs.length===2&&refs.every(x=>x.formula.kind==="eq")&&stable(refs[0].formula.right)===stable(refs[1].formula.left))e=F.eq(refs[0].formula.left,refs[1].formula.right);break;
