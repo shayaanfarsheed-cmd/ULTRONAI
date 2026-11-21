@@ -18,11 +18,11 @@ The following is historical deployment evidence retained from the previous READM
 - PR [#96](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/96) merged at 397199389a1c829ff3107cff5560a2c27516fd9a.
 - At that milestone, **236 unit tests** passed, and browser smoke tests passed in **Chromium and WebKit**.
 - The **GitHub Pages build and deployment succeeded** for the recorded merge commit. Dashboard: https://shayaanfarsheed-cmd.github.io/ULTRONAI/.
-- The dashboard had 11 views. Public browsing was available; privileged owner operations remained separately gated.
+- The dashboard had 11 views. This is historical deployment evidence; the current product direction is an account-free public website with no login/sign-up or account-specific controls.
 - The RAM slider was a browser-local preference, not a remote runner RAM or GPU-VRAM limit.
 - Production Supabase training-control was recorded as ACTIVE, **version 6**, with verify_jwt=true; the deployment record says the deployed source matches exactly the checked-in function source.
-- Run owner-only **Refresh status** from the signed-in owner's browser to verify GitHub API permissions; a configured token alone does not prove API access. A configured token alone does not prove GitHub API permission. The preflight includes a Deno type-check for the Supabase function.
-- Remaining manual checks recorded at that time included a physical iPad/phone check and production security tests for invalid/expired JWTs, non-owner denial, public dispatch denial and secret non-disclosure.
+- Historical note: the former owner-only **Refresh status** flow depended on a signed-in browser and is not part of the current account-free product requirement. Do not restore it without an explicit product decision and security review. The preflight includes a Deno type-check for the Supabase function.
+- Remaining manual checks recorded at that time included a physical iPad/phone check and production security tests for invalid/expired JWTs, non-owner denial, public dispatch denial and secret non-disclosure. Reassess these against the current account-free architecture rather than assuming owner authentication remains required.
 - Earlier deployment evidence: PR #80 ([pull request](https://github.com/shayaanfarsheed-cmd/ULTRONAI/pull/80)) merged with all three then-required checks passing. The production training-control function was recorded as ACTIVE, **version 5**, with verify_jwt=true.
 - The launch adapter used GitHub Actions workflow_dispatch for the CPU diagnostic workflow. The deployed function source was fetched after deployment and matched the GitHub main source exactly.
 - No diagnostic was launched and no model training was started. No weights or persistent checkpoints were modified during that recorded work.
@@ -36,14 +36,14 @@ Model architecture, parameter count, tokenizer, dataset state and training readi
 - PR [#96] and its deployment details above are preserved for compatibility with existing repository documentation checks.
 - The recorded deployed function source was required to **source matches exactly** the checked-in function source; the current deployment must be rechecked before any privileged diagnostic.
 - Run the Deno type-check for the Supabase function as part of preflight.
-- Keep owner-only **Refresh status** restricted to the signed-in owner's browser.
+- The current account-free product direction excludes owner-only **Refresh status** and other account-bound dashboard controls. Keep remote execution unavailable from the public UI until a separately reviewed control design is approved.
 - No diagnostic was launched and no model training was started.
 
 ## What works today
 
 ### Browser dashboard and mathematics tutor
 
-The GitHub Pages site is designed for desktop, mobile and iPad-sized screens. Public dashboard browsing does not require an account. Private operations remain owner-gated.
+The GitHub Pages site is designed for desktop, mobile and iPad-sized screens. The intended experience is fully account-free: no login/sign-up, no account-specific history, and no pairing controls. Remote execution and real training remain unavailable from the public website.
 
 The dashboard includes:
 - System overview and learning information.
@@ -84,7 +84,7 @@ Implemented foundations include:
 - Probability non-negativity, sample-space normalization and countable additivity.
 - ZFC finite axioms currently represented in the kernel, plus dedicated separation and replacement schema rules.
 
-The ZFC choice axiom is not yet implemented as an executable rule. The ordered-field and complete-real contexts are declared but do not yet have their own executable axiom systems. See the formal-kernel specification for exact coverage and limitations.
+ZFC-10 (choice) is now registered using typed primitive relations and exact axiom replay. Its indexed-family and function-graph semantics are not yet implemented, so this is not an executable choice-function constructor. The ordered-field and complete-real contexts are declared but do not yet have their own executable axiom systems. See the formal-kernel specification for exact coverage and limitations.
 
 The proof kernel is **not** a general theorem prover, does not establish consistency of its axioms, and does not prove that the neural model has learned mathematics.
 
@@ -263,29 +263,29 @@ Tasks:
 5. Perform a physical-device check when available. Automated emulation is not proof of every iPad browser behavior.
 6. Make every status display distinguish live server data from cached, local, estimated or unavailable data.
 7. Make the RAM slider's scope explicit. If it is only a local preference, do not display it as an enforced runner limit.
-8. Verify that public browsing needs no login/sign-up while owner-only actions remain protected.
-9. Verify that owner-mode changes, sign-out, expired sessions and delayed asynchronous responses cannot restore stale privileged UI state.
+8. Verify that every public website route works without login/sign-up and that no account-specific history or pairing controls remain.
+9. Verify that no privileged training or remote-execution controls are exposed; stale account/session UI from the former design must not remain.
 10. Test accessibility basics: semantic controls, labels, contrast, focus order, keyboard operation and screen-reader names.
 
-Acceptance criteria: all visible controls have defined tested behavior; no horizontal overflow at supported viewport sizes; Chromium and WebKit checks pass; physical iPad status is separately recorded; public/owner boundaries are tested.
+Acceptance criteria: all visible controls have defined tested behavior; no horizontal overflow at supported viewport sizes; Chromium and WebKit checks pass; physical iPad status is separately recorded; account-free behavior and absence of privileged public controls are tested.
 
-## Stage 2 — harden owner operations and service boundaries
+## Stage 2 — harden public service boundaries and future remote-execution safeguards
 
-**Purpose:** ensure that a public website cannot accidentally or deliberately operate private training resources.
+**Purpose:** ensure that an account-free public website cannot accidentally or deliberately operate remote training resources.
 
 Tasks:
-- Inventory every owner-only action and backend endpoint.
-- Enforce authorization at the server/function boundary for every privileged operation.
-- Test unauthenticated, non-owner, expired-session, malformed-token and revoked-session requests.
+- Inventory every backend endpoint and any remaining privileged operation. Confirm that the public website has no account-specific control surface.
+- Keep remote execution and training endpoints disabled or unavailable to the public frontend until a separately reviewed control architecture is approved.
+- If a future privileged service is approved, define and test its authorization boundary before exposing it; do not reintroduce login/account features by assumption.
 - Confirm public responses never contain secrets, privileged provider metadata, private logs, checkpoint locations or owner-only data.
 - Review CORS, request methods, input schemas, payload sizes, rate limits and error messages.
 - Store credentials only in approved secret storage; never bundle them into GitHub Pages assets or client-side JavaScript.
 - Review workflow permissions and token scopes using least privilege.
-- Require explicit owner confirmation and server-side checks for destructive actions and training launch.
-- Add audit events for privileged actions without logging secrets or sensitive payloads.
-- Test delayed status responses, sign-out during a request, owner-mode changes and repeated submissions.
+- Keep destructive operations and training launch unavailable until the final readiness gate and separate owner authorization.
+- Add audit events for any future privileged service without logging secrets or sensitive payloads.
+- Test repeated submissions, malformed requests, delayed responses and fail-closed behavior for any future remote control endpoint.
 
-Acceptance criteria: a test matrix proves privileged endpoints reject unauthorized calls; no browser bundle or public API response leaks secrets; destructive and training actions fail closed; security checks pass without weakening tests.
+Acceptance criteria: the public frontend exposes no privileged training/remote-execution actions; no browser bundle or public API response leaks secrets; future privileged endpoints (if approved) have a documented authorization test matrix and fail-closed behavior.
 
 ## Stage 3 — complete the mathematical expression and problem interface
 
