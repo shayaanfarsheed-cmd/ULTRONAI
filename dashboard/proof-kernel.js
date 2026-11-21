@@ -51,7 +51,7 @@ function validStepShape(step){
 function termSort(t,bound={}) {
  if(!isObj(t))return null;
  switch(t.kind){
- case "var":return exactKeys(t,["kind","name","sort"])&&typeof t.name==="string"&&typeof t.sort==="string"&&(!bound[t.name]||bound[t.name]===t.sort)?(bound[t.name]||t.sort):null;
+ case "var":{if(!exactKeys(t,["kind","name","sort"])||typeof t.name!=="string"||!t.name||typeof t.sort!=="string"||!t.sort)return null;const isBound=Object.prototype.hasOwnProperty.call(bound,t.name);return !isBound||bound[t.name]===t.sort?(isBound?bound[t.name]:t.sort):null;}
  case "nat":return exactKeys(t,["kind","value"])&&Number.isSafeInteger(t.value)&&t.value>=0?"Nat":null;
  case "succ":return exactKeys(t,["kind","value"])&&termSort(t.value,bound)==="Nat"?"Nat":null;
  case "add":case "mul":{if(!exactKeys(t,["kind","left","right"]))return null;const a=termSort(t.left,bound),b=termSort(t.right,bound);return a&&a===b&&(a==="Nat"||a==="Field")?a:null;}
@@ -76,7 +76,7 @@ function validFormula(f,bound={},allowedSorts=null) {
  case "le":{if(!exactKeys(f,["kind","left","right"]))return false;const sort=termSort(f.left,bound);return ["Nat","Field","Real"].includes(sort)&&sort===termSort(f.right,bound)&&(!allowedSorts||allowedSorts.has(sort));}
  case "and":case "implies":return exactKeys(f,["kind","left","right"])&&validFormula(f.left,bound,allowedSorts)&&validFormula(f.right,bound,allowedSorts);
  case "not":return exactKeys(f,["kind","formula"])&&validFormula(f.formula,bound,allowedSorts);
- case "forall":case "exists":{if(!exactKeys(f,["kind","name","sort","body"])||typeof f.name!=="string"||!["Nat","Field","Real","Point","Line","Circle","Angle","Event","EventSequence","Probability","Set","RealSet"].includes(f.sort)||(allowedSorts&&!allowedSorts.has(f.sort)))return false;return validFormula(f.body,Object.assign({},bound,{[f.name]:f.sort}),allowedSorts);}
+ case "forall":case "exists":{if(!exactKeys(f,["kind","name","sort","body"])||typeof f.name!=="string"||!f.name||!["Nat","Field","Real","Point","Line","Circle","Angle","Event","EventSequence","Probability","Set","RealSet"].includes(f.sort)||(allowedSorts&&!allowedSorts.has(f.sort)))return false;const nextBound=Object.assign(Object.create(null),bound,{[f.name]:f.sort});return validFormula(f.body,nextBound,allowedSorts);}
  case "member":{if(!exactKeys(f,["kind","term","set"]))return false;const a=termSort(f.term,bound),b=termSort(f.set,bound);const compatible=b==="Set"||(b==="RealSet"&&a==="Field");return !!a&&compatible&&(!allowedSorts||(allowedSorts.has(a)&&allowedSorts.has(b)));}
  case "incident":return exactKeys(f,["kind","point","line"])&&termSort(f.point,bound)==="Point"&&termSort(f.line,bound)==="Line"&&(!allowedSorts||(allowedSorts.has("Point")&&allowedSorts.has("Line")));
  case "between":return exactKeys(f,["kind","first","middle","last"])&&termSort(f.first,bound)==="Point"&&termSort(f.middle,bound)==="Point"&&termSort(f.last,bound)==="Point"&&(!allowedSorts||allowedSorts.has("Point"));
