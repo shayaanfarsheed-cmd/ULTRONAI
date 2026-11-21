@@ -1091,3 +1091,14 @@ The Stage 4 first implementation adds:
 - Next follow-up implements `forall_intro` with a reconstructed quantified-goal instance and eigenvariable side conditions. No language-wide or unverified universal generalization is permitted.
 - Branch: `feature/universal-introduction-eigenvariable`. Do not merge until all required CI checks pass.
 - No training, weight/checkpoint mutation, dataset generation or production configuration change.
+
+
+## Stage 4 — existential formula language and field axioms — in progress (2026-11-21)
+
+- PR #108 merged at `c54f8e5ca4ff16c04304387b52237f3b64c3768e`: `forall_intro` reconstructs the quantified goal instance and rejects eigenvariables free in open assumptions or colliding with property binders.
+- This follow-up adds a typed existential formula constructor, lexical scope validation, and capture-aware substitution beneath both universal and existential binders.
+- The field formal context is extended with exact Axiom Bank entries FIELD-04 (additive inverse existence), FIELD-07 (multiplicative identity and 0≠1), and FIELD-08 (multiplicative inverse for nonzero values).
+- Added regression coverage for existential sort/scope, substitution capture, exact axiom IDs, forged formulas and cross-system denial.
+- Existential introduction/elimination inference rules remain disabled; the language can state these axioms but does not yet provide an unsupported witness rule.
+- Branch: `feature/field-existential-axioms`. Do not merge until full Test Suite, preflight, Training Prototype Validation, Chromium and WebKit checks pass.
+- No training, model-weight change, dataset generation, checkpoint mutation or production configuration update.
