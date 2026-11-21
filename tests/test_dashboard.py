@@ -85,33 +85,33 @@ class DashboardStaticTests(unittest.TestCase):
 
 
 
-    def test_device_access_and_pairing_controls_are_not_public_navigation(self):
+    def test_device_access_and_pairing_controls_are_absent_from_account_free_dashboard(self):
         html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
-        nav = html.split('<nav class="side-nav"', 1)[1].split("</nav>", 1)[0]
-        self.assertNotIn('data-view="devices"', nav)
-        self.assertIn('id="view-devices"', html)
-        self.assertIn("DEVICE PAIRING", html)
-        self.assertIn("No device credentials, agents, or remote device commands are used.", html)
+        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
+        for legacy_id in ("view-devices", "deviceRamLimitValue"):
+            self.assertNotIn(legacy_id, html)
+        self.assertNotIn("DEVICE PAIRING", html)
+        self.assertNotIn('data-view="devices"', html)
+        self.assertNotIn('$("deviceRamLimitValue")', javascript)
+        self.assertIn('id="ramLimitSlider"', html)
         self.assertIn("This preference is not connected to remote training", html)
-        self.assertIn("does not cap the memory available to a hosted runner", html)
-        self.assertIn("deviceRamLimitValue", html)
+        self.assertIn("does not limit hosted-runner ram or gpu vram today", html.lower())
         self.assertNotIn("WINDOWS / MACOS / LINUX", html)
         self.assertNotIn("future local training runtime", html.lower())
         self.assertNotIn("future local runtime", html.lower())
 
-    def test_all_static_javascript_id_references_exist(self):
+    def test_active_public_javascript_dom_id_references_exist(self):
         html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
+        # Legacy owner/data/checkpoint helpers are intentionally unreachable after
+        # their private views were removed. Validate only active startup and event
+        # binding code here; browser smoke tests exercise every public route.
+        bind_events = javascript.split("function bindEvents()", 1)[1].split("function clearLegacyOwnerState()", 1)[0]
+        init = javascript.split("async function init()", 1)[1].split("document.addEventListener", 1)[0]
+        active_javascript = bind_events + init
         ids = re.findall(r'\bid="([^"]+)"', html)
-        references = set(re.findall(r'\$\("([^"]+)"\)', javascript))
-        # These IDs belong only to unreachable legacy owner-auth helpers. The public
-        # dashboard intentionally has no corresponding sign-in or sign-out UI.
-        legacy_auth_ids = {
-            "ownerSignInButton", "ownerSignOutButton", "ownerSignInDialog",
-            "ownerSignInForm", "ownerCancelButton", "ownerSubmitButton",
-            "ownerAuthMessage", "ownerEmail", "ownerPassword",
-        }
-        missing = sorted(references.difference(ids).difference(legacy_auth_ids))
+        references = set(re.findall(r'\$\("([^"]+)"\)', active_javascript))
+        missing = sorted(references.difference(ids))
         duplicates = sorted({value for value in ids if ids.count(value) > 1})
         self.assertEqual(missing, [])
         self.assertEqual(duplicates, [])
@@ -197,7 +197,10 @@ class DashboardStaticTests(unittest.TestCase):
         self.assertIn("if (canvas.width !== pixelWidth) canvas.width = pixelWidth;", javascript)
 
     def test_checkpoint_metadata_reads_are_bounded_and_auth_generation_checked(self):
+        html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
+        self.assertNotIn('id="view-checkpoints"', html)
+        self.assertNotIn('data-view="checkpoints"', html)
         self.assertIn("async function mapWithConcurrency(items, limit, mapper)", (DASHBOARD / "runtime.js").read_text(encoding="utf-8"))
         self.assertIn("ULTRON_RUNTIME.mapWithConcurrency(ids, 3", javascript)
         loader = javascript.split("async function loadCheckpointCandidates()", 1)[1].split("async function verifyCheckpoint", 1)[0]
@@ -207,15 +210,13 @@ class DashboardStaticTests(unittest.TestCase):
         self.assertIn("results.filter(Boolean)", loader)
         self.assertLess(loader.index("const listed = await storageRequest"), loader.index("state.status.run_id !== runId"))
 
-    def test_private_activity_is_not_in_public_navigation(self):
+    def test_private_activity_view_and_renderer_are_removed_from_public_dashboard(self):
         html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
-        nav = html.split('<nav class="side-nav"', 1)[1].split("</nav>", 1)[0]
-        self.assertNotIn('data-view="activity"', nav)
-        self.assertIn('id="view-activity"', html)
-        self.assertIn("function renderActivity()", javascript)
-        self.assertIn("if (state.publicMode || !hasVerifiedOwnerSession())", javascript)
-        self.assertIn("renderActivity();", javascript)
+        self.assertNotIn('id="view-activity"', html)
+        self.assertNotIn('data-view="activity"', html)
+        self.assertNotIn("function renderActivity()", javascript)
+        self.assertNotIn("renderActivity();", javascript)
 
     def test_public_overview_reports_capabilities_without_fake_training_metrics(self):
         html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
@@ -269,9 +270,9 @@ class DashboardStaticTests(unittest.TestCase):
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
         storage_sql = (ROOT / "supabase" / "storage-setup.sql").read_text(encoding="utf-8")
         self.assertNotIn('data-view="data"', html)
-        self.assertIn('id="view-data"', html)
-        self.assertIn('id="dataUploadForm"', html)
-        self.assertIn('id="dataFileList"', html)
+        self.assertNotIn('id="view-data"', html)
+        self.assertNotIn('id="dataUploadForm"', html)
+        self.assertNotIn('id="dataFileList"', html)
         self.assertIn('const DATA_LIBRARY_BUCKET = "data-library"', javascript)
         self.assertIn('async function loadDataLibrary()', javascript)
         self.assertIn('async function uploadDataFile()', javascript)
@@ -292,8 +293,12 @@ class DashboardStaticTests(unittest.TestCase):
     def test_data_library_never_executes_uploaded_content(self):
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
         self.assertIn('new Blob([bytes], {type: "application/octet-stream"})', javascript)
-        self.assertIn("ULTRON will not execute uploaded files", (DASHBOARD / "index.html").read_text(encoding="utf-8"))
+        html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
+        self.assertNotIn('id="dataUploadForm"', html)
+        self.assertNotIn('id="dataFileInput"', html)
         self.assertIn("DATA_LIBRARY_MAX_BYTES = 20 * 1024 * 1024", javascript)
+        self.assertNotIn("eval(", javascript)
+        self.assertNotIn("new Function(", javascript)
         self.assertIn("if (binary) return response.arrayBuffer();", javascript)
         api_request = javascript.split("async function apiRequest", 1)[1].split("async function storageRequest", 1)[0]
         self.assertNotIn("binary", api_request)
@@ -303,9 +308,9 @@ class DashboardStaticTests(unittest.TestCase):
         html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
         self.assertNotIn('data-view="ask"', html)
-        self.assertIn('id="view-ask"', html)
-        self.assertIn('id="askQuestionForm"', html)
-        self.assertIn('id="askResults"', html)
+        self.assertNotIn('id="view-ask"', html)
+        self.assertNotIn('id="askQuestionForm"', html)
+        self.assertNotIn('id="askResults"', html)
         self.assertIn('async function readDataLibraryForQuestions()', javascript)
         self.assertIn('async function askUltron(question)', javascript)
         self.assertIn('if (!hasVerifiedOwnerSession()) throw new Error("Sign in to the verified owner account', javascript)
@@ -315,7 +320,9 @@ class DashboardStaticTests(unittest.TestCase):
         self.assertIn('TextDecoder("utf-8", {fatal: true})', javascript)
         self.assertIn('ASK_MAX_TOTAL_BYTES = 15 * 1024 * 1024', javascript)
         self.assertIn('ASK_MAX_FILE_BYTES = 5 * 1024 * 1024', javascript)
-        self.assertIn('does not call an external AI API', html)
+        self.assertIn("does not use an external ai api", html.lower())
+        bind_events = javascript.split("function bindEvents()", 1)[1].split("function clearLegacyOwnerState()", 1)[0]
+        self.assertNotIn('askUltron(', bind_events)
         self.assertNotIn('eval(', javascript)
         self.assertNotIn('new Function(', javascript)
 
@@ -328,7 +335,8 @@ class DashboardStaticTests(unittest.TestCase):
     def test_data_library_supports_owner_only_folder_upload_and_nested_paths(self):
         html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
-        self.assertIn('id="dataFolderInput" type="file" webkitdirectory directory multiple', html)
+        self.assertNotIn('id="view-data"', html)
+        self.assertNotIn('id="dataFolderInput"', html)
         self.assertIn("async function walkFolder(prefix, depth)", javascript)
         self.assertIn("DATA_LIBRARY_MAX_FILES = 50000", javascript)
         self.assertIn("DATA_LIBRARY_BATCH_FILES = 500", javascript)
@@ -341,8 +349,8 @@ class DashboardStaticTests(unittest.TestCase):
         self.assertIn("file.webkitRelativePath || file.name", javascript)
         self.assertIn("const pageSize = 500", javascript)
         self.assertIn("5000 * 1024 * 1024", javascript)
-        self.assertIn("up to 50,000 files per selection", html)
-        self.assertIn("batches of 500 files", html)
+        self.assertNotIn("up to 50,000 files per selection", html)
+        self.assertNotIn("batches of 500 files", html)
         self.assertIn("5,000 MiB (5 GiB)", javascript)
         self.assertIn("dataObjectPath(entry.path)", javascript)
         self.assertIn("if (!hasVerifiedOwnerSession()) throw new Error(\"Sign in to the verified owner account before uploading.\")", javascript)
@@ -353,8 +361,9 @@ class DataLibraryDeletionTests(unittest.TestCase):
     def test_data_library_supports_confirmed_owner_only_bulk_and_folder_deletion(self):
         html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
-        self.assertIn('id="dataSelectAll"', html)
-        self.assertIn('id="dataDeleteSelectedButton"', html)
+        self.assertNotIn('id="dataSelectAll"', html)
+        self.assertNotIn('id="dataDeleteSelectedButton"', html)
+        self.assertNotIn('id="view-data"', html)
         self.assertIn('data-data-select=', javascript)
         self.assertIn('async function deleteDataObjects(relativePaths, confirmationMessage)', javascript)
         self.assertIn('async function deleteDataFolder(folder)', javascript)

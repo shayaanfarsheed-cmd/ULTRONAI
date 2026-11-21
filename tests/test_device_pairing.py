@@ -14,19 +14,21 @@ class NoRemoteDevicePairingTests(unittest.TestCase):
         for forbidden in ("deviceControlRequest", "createPairingCode", "loadPairedDevices", "/functions/v1/device-control/"):
             self.assertNotIn(forbidden, app)
 
-    def test_dashboard_explains_remote_device_access_and_disabled_training(self):
+    def test_dashboard_has_no_hidden_device_view_and_keeps_public_compute_copy(self):
         html = (ROOT / "dashboard" / "index.html").read_text(encoding="utf-8").lower()
-        self.assertIn("device access / remote control console", html)
-        self.assertIn("compute runs on the selected remote provider", html)
-        self.assertIn("device pairing", html)
-        self.assertIn("no device credentials, agents, or remote device commands are used", html)
-        self.assertIn("actual model training remains disabled", html)
+        self.assertNotIn('id="view-devices"', html)
+        self.assertNotIn("device access / remote control console", html)
+        self.assertIn('id="view-servers"', html)
+        self.assertIn("this page cannot start or control training", html)
+        self.assertIn("training disabled", html)
 
-    def test_remote_ram_copy_does_not_promise_a_hosted_memory_cap(self):
+    def test_public_ram_slider_is_browser_local_and_does_not_claim_remote_control(self):
         html = (ROOT / "dashboard" / "index.html").read_text(encoding="utf-8").lower()
         self.assertNotIn("waiting for agent", html)
         self.assertNotIn("compatible device agent must enforce", html)
-        self.assertIn("does not cap the memory available to a hosted runner", html)
+        self.assertIn('id="ramlimitslider"', html)
+        self.assertIn("saved in this browser only", html)
+        self.assertIn("does not limit hosted-runner ram or gpu vram today", html)
 
     def test_dashboard_cannot_issue_remote_training_commands(self):
         app = (ROOT / "dashboard" / "app.js").read_text(encoding="utf-8")
