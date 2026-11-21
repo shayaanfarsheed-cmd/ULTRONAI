@@ -140,7 +140,7 @@ const AXIOMS=deepFreeze({
  "FIELD-08":{system:"REAL_FIELD",formula:F.forall("a","Field",F.implies(F.not(F.eq(T.variable("a","Field"),T.rational(0,1))),F.exists("b","Field",F.eq(T.multiply(T.variable("a","Field"),T.variable("b","Field")),T.rational(1,1)))))},
  "FIELD-09":{system:"REAL_FIELD",formula:F.forall("a","Field",F.forall("b","Field",F.forall("c","Field",F.eq(T.multiply(T.variable("a","Field"),T.add(T.variable("b","Field"),T.variable("c","Field"))),T.add(T.multiply(T.variable("a","Field"),T.variable("b","Field")),T.multiply(T.variable("a","Field"),T.variable("c","Field")))))))},
  "EUCLID-01":{system:"EUCLID_GEOMETRY",formula:F.forall("A","Point",F.forall("B","Point",F.implies(F.not(F.eq(T.variable("A","Point"),T.variable("B","Point"))),F.exists("l","Line",F.and(F.incident(T.variable("A","Point"),T.variable("l","Line")),F.incident(T.variable("B","Point"),T.variable("l","Line")))))))},
- "EUCLID-02":{system:"EUCLID_GEOMETRY",formula:EUCLID_SEGMENT_EXTENSION},,
+ "EUCLID-02":{system:"EUCLID_GEOMETRY",formula:EUCLID_SEGMENT_EXTENSION},
  "EUCLID-03":{system:"EUCLID_GEOMETRY",formula:F.forall("O","Point",F.forall("A","Point",F.exists("c","Circle",F.and(
   F.circleCenter(T.variable("c","Circle"),T.variable("O","Point")),
   F.onCircle(T.variable("A","Point"),T.variable("c","Circle"))
