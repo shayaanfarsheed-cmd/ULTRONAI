@@ -104,7 +104,7 @@
       }
       if (answered) { feedback.textContent = "This question has already been recorded. Generate a new question to continue."; return; }
       const diagnosis = tutor.diagnose(exercise.topic, exercise.question, answerNode.value, workingNode.value.split("\n").filter(line => line.trim()), verifiedTrace);
-      if (!["correct", "incorrect_unclassified", "incorrect_work_submitted", "incorrect_trace_validated"].includes(diagnosis.status)) {
+      if (!["correct", "incorrect_unclassified", "incorrect_work_submitted"].includes(diagnosis.status)) {
         feedback.textContent = diagnosis.message;
         return;
       }
