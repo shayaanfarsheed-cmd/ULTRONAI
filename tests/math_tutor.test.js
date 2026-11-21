@@ -139,6 +139,6 @@ test("tutor accepts only formally replayed traces as evidence and does not over-
   assert.equal(result.misconception, null);
   const forged = { ...trace, claimedConclusion: proofKernel.F.eq(term, proofKernel.T.numeral(3)) };
   const rejected = tutor.diagnose("fractions", "Calculate: (1/3) + (1/6)", "2/3", [], forged);
-  assert.equal(rejected.status, "incorrect_unclassified");
+  assert.equal(rejected.status, "incorrect_work_submitted");
   assert.equal(rejected.traceEvidence.code, "FORGED_TRACE");
 });
