@@ -2,7 +2,7 @@
 const test=require("node:test"),assert=require("node:assert/strict"),K=require("../dashboard/proof-kernel.js");
 const {T,F}=K, mk=(system,assumptions,steps,conclusion)=>({version:1,system,assumptions,steps,conclusion});
 test("typed expression and formula validation",()=>{assert.equal(K.validFormula(F.eq(T.numeral(1),T.numeral(1))),true);assert.equal(K.validFormula(F.eq(T.numeral(1),T.rational(1,1))),false);assert.equal(K.validFormula(F.eq(T.add(T.numeral(1),T.numeral(2)),T.numeral(3))),true);assert.equal(K.validFormula({kind:"evil"}),false);});
-test("formal contexts are separate and conservative",()=>{assert.deepEqual(K.SYSTEMS.PEANO_N.enabledAxioms,["PEANO-02","PEANO-03"]);assert.deepEqual(K.SYSTEMS.PEANO_N.enabledAxiomSchemas,["PEANO-04"]);assert.deepEqual(K.SYSTEMS.REAL_FIELD.enabledAxioms,["FIELD-01","FIELD-02","FIELD-03","FIELD-05","FIELD-06","FIELD-09"]);assert.deepEqual(K.SYSTEMS.REAL_FIELD.enabledAxiomSchemas,[]);for(const s of ["ORDERED_FIELD","COMPLETE_REAL","EUCLID_GEOMETRY","KOLMOGOROV","ZFC"]){assert.deepEqual(K.SYSTEMS[s].enabledAxioms,[]);assert.deepEqual(K.SYSTEMS[s].enabledAxiomSchemas,[]);}});
+test("formal contexts are separate and conservative",()=>{assert.deepEqual(K.SYSTEMS.PEANO_N.enabledAxioms,["PEANO-02","PEANO-03"]);assert.deepEqual(K.SYSTEMS.PEANO_N.enabledAxiomSchemas,["PEANO-04"]);assert.deepEqual(K.SYSTEMS.REAL_FIELD.enabledAxioms,["FIELD-01","FIELD-02","FIELD-03","FIELD-04","FIELD-05","FIELD-06","FIELD-07","FIELD-08","FIELD-09"]);assert.deepEqual(K.SYSTEMS.REAL_FIELD.enabledAxiomSchemas,[]);for(const s of ["ORDERED_FIELD","COMPLETE_REAL","EUCLID_GEOMETRY","KOLMOGOROV","ZFC"]){assert.deepEqual(K.SYSTEMS[s].enabledAxioms,[]);assert.deepEqual(K.SYSTEMS[s].enabledAxiomSchemas,[]);}});
 test("reflexivity replays and forged conclusion fails",()=>{const x=T.variable("x","Nat"),p=mk("PEANO_N",[],[{id:"r",rule:"eq_refl",term:x,formula:F.eq(x,x)}],"r");assert.equal(K.verify(p).valid,true);p.steps[0].formula=F.eq(x,T.numeral(2));assert.equal(K.verify(p).code,"RULE_MISMATCH");});
 test("assumptions, conjunction and implication introduction",()=>{const a=F.predicate("A"),b=F.predicate("B"),p=mk("PEANO_N",[{id:"ha",formula:a},{id:"hb",formula:b}],[{id:"a",rule:"assumption",assumption:"ha",formula:a},{id:"b",rule:"assumption",assumption:"hb",formula:b},{id:"ab",rule:"and_intro",premises:["a","b"],formula:F.and(a,b)},{id:"imp",rule:"imp_intro",premises:["b"],discharge:"hb",formula:F.implies(b,b)}],"imp");assert.equal(K.verify(p).valid,true);});
 test("unknown, forward and duplicate references rejected",()=>{const a=F.predicate("A"),p=mk("PEANO_N",[],[{id:"x",rule:"and_left",premises:["future"],formula:a}],"x");assert.equal(K.verify(p).code,"UNKNOWN_PREMISE");const d=mk("PEANO_N",[{id:"x",formula:a}],[{id:"x",rule:"assumption",assumption:"x",formula:a}],"x");assert.equal(K.verify(d).code,"INVALID_STEP");});
@@ -257,4 +257,58 @@ test("universal introduction works in a compatible field context",()=>{
   {id:"generalized",rule:"forall_intro",variable:"z",premises:["reflexive"],formula:goal}
  ],"generalized");
  assert.equal(K.verify(proof).valid,true);
+});
+
+test("existential formulas are typed and their binders scope variables",()=>{
+ const valid=F.exists("x","Field",F.eq(T.variable("x","Field"),T.rational(0,1)));
+ assert.equal(K.validFormula(valid,{},new Set(K.SYSTEMS.REAL_FIELD.sorts)),true);
+ const wrongSort=F.exists("x","Nat",F.eq(T.variable("x","Nat"),T.numeral(0)));
+ assert.equal(K.validFormula(wrongSort,{},new Set(K.SYSTEMS.REAL_FIELD.sorts)),false);
+ const lyingBoundSort=F.exists("x","Field",F.eq(T.variable("x","Nat"),T.numeral(0)));
+ assert.equal(K.validFormula(lyingBoundSort,{},new Set(K.SYSTEMS.REAL_FIELD.sorts)),false);
+ const unbound=F.exists("x","Field",F.eq(T.variable("y","Field"),T.rational(0,1)));
+ assert.equal(K.validFormula(unbound,{},new Set(K.SYSTEMS.REAL_FIELD.sorts)),true);
+});
+test("existential substitution rejects variable capture",()=>{
+ const universal=F.forall("x","Field",F.exists("y","Field",F.eq(T.variable("x","Field"),T.variable("y","Field"))));
+ const proof=mk("REAL_FIELD",[{id:"q",formula:universal}],[
+  {id:"given",rule:"assumption",assumption:"q",formula:universal},
+  {id:"captured",rule:"forall_elim",premises:["given"],term:T.variable("y","Field"),formula:F.predicate("unreachable")}
+ ],"captured");
+ assert.equal(K.verify(proof).code,"RULE_MISMATCH");
+});
+test("remaining field inverse and identity axioms replay by exact ID",()=>{
+ for(const id of ["FIELD-04","FIELD-07","FIELD-08"]){
+  const formula=K.AXIOMS[id].formula;
+  assert.equal(K.validFormula(formula,{},new Set(K.SYSTEMS.REAL_FIELD.sorts)),true,id);
+  const proof=mk("REAL_FIELD",[],[{id:"ax",rule:"axiom",axiomId:id,formula}],"ax");
+  const result=K.verify(proof);
+  assert.equal(result.valid,true,id);
+  assert.deepEqual(result.usedAxioms,[id],id);
+ }
+});
+test("field inverse axioms remain isolated and reject forged statements",()=>{
+ for(const id of ["FIELD-04","FIELD-07","FIELD-08"]){
+  const formula=K.AXIOMS[id].formula;
+  const wrong=mk("PEANO_N",[],[{id:"ax",rule:"axiom",axiomId:id,formula}],"ax");
+  assert.equal(K.verify(wrong).code,"AXIOM_NOT_AVAILABLE",id);
+  const forged=mk("REAL_FIELD",[],[{id:"ax",rule:"axiom",axiomId:id,formula:F.predicate("forged")}],"ax");
+  assert.equal(K.verify(forged).code,"RULE_MISMATCH",id);
+ }
+});
+test("existential quantification is syntax only; unregistered inference rules stay rejected",()=>{
+ const proof=mk("REAL_FIELD",[],[
+  {id:"fake",rule:"exists_intro",premises:[],formula:F.exists("x","Field",F.predicate("P",[T.variable("x","Field")]))}
+ ],"fake");
+ assert.equal(K.verify(proof).code,"UNKNOWN_RULE");
+});
+
+test("universal introduction treats existential binders as variable-name collisions",()=>{
+ const body=F.exists("k","Nat",F.predicate("P",[T.variable("n","Nat")]));
+ const goal=F.forall("n","Nat",body);
+ const proof=mk("PEANO_N",[],[
+  {id:"premise",rule:"eq_refl",term:T.numeral(1),formula:F.eq(T.numeral(1),T.numeral(1))},
+  {id:"generalized",rule:"forall_intro",variable:"k",premises:["premise"],formula:goal}
+ ],"generalized");
+ assert.equal(K.verify(proof).code,"INVALID_EIGENVARIABLE");
 });
