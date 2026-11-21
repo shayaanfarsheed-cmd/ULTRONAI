@@ -131,3 +131,8 @@ The checker validates this finite formula expansion; it does not execute a choic
 ## Binder-environment safety
 
 Variable-sort lookup uses own-property checks only, and nested quantifier environments are copied onto null-prototype objects. This prevents names such as `__proto__`, `constructor`, `toString` and `hasOwnProperty` from being mistaken for inherited bindings or changing the environment prototype. Empty variable and binder names are rejected. The test suite exercises these reserved-name cases and verifies that an actual bound sort mismatch remains invalid.
+
+
+## Proof-input resource bounds
+
+The verifier performs an iterative JSON-data preflight before recursive formula validation or proof replay. It rejects cycles, accessors, non-plain objects, sparse/custom arrays, unsupported primitive values, non-finite numbers, overlong strings and excessive object keys. The current caps are 4,096 proof steps, 4,096 assumptions, 100,000 object/array nodes, nesting depth 256, arrays up to 8,192 entries, 64 object keys and 16,384 characters per string. Working traces use the same bounded-data contract. These are defensive parser/replay limits, not claims about mathematical proof length.
