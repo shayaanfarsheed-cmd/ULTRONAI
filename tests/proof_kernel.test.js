@@ -9,3 +9,17 @@ test("unknown, forward and duplicate references rejected",()=>{const a=F.predica
 test("axiom dependencies bind to exact formal-system IDs",()=>{const ax=K.AXIOMS["PEANO-03"].formula,g=mk("PEANO_N",[],[{id:"a",rule:"axiom",axiomId:"PEANO-03",formula:ax}],"a");assert.equal(K.verify(g).valid,true);const wrong=mk("REAL_FIELD",[],[{id:"a",rule:"axiom",axiomId:"PEANO-03",formula:ax}],"a");assert.equal(K.verify(wrong).code,"AXIOM_NOT_AVAILABLE");const natural=mk("ZFC",[],[{id:"a",rule:"axiom",axiomId:"ZFC-10",formula:F.predicate("Choice")}],"a");assert.equal(K.verify(natural).code,"AXIOM_NOT_AVAILABLE");});
 test("working trace rejects forged or unstructured evidence",()=>{const x=T.numeral(3),p=mk("PEANO_N",[],[{id:"r",rule:"eq_refl",term:x,formula:F.eq(x,x)}],"r");assert.equal(K.verifyWorkingTrace({kind:"ultron-proof-trace",proof:p,claimedConclusion:F.eq(x,x)}).diagnosisEligible,true);assert.equal(K.verifyWorkingTrace({kind:"ultron-proof-trace",proof:p,claimedConclusion:F.eq(x,T.numeral(4))}).code,"FORGED_TRACE");assert.equal(K.verifyWorkingTrace({steps:[]}).code,"UNTRUSTED_TRACE");});
 test("quantifier elimination rejects incompatible replacement sort",()=>{const q=K.AXIOMS["PEANO-03"].formula,p=mk("PEANO_N",[],[{id:"q",rule:"axiom",axiomId:"PEANO-03",formula:q},{id:"bad",rule:"forall_elim",premises:["q"],term:T.rational(1,2),formula:F.predicate("bad")}],"bad");assert.equal(K.verify(p).valid,false);});
+
+test("quantifier substitution rejects variable capture",()=>{
+ const inner=F.forall("y","Nat",F.eq(T.variable("x","Nat"),T.variable("y","Nat")));
+ const outer=F.forall("x","Nat",inner);
+ const p=mk("PEANO_N",[{id:"q",formula:outer}],[{id:"q0",rule:"assumption",assumption:"q",formula:outer},{id:"capture",rule:"forall_elim",premises:["q0"],term:T.variable("y","Nat"),formula:F.forall("y","Nat",F.eq(T.variable("y","Nat"),T.variable("y","Nat")))}],"capture");
+ assert.equal(K.verify(p).valid,false);
+});
+test("field axiom is usable only in field context",()=>{
+ const f=K.AXIOMS["FIELD-01"].formula;
+ const good=mk("REAL_FIELD",[],[{id:"field",rule:"axiom",axiomId:"FIELD-01",formula:f}],"field");
+ assert.equal(K.verify(good).valid,true);
+ const bad=mk("PEANO_N",[],[{id:"field",rule:"axiom",axiomId:"FIELD-01",formula:f}],"field");
+ assert.equal(K.verify(bad).code,"AXIOM_NOT_AVAILABLE");
+});
