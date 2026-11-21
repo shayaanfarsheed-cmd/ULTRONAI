@@ -157,7 +157,7 @@
         const result = tutor.validateWorkingTrace(parsed);
         verifiedTrace = result.valid ? parsed : null;
         traceResult.textContent = result.valid
-          ? "VALID · " + result.system + " · " + result.checkedSteps + " steps · axiom dependencies: " + (result.usedAxioms.join(", ") || "none") + "\nThe trace may be used as verified evidence; it is not automatically a diagnosis."
+          ? "VALID · " + result.system + " · " + result.checkedSteps + " steps · open assumptions: " + (result.openAssumptions.join(", ") || "none") + " · axiom dependencies: " + (result.usedAxioms.join(", ") || "none") + "\nThe trace may be used as verified evidence; it is not automatically a diagnosis."
           : "REJECTED · " + result.code + " · " + result.message;
       } catch (error) {
         verifiedTrace = null;
