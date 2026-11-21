@@ -103,18 +103,13 @@ class DashboardStaticTests(unittest.TestCase):
     def test_active_public_javascript_dom_id_references_exist(self):
         html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
-        # Legacy owner/data/checkpoint helpers are intentionally unreachable after
-        # their private views were removed. Validate only active startup and event
-        # binding code here; browser smoke tests exercise every public route.
-        bind_events = javascript.split("function bindEvents()", 1)[1].split("function clearLegacyOwnerState()", 1)[0]
-        init = javascript.split("async function init()", 1)[1].split("document.addEventListener", 1)[0]
-        active_javascript = bind_events + init
         ids = re.findall(r'\bid="([^"]+)"', html)
-        references = set(re.findall(r'\$\("([^"]+)"\)', active_javascript))
+        references = set(re.findall(r'\$\("([^"]+)"\)', javascript))
         missing = sorted(references.difference(ids))
         duplicates = sorted({value for value in ids if ids.count(value) > 1})
         self.assertEqual(missing, [])
         self.assertEqual(duplicates, [])
+
 
     def test_browser_bundle_contains_no_backend_secret_value(self):
         for path in DASHBOARD.iterdir():
@@ -122,70 +117,84 @@ class DashboardStaticTests(unittest.TestCase):
                 source = path.read_text(encoding="utf-8")
                 self.assertIsNone(re.search(r"sb_secret_[A-Za-z0-9]{12,}", source), path.name)
 
-    def test_public_dashboard_has_no_sign_in_or_published_owner_identifier(self):
+
+    def test_public_dashboard_has_no_auth_identity_or_supabase_configuration(self):
         html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
         config = (DASHBOARD / "config.js").read_text(encoding="utf-8")
         self.assertNotIn('id="ownerSignInForm"', html)
         self.assertNotIn('id="ownerSignOutButton"', html)
         self.assertNotIn('id="ownerSignInDialog"', html)
-        self.assertNotIn("ownerUserId", config)
-        self.assertIn("state.publicMode = nextPublicMode", javascript)
-        self.assertRegex(config, r'supabasePublishableKey: "sb_publishable_[A-Za-z0-9_-]+"')
-        self.assertNotIn("REPLACE_WITH", config)
-        self.assertNotIn("signUp", html)
+        self.assertNotIn("ownerUserId", html + javascript + config)
+        self.assertNotIn('src="./config.js"', html)
+        self.assertNotIn("supabaseUrl", config)
+        self.assertNotIn("supabasePublishableKey", config)
+        self.assertNotIn("sb_publishable_", config)
+        self.assertNotIn("/auth/v1/", javascript)
+        self.assertNotIn("/rest/v1/", javascript)
+        self.assertNotIn("/storage/v1/", javascript)
+        self.assertNotIn("signUp", html + javascript)
 
-    def test_public_mode_is_default_and_legacy_sessions_are_cleared(self):
+    def test_legacy_owner_storage_is_only_cleared_and_never_restored(self):
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
         init = javascript.split("async function init()", 1)[1].split("document.addEventListener", 1)[0]
-        self.assertIn("publicMode: true", javascript)
         self.assertIn("clearLegacyOwnerState();", init)
-        self.assertIn("setAccessMode(false);", init)
-        self.assertNotIn("loadSavedSession()", init)
-        self.assertNotIn("verifyOwnerSession()", init)
-        self.assertIn("sessionStorage.removeItem(SESSION_KEY)", javascript)
-        self.assertIn("key.indexOf(CACHE_PREFIX) === 0", javascript)
+        self.assertIn('sessionStorage.removeItem("ultron_training_session")', javascript)
+        self.assertIn('key.indexOf("ultron_training_cache_") === 0', javascript)
+        self.assertNotIn("sessionStorage.setItem", javascript)
+        self.assertNotIn("localStorage.setItem(cacheKey", javascript)
+        self.assertNotIn("setAccessMode", javascript)
+        self.assertNotIn("loadSavedSession", javascript)
+        self.assertNotIn("verifyOwnerSession", javascript)
 
-    def test_session_refresh_is_single_flight_and_invalidated_on_auth_transition(self):
+    def test_public_dashboard_has_no_private_data_or_checkpoint_client(self):
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
-        self.assertIn("let sessionRefreshPromise = null;", javascript)
-        self.assertIn("if (sessionRefreshPromise) return sessionRefreshPromise;", javascript)
-        self.assertIn("if (sessionRefreshPromise === refreshPromise) sessionRefreshPromise = null;", javascript)
-        access_mode = javascript.split("function setAccessMode(isOwner)", 1)[1].split("async function verifyOwnerSession", 1)[0]
-        self.assertIn("sessionRefreshPromise = null;", access_mode)
-        refresh = javascript.split("async function ensureSession()", 1)[1].split("async function apiRequest", 1)[0]
-        self.assertIn("generation !== state.authGeneration", refresh)
-        self.assertIn("state.session.refresh_token !== refreshToken", refresh)
+        forbidden = (
+            "hasVerifiedOwnerSession", "assertOwnerAccess", "signInOwner", "signOutOwner",
+            "ensureSession", "apiRequest(", "storageRequest(", "refreshData(",
+            "loadCheckpointCandidates", "verifyCheckpoint(", "downloadCheckpoint(",
+            "loadDataLibrary", "uploadDataFile", "downloadDataFile", "deleteDataObjects",
+            "readDataLibraryForQuestions", "askUltron(", "DATA_LIBRARY_BUCKET",
+            "owner_id", "access_token", "refresh_token"
+        )
+        for token in forbidden:
+            self.assertNotIn(token, javascript)
+        self.assertNotIn("setInterval(", javascript)
+        self.assertNotIn('addEventListener("visibilitychange"', javascript)
+        self.assertNotIn("training-control.js", (DASHBOARD / "index.html").read_text(encoding="utf-8"))
 
-    def test_private_api_and_storage_require_verified_owner_mode(self):
+    def test_public_registry_theme_and_ram_preferences_are_preserved(self):
+        html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
-        self.assertIn("function hasVerifiedOwnerSession()", javascript)
-        self.assertIn("function assertOwnerAccess(session)", javascript)
-        self.assertGreaterEqual(javascript.count("assertOwnerAccess(session);"), 2)
-        self.assertIn("if (!hasVerifiedOwnerSession() || state.refreshing) return;", javascript)
-        self.assertIn("if (!hasVerifiedOwnerSession() || !state.status || !state.status.run_id)", javascript)
+        self.assertIn('fetch("../servers.json"', javascript)
+        self.assertIn('fetch("../config.json"', javascript)
+        self.assertIn('id="ramLimitSlider"', html)
+        self.assertIn("ultron_training_ram_limit_gb", javascript)
+        self.assertIn("ultron_training_theme", javascript)
+        self.assertIn('data-view="overview"', html)
+        self.assertIn('data-view="learning"', html)
+        self.assertIn('data-view="math"', html)
+        self.assertIn('data-view="servers"', html)
+        self.assertIn('data-view="settings"', html)
+        self.assertIn("function clearLegacyOwnerState()", javascript)
 
-    def test_guest_transition_clears_private_state_and_invalidates_inflight_refresh(self):
+    def test_static_training_metrics_never_claim_live_status_or_quota_usage(self):
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
-        self.assertIn("state.authGeneration += 1", javascript)
-        self.assertIn("state.status = null;", javascript)
-        self.assertIn("state.checkpoints = [];", javascript)
-        self.assertIn("generation !== state.authGeneration", javascript)
-        self.assertIn("localStorage.removeItem(CACHE_PREFIX + previousUserId)", javascript)
+        self.assertIn('textContent = "UNTRAINED"', javascript)
+        self.assertIn('textContent = "DISABLED"', javascript)
+        self.assertIn("Training is disabled; no loss history is available.", javascript)
+        self.assertIn("usage not measured", javascript)
+        self.assertNotIn("last_heartbeat_at", javascript)
+        self.assertNotIn("loss_history", javascript)
 
-    def test_expired_or_revoked_owner_session_returns_to_guest_mode(self):
-        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
-        self.assertIn("function expireOwnerSession()", javascript)
-        self.assertIn("expireOwnerSession();", javascript)
-        self.assertIn('if (response.status === 401) expireOwnerSession();', javascript)
-        self.assertIn("Your owner session expired. Please sign in again.", javascript)
-
-    def test_signin_clears_password_and_signout_is_local_first(self):
-        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
-        self.assertIn('const password = passwordInput.value;\n    passwordInput.value = "";', javascript)
-        self.assertIn('passwordInput.value = "";\n      submit.disabled = false;', javascript)
-        signout = javascript.split("async function signOutOwner()", 1)[1].split("function sessionFromResponse", 1)[0]
-        self.assertLess(signout.index("saveSession(null);"), signout.index('fetch(AUTH_ROOT + "logout"'))
+    def test_legacy_storage_bucket_remains_private_and_owner_scoped(self):
+        storage_sql = (ROOT / "supabase" / "storage-setup.sql").read_text(encoding="utf-8")
+        self.assertIn("public = false", storage_sql)
+        self.assertIn("ultron_data_library_owner_select", storage_sql)
+        self.assertIn("ultron_data_library_owner_insert", storage_sql)
+        self.assertIn("ultron_data_library_owner_update", storage_sql)
+        self.assertIn("ultron_data_library_owner_delete", storage_sql)
+        self.assertIn("(SELECT auth.uid())::text", storage_sql)
 
     def test_chart_redraw_is_scheduled_and_skips_hidden_views(self):
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
@@ -195,20 +204,6 @@ class DashboardStaticTests(unittest.TestCase):
         self.assertIn("new ResizeObserver(scheduleChartDraw)", javascript)
         self.assertIn("context.setTransform(ratio, 0, 0, ratio, 0, 0)", javascript)
         self.assertIn("if (canvas.width !== pixelWidth) canvas.width = pixelWidth;", javascript)
-
-    def test_checkpoint_metadata_reads_are_bounded_and_auth_generation_checked(self):
-        html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
-        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
-        self.assertNotIn('id="view-checkpoints"', html)
-        self.assertNotIn('data-view="checkpoints"', html)
-        self.assertIn("async function mapWithConcurrency(items, limit, mapper)", (DASHBOARD / "runtime.js").read_text(encoding="utf-8"))
-        self.assertIn("ULTRON_RUNTIME.mapWithConcurrency(ids, 3", javascript)
-        loader = javascript.split("async function loadCheckpointCandidates()", 1)[1].split("async function verifyCheckpoint", 1)[0]
-        self.assertIn('Promise.all([', loader)
-        self.assertIn("generation !== state.authGeneration", loader)
-        self.assertIn("state.status.run_id !== runId", loader)
-        self.assertIn("results.filter(Boolean)", loader)
-        self.assertLess(loader.index("const listed = await storageRequest"), loader.index("state.status.run_id !== runId"))
 
     def test_private_activity_view_and_renderer_are_removed_from_public_dashboard(self):
         html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
@@ -222,8 +217,8 @@ class DashboardStaticTests(unittest.TestCase):
         html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
         self.assertIn("ULTRON is not training", javascript)
-        self.assertIn("account-free website provides the public math-learning interface", javascript)
-        self.assertIn("Public browser access · training disabled", javascript)
+        self.assertIn("account-free website provides the public mathematics-learning interface", javascript)
+        self.assertIn("Public browser access · neural model untrained · training disabled", javascript)
         self.assertIn('class="connection-badge">PUBLIC</span>', html)
         for label in ("NEURAL MODEL", "MATH AGENT", "PROOF CHECKER", "TRAINING"):
             self.assertIn(label, html)
@@ -265,115 +260,7 @@ class DashboardStaticTests(unittest.TestCase):
                     self.assertNotIn(endpoint, source, path.name)
 
 
-    def test_owner_data_library_is_private_and_cross_browser_cloud_backed(self):
-        html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
-        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
-        storage_sql = (ROOT / "supabase" / "storage-setup.sql").read_text(encoding="utf-8")
-        self.assertNotIn('data-view="data"', html)
-        self.assertNotIn('id="view-data"', html)
-        self.assertNotIn('id="dataUploadForm"', html)
-        self.assertNotIn('id="dataFileList"', html)
-        self.assertIn('const DATA_LIBRARY_BUCKET = "data-library"', javascript)
-        self.assertIn('async function loadDataLibrary()', javascript)
-        self.assertIn('async function uploadDataFile()', javascript)
-        self.assertIn('async function downloadDataFile(name)', javascript)
-        self.assertIn('async function deleteDataFile(name)', javascript)
-        self.assertIn('if (!hasVerifiedOwnerSession())', javascript)
-        self.assertIn('window.setInterval(function ()', javascript)
-        self.assertIn('object/list/" + DATA_LIBRARY_BUCKET', javascript)
-        self.assertIn("ultron_data_library_owner_select", storage_sql)
-        self.assertIn("ultron_data_library_owner_insert", storage_sql)
-        self.assertIn("ultron_data_library_owner_update", storage_sql)
-        self.assertIn("ultron_data_library_owner_delete", storage_sql)
-        self.assertIn("(SELECT auth.uid())::text", storage_sql)
-        self.assertIn("public = false", storage_sql)
-        self.assertIn("20971520", storage_sql)
-        self.assertNotIn("service_role", javascript)
-
-    def test_data_library_never_executes_uploaded_content(self):
-        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
-        self.assertIn('new Blob([bytes], {type: "application/octet-stream"})', javascript)
-        html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
-        self.assertNotIn('id="dataUploadForm"', html)
-        self.assertNotIn('id="dataFileInput"', html)
-        self.assertIn("DATA_LIBRARY_MAX_BYTES = 20 * 1024 * 1024", javascript)
-        self.assertNotIn("eval(", javascript)
-        self.assertNotIn("new Function(", javascript)
-        self.assertIn("if (binary) return response.arrayBuffer();", javascript)
-        api_request = javascript.split("async function apiRequest", 1)[1].split("async function storageRequest", 1)[0]
-        self.assertNotIn("binary", api_request)
-
-
-    def test_ask_ultron_searches_owner_data_and_shows_source_evidence(self):
-        html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
-        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
-        self.assertNotIn('data-view="ask"', html)
-        self.assertNotIn('id="view-ask"', html)
-        self.assertNotIn('id="askQuestionForm"', html)
-        self.assertNotIn('id="askResults"', html)
-        self.assertIn('async function readDataLibraryForQuestions()', javascript)
-        self.assertIn('async function askUltron(question)', javascript)
-        self.assertIn('if (!hasVerifiedOwnerSession()) throw new Error("Sign in to the verified owner account', javascript)
-        self.assertIn('object/authenticated/', javascript)
-        self.assertIn('function rankAskPassages(question, passages)', javascript)
-        self.assertIn('source.textContent = match.fileName', javascript)
-        self.assertIn('TextDecoder("utf-8", {fatal: true})', javascript)
-        self.assertIn('ASK_MAX_TOTAL_BYTES = 15 * 1024 * 1024', javascript)
-        self.assertIn('ASK_MAX_FILE_BYTES = 5 * 1024 * 1024', javascript)
-        self.assertIn("does not use an external ai api", html.lower())
-        bind_events = javascript.split("function bindEvents()", 1)[1].split("function clearLegacyOwnerState()", 1)[0]
-        self.assertNotIn('askUltron(', bind_events)
-        self.assertNotIn('eval(', javascript)
-        self.assertNotIn('new Function(', javascript)
-
-    def test_ask_ultron_supports_only_explicit_text_formats(self):
-        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
-        self.assertIn('".txt", ".md", ".csv", ".json", ".lean", ".toml"', javascript)
-        self.assertIn('if (!ASK_TEXT_EXTENSIONS.some', javascript)
-        self.assertIn('quoted evidence, not a generated answer', javascript)
-
-    def test_data_library_supports_owner_only_folder_upload_and_nested_paths(self):
-        html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
-        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
-        self.assertNotIn('id="view-data"', html)
-        self.assertNotIn('id="dataFolderInput"', html)
-        self.assertIn("async function walkFolder(prefix, depth)", javascript)
-        self.assertIn("DATA_LIBRARY_MAX_FILES = 50000", javascript)
-        self.assertIn("DATA_LIBRARY_BATCH_FILES = 500", javascript)
-        self.assertIn("batchCount = Math.ceil(selected.length / DATA_LIBRARY_BATCH_FILES)", javascript)
-        self.assertIn("at most 50,000 files", javascript)
-        self.assertIn("offset: offset", javascript)
-        self.assertIn("function safeDataRelativePath(value)", javascript)
-        self.assertIn("safeDataRelativePath(file.name)", javascript)
-        self.assertIn("function dataObjectPath(relativePath)", javascript)
-        self.assertIn("file.webkitRelativePath || file.name", javascript)
-        self.assertIn("const pageSize = 500", javascript)
-        self.assertIn("5000 * 1024 * 1024", javascript)
-        self.assertNotIn("up to 50,000 files per selection", html)
-        self.assertNotIn("batches of 500 files", html)
-        self.assertIn("5,000 MiB (5 GiB)", javascript)
-        self.assertIn("dataObjectPath(entry.path)", javascript)
-        self.assertIn("if (!hasVerifiedOwnerSession()) throw new Error(\"Sign in to the verified owner account before uploading.\")", javascript)
-
-
-
 class DataLibraryDeletionTests(unittest.TestCase):
-    def test_data_library_supports_confirmed_owner_only_bulk_and_folder_deletion(self):
-        html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
-        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
-        self.assertNotIn('id="dataSelectAll"', html)
-        self.assertNotIn('id="dataDeleteSelectedButton"', html)
-        self.assertNotIn('id="view-data"', html)
-        self.assertIn('data-data-select=', javascript)
-        self.assertIn('async function deleteDataObjects(relativePaths, confirmationMessage)', javascript)
-        self.assertIn('async function deleteDataFolder(folder)', javascript)
-        self.assertIn('async function deleteSelectedDataFiles()', javascript)
-        self.assertIn('objectPaths.slice(offset, offset + 1000)', javascript)
-        self.assertIn('if (!hasVerifiedOwnerSession()) throw new Error("Owner sign-in is required.")', javascript)
-        self.assertIn('if (!window.confirm(confirmationMessage)) return;', javascript)
-        self.assertIn('data-data-delete-folder=', javascript)
-        self.assertIn('prefixes: objectPaths.slice(offset, offset + 1000)', javascript)
-
     def test_readme_records_pr_96_merge_deployment_and_manual_gates(self):
         readme = (ROOT / "README.md").read_text()
         latest = readme.split("## Latest verified status", 1)[1].split("\n## ", 1)[0]
