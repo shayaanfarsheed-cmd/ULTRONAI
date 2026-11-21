@@ -32,23 +32,33 @@ class TrainingControlSecurityContractTests(unittest.TestCase):
         self.assertIn('"/actions/workflows/" + workflowPath + "/dispatches"', source)
         self.assertNotIn("lightning", source.lower())
 
-    def test_dashboard_has_explicit_owner_confirmed_controls(self):
+    def test_public_dashboard_does_not_expose_remote_training_controls(self):
         html = (ROOT / "dashboard/index.html").read_text()
-        script = (ROOT / "dashboard/training-control.js").read_text()
-        self.assertIn('id="trainingStartButton"', html)
-        self.assertIn('id="trainingStopButton"', html)
-        self.assertIn("window.confirm(", script)
-        self.assertIn('session.user.id === config.ownerUserId', script)
-        self.assertNotIn("ULTRON_GITHUB_TOKEN", script)
+        self.assertNotIn('id="trainingStartButton"', html)
+        self.assertNotIn('id="trainingStopButton"', html)
+        self.assertNotIn('id="trainingRefreshButton"', html)
+        self.assertNotIn('./training-control.js', html)
 
-    def test_dashboard_exposes_owner_only_health_diagnostic(self):
-        script = (ROOT / "dashboard/training-control.js").read_text()
-        self.assertIn('healthButton.id = "trainingHealthButton"', script)
-        self.assertIn('healthButton.addEventListener("click", runHealthCheck)', script)
-        self.assertIn('callControl("health"', script)
-        self.assertIn("github_token_configured", script)
-        self.assertIn("Refresh status next to test GitHub API permissions", script)
-        self.assertNotIn("ULTRON_GITHUB_TOKEN", script)
+    def test_public_dashboard_has_no_owner_sign_in_or_private_navigation(self):
+        html = (ROOT / "dashboard/index.html").read_text()
+        nav = html.split('<nav class="side-nav"', 1)[1].split("</nav>", 1)[0]
+        for forbidden in ("ownerSignInButton", "ownerSignOutButton"):
+            self.assertNotIn(forbidden, html)
+        for forbidden in ('data-view="data"', 'data-view="activity"', 'data-view="control"',
+                          'data-view="devices"', 'data-view="checkpoints"'):
+            self.assertNotIn(forbidden, nav)
+        self.assertNotIn('id="ownerSignInDialog"', html)
+        self.assertIn('class="connection-badge">PUBLIC</span>', html)
+
+    def test_public_dashboard_does_not_restore_owner_sessions_or_cached_history(self):
+        script = (ROOT / "dashboard/app.js").read_text()
+        init = script.split("async function init()", 1)[1].split("document.addEventListener", 1)[0]
+        self.assertIn("clearLegacyOwnerState();", init)
+        self.assertIn("setAccessMode(false);", init)
+        self.assertNotIn("loadSavedSession()", init)
+        self.assertNotIn("verifyOwnerSession()", init)
+        self.assertIn('sessionStorage.removeItem(SESSION_KEY)', script)
+        self.assertIn('key.indexOf(CACHE_PREFIX) === 0', script)
 
     def test_launch_refreshes_status_after_busy_flag_is_cleared(self):
         script = (ROOT / "dashboard/training-control.js").read_text()
