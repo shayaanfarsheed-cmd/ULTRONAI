@@ -12,14 +12,9 @@ ROOT = Path(__file__).resolve().parents[1]
 VIEW_NAMES = (
     "overview",
     "learning",
-    "data",
     "ask",
     "math",
-    "activity",
-    "control",
-    "devices",
     "servers",
-    "checkpoints",
     "settings",
 )
 VIEWPORTS = (
@@ -84,8 +79,12 @@ def main() -> None:
             require(response is not None and response.status == 200, "Dashboard did not return HTTP 200.")
             require(page.title().startswith("ULTRON"), "Dashboard title is missing.")
             require(page.locator("#view-overview").is_visible(), "Public overview did not load.")
-            require(page.locator("#ownerSignInButton").is_visible(), "Owner sign-in control is not visible.")
-            require(not page.locator("#ownerSignOutButton").is_visible(), "Guest Mode unexpectedly shows sign-out.")
+            require(page.locator("#connectionBadge").inner_text() == "PUBLIC", "Dashboard is not in account-free public mode.")
+            require(page.locator("#ownerSignInButton").count() == 0, "Owner sign-in control must not exist.")
+            require(page.locator("#ownerSignInDialog").count() == 0, "Owner sign-in dialog must not exist.")
+            require(page.locator("#trainingStartButton").count() == 0, "Remote training launch must not exist.")
+            require(page.locator("#trainingStopButton").count() == 0, "Remote training stop must not exist.")
+            require(page.locator('script[src="./training-control.js"]').count() == 0, "Remote control client must not load.")
 
             # Every navigation item must reveal its matching page and update aria-current.
             for view in VIEW_NAMES:
@@ -169,20 +168,12 @@ def main() -> None:
             page.reload(wait_until="networkidle")
             require(page.locator("#ramLimitSlider").input_value() == "7.5", "RAM preference did not persist.")
 
-            # Owner sign-in remains optional for public browsing and the dialog can be dismissed.
-            page.locator("#ownerSignInButton").click()
-            require(
-                page.locator("#ownerSignInDialog").evaluate("(dialog) => dialog.open"),
-                "Owner sign-in dialog did not open.",
-            )
-            page.locator("#ownerCancelButton").click()
-            require(
-                not page.locator("#ownerSignInDialog").evaluate("(dialog) => dialog.open"),
-                "Owner sign-in dialog did not close.",
-            )
+            # Account-free dashboard has no sign-in, sign-out, or remote execution controls.
+            require(page.locator("#ownerSignInButton").count() == 0, "Account sign-in unexpectedly exists.")
+            require(page.locator("#trainingStartButton").count() == 0, "Remote execution control unexpectedly exists.")
 
             # Compact header controls must remain usable touch targets.
-            for selector in ("#ownerSignInButton", "#themeToggle"):
+            for selector in ("#themeToggle",):
                 height = page.locator(selector).evaluate("(element) => element.getBoundingClientRect().height")
                 require(height >= 44, f"{selector} touch target is below 44px ({height}px).")
 
@@ -192,7 +183,7 @@ def main() -> None:
             require(before_theme != after_theme, "Theme toggle did not change the theme.")
 
             # Check key pages at phone, tablet and desktop widths for horizontal overflow.
-            for view in ("overview", "devices", "math", "settings", "control"):
+            for view in ("overview", "math", "settings", "servers"):
                 page.locator(f'[data-view="{view}"]').click()
                 for width, height in VIEWPORTS:
                     page.set_viewport_size({"width": width, "height": height})
@@ -246,7 +237,7 @@ def main() -> None:
 
             require(not page_errors, f"Browser page errors: {page_errors}")
             require(not console_errors, f"Browser console errors: {console_errors}")
-            require(not external_requests, f"Guest Mode made unexpected external requests: {external_requests}")
+            require(not external_requests, f"Public mode made unexpected external requests: {external_requests}")
 
             browser.close()
     finally:
@@ -254,7 +245,7 @@ def main() -> None:
         server.server_close()
         server_thread.join(timeout=2)
 
-    print("Dashboard browser smoke passed: public Guest Mode, all navigation pages, RAM persistence, optional owner dialog, theme toggle, 44px touch targets, six viewport widths, RAM panel/slider fit checks, no JS/console errors, and no external requests.")
+    print("Dashboard browser smoke passed: account-free public mode, supported navigation pages, no sign-in or remote training controls, RAM persistence, theme toggle, 44px touch target, six viewport widths, RAM panel/slider fit checks, no JS/console errors, and no external requests.")
 
 
 if __name__ == "__main__":
