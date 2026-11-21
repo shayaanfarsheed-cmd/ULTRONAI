@@ -1033,3 +1033,24 @@ The Stage 4 first implementation adds:
 - Added a negative regression (unrelated assumption must be rejected) and a positive control (a genuinely used assumption may be discharged).
 - Branch: `fix/proof-kernel-assumption-discharge`. Do not merge until the complete required CI suite and exact-diff review pass.
 - Next: continue adversarial soundness review for strict AST shape validation, assumption scoping, substitution, premise arity, and dependency propagation. No training or checkpoint changes.
+
+
+## Stage 4 proof-kernel strict-shape hardening — in progress (2026-11-21)
+
+- Following the implication-discharge correction, the next audit slice makes the proof language closed-schema: term nodes, formula nodes, assumptions, proof envelopes, per-rule steps and working-trace envelopes reject unknown or missing fields.
+- Added dense-array checks so sparse predicate arguments, assumptions, steps and premise lists cannot be silently skipped by JavaScript array iteration.
+- Added negative regressions for injected AST/step/envelope properties, sparse premise and predicate arrays, sparse proof steps, and assumption metadata.
+- The checks preserve the existing version-1 proof schema and inference rules. No new mathematical rule or axiom is enabled.
+- Branch: `hardening/proof-kernel-strict-ast`. Do not merge until the full test suite, preflight, Training Prototype Validation, Chromium and WebKit checks pass and the exact diff is reviewed.
+- No training, model-weight updates, dataset generation, checkpoint mutation or production changes.
+
+
+## Stage 4 proof-kernel strict-shape hardening — in progress (2026-11-21)
+
+- The next audit slice makes the proof language closed-schema: term nodes, formula nodes, assumptions, proof envelopes, per-rule steps and working-trace envelopes reject unknown or missing fields.
+- Dense-array checks reject sparse predicate arguments, assumptions, steps and premise lists instead of allowing JavaScript array iteration to skip missing entries.
+- Regression coverage checks injected AST/step/envelope properties, sparse premise and predicate arrays, sparse proof steps, invalid premise types, assumption metadata, and a null claimed conclusion.
+- A present `claimedConclusion` is now always compared with the replayed result, including falsy values such as `null`.
+- The existing version-1 AST and inference-rule set remains unchanged; this patch adds no axioms or proof rules.
+- Branch: `hardening/proof-kernel-strict-ast`. Do not merge until full test suite, preflight, Training Prototype Validation, Chromium and WebKit pass and the exact diff is reviewed.
+- No training, model-weight updates, dataset generation, checkpoint mutation or production changes.

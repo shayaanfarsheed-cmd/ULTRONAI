@@ -24,29 +24,45 @@ const F=Object.freeze({
  member:(term,set)=>({kind:"member",term,set}), predicate:(name,args)=>({kind:"predicate",name,args:args||[]})
 });
 const isObj=x=>!!x&&typeof x==="object"&&!Array.isArray(x), stable=x=>JSON.stringify(x), clone=x=>JSON.parse(JSON.stringify(x));
+function exactKeys(value,required,optional=[]){if(!isObj(value))return false;const allowed=new Set(required.concat(optional));const keys=Reflect.ownKeys(value);return required.every(key=>Object.prototype.hasOwnProperty.call(value,key))&&keys.every(key=>typeof key==="string"&&allowed.has(key));}
+function denseArray(value){if(!Array.isArray(value))return false;for(let i=0;i<value.length;i++)if(!Object.prototype.hasOwnProperty.call(value,i))return false;return true;}
+function validStepShape(step){
+ if(!isObj(step)||typeof step.rule!=="string")return false;
+ const base=["id","rule","formula"];
+ const emptyOptionalPremises=()=>!Object.prototype.hasOwnProperty.call(step,"premises")||(denseArray(step.premises)&&step.premises.length===0);
+ switch(step.rule){
+  case "assumption":return exactKeys(step,base,["assumption","premises"])&&Object.prototype.hasOwnProperty.call(step,"assumption")&&typeof step.assumption==="string"&&emptyOptionalPremises();
+  case "axiom":return exactKeys(step,base,["axiomId","premises"])&&Object.prototype.hasOwnProperty.call(step,"axiomId")&&typeof step.axiomId==="string"&&emptyOptionalPremises();
+  case "eq_refl":return exactKeys(step,base,["term","premises"])&&Object.prototype.hasOwnProperty.call(step,"term")&&emptyOptionalPremises();
+  case "eq_symm":case "eq_trans":case "and_intro":case "and_left":case "and_right":case "imp_elim":return exactKeys(step,base.concat("premises"))&&denseArray(step.premises);
+  case "imp_intro":return exactKeys(step,base.concat(["premises","discharge"]))&&denseArray(step.premises)&&Object.prototype.hasOwnProperty.call(step,"discharge")&&typeof step.discharge==="string";
+  case "forall_elim":return exactKeys(step,base.concat(["premises","term"]))&&denseArray(step.premises)&&Object.prototype.hasOwnProperty.call(step,"term");
+  default:return false;
+ }
+}
 function termSort(t,bound={}) {
  if(!isObj(t))return null;
  switch(t.kind){
- case "var":return typeof t.name==="string"&&typeof t.sort==="string"&&(!bound[t.name]||bound[t.name]===t.sort)?(bound[t.name]||t.sort):null;
- case "nat":return Number.isSafeInteger(t.value)&&t.value>=0?"Nat":null;
- case "succ":return termSort(t.value,bound)==="Nat"?"Nat":null;
- case "add":case "mul":{const a=termSort(t.left,bound),b=termSort(t.right,bound);return a&&a===b&&(a==="Nat"||a==="Field")?a:null;}
- case "rational":return Number.isSafeInteger(t.numerator)&&Number.isSafeInteger(t.denominator)&&t.denominator!==0?"Field":null;
- case "point":return typeof t.name==="string"&&t.name?"Point":null;
- case "event":return typeof t.name==="string"&&t.name?"Event":null;
- case "set":return typeof t.name==="string"&&t.name?"Set":null;
+ case "var":return exactKeys(t,["kind","name","sort"])&&typeof t.name==="string"&&typeof t.sort==="string"&&(!bound[t.name]||bound[t.name]===t.sort)?(bound[t.name]||t.sort):null;
+ case "nat":return exactKeys(t,["kind","value"])&&Number.isSafeInteger(t.value)&&t.value>=0?"Nat":null;
+ case "succ":return exactKeys(t,["kind","value"])&&termSort(t.value,bound)==="Nat"?"Nat":null;
+ case "add":case "mul":{if(!exactKeys(t,["kind","left","right"]))return null;const a=termSort(t.left,bound),b=termSort(t.right,bound);return a&&a===b&&(a==="Nat"||a==="Field")?a:null;}
+ case "rational":return exactKeys(t,["kind","numerator","denominator"])&&Number.isSafeInteger(t.numerator)&&Number.isSafeInteger(t.denominator)&&t.denominator!==0?"Field":null;
+ case "point":return exactKeys(t,["kind","name"])&&typeof t.name==="string"&&t.name?"Point":null;
+ case "event":return exactKeys(t,["kind","name"])&&typeof t.name==="string"&&t.name?"Event":null;
+ case "set":return exactKeys(t,["kind","name"])&&typeof t.name==="string"&&t.name?"Set":null;
  default:return null;
  }
 }
 function validFormula(f,bound={},allowedSorts=null) {
  if(!isObj(f))return false;
  switch(f.kind){
- case "eq":{const sort=termSort(f.left,bound);return !!sort&&sort===termSort(f.right,bound)&&(!allowedSorts||allowedSorts.has(sort));}
- case "lt":{const sort=termSort(f.left,bound);return ["Nat","Field"].includes(sort)&&sort===termSort(f.right,bound)&&(!allowedSorts||allowedSorts.has(sort));}
- case "and":case "implies":return validFormula(f.left,bound,allowedSorts)&&validFormula(f.right,bound,allowedSorts);
- case "forall":{if(typeof f.name!=="string"||!["Nat","Field","Point","Line","Event","Probability","Set"].includes(f.sort)||(allowedSorts&&!allowedSorts.has(f.sort)))return false;return validFormula(f.body,Object.assign({},bound,{[f.name]:f.sort}),allowedSorts);}
- case "member":{const a=termSort(f.term,bound),b=termSort(f.set,bound);return !!a&&b==="Set"&&(!allowedSorts||(allowedSorts.has(a)&&allowedSorts.has(b)));}
- case "predicate":return typeof f.name==="string"&&!!f.name&&Array.isArray(f.args)&&f.args.every(x=>{const sort=termSort(x,bound);return !!sort&&(!allowedSorts||allowedSorts.has(sort));});
+ case "eq":{if(!exactKeys(f,["kind","left","right"]))return false;const sort=termSort(f.left,bound);return !!sort&&sort===termSort(f.right,bound)&&(!allowedSorts||allowedSorts.has(sort));}
+ case "lt":{if(!exactKeys(f,["kind","left","right"]))return false;const sort=termSort(f.left,bound);return ["Nat","Field"].includes(sort)&&sort===termSort(f.right,bound)&&(!allowedSorts||allowedSorts.has(sort));}
+ case "and":case "implies":return exactKeys(f,["kind","left","right"])&&validFormula(f.left,bound,allowedSorts)&&validFormula(f.right,bound,allowedSorts);
+ case "forall":{if(!exactKeys(f,["kind","name","sort","body"])||typeof f.name!=="string"||!["Nat","Field","Point","Line","Event","Probability","Set"].includes(f.sort)||(allowedSorts&&!allowedSorts.has(f.sort)))return false;return validFormula(f.body,Object.assign({},bound,{[f.name]:f.sort}),allowedSorts);}
+ case "member":{if(!exactKeys(f,["kind","term","set"]))return false;const a=termSort(f.term,bound),b=termSort(f.set,bound);return !!a&&b==="Set"&&(!allowedSorts||(allowedSorts.has(a)&&allowedSorts.has(b)));}
+ case "predicate":return exactKeys(f,["kind","name","args"])&&typeof f.name==="string"&&!!f.name&&denseArray(f.args)&&f.args.every(x=>{const sort=termSort(x,bound);return !!sort&&(!allowedSorts||allowedSorts.has(sort));});
  default:return false;
  }
 }
@@ -70,11 +86,12 @@ const AXIOMS=deepFreeze({
 });
 const err=(code,message,stepId)=>({valid:false,code,message,stepId:stepId||null});
 function verify(p){
- if(!isObj(p)||p.version!==1||!Object.hasOwn(SYSTEMS,p.system)||!Array.isArray(p.assumptions)||!Array.isArray(p.steps)||!p.steps.length||typeof p.conclusion!=="string")return err("MALFORMED_PROOF","Malformed proof envelope or unknown system.");
+ if(!exactKeys(p,["version","system","assumptions","steps","conclusion"])||p.version!==1||!Object.hasOwn(SYSTEMS,p.system)||!denseArray(p.assumptions)||!denseArray(p.steps)||!p.steps.length||typeof p.conclusion!=="string")return err("MALFORMED_PROOF","Malformed proof envelope or unknown system.");
  const sys=SYSTEMS[p.system],allowedSorts=new Set(sys.sorts),available=new Map(),used=[];
- for(const a of p.assumptions){if(!isObj(a)||typeof a.id!=="string"||available.has(a.id)||!validFormula(a.formula,{},allowedSorts))return err("INVALID_ASSUMPTION","Assumptions need unique IDs and well-typed formulas.");available.set(a.id,{formula:a.formula,origin:"assumption",dependencies:new Set([a.id])});}
+ for(const a of p.assumptions){if(!exactKeys(a,["id","formula"])||typeof a.id!=="string"||available.has(a.id)||!validFormula(a.formula,{},allowedSorts))return err("INVALID_ASSUMPTION","Assumptions need unique IDs and well-typed formulas.");available.set(a.id,{formula:a.formula,origin:"assumption",dependencies:new Set([a.id])});}
  for(const s of p.steps){
   if(!isObj(s)||typeof s.id!=="string"||available.has(s.id))return err("INVALID_STEP","Each step needs a unique ID.",s&&s.id);
+  if(!validStepShape(s)){if(typeof s.rule==="string"&&!["assumption","axiom","eq_refl","eq_symm","eq_trans","and_intro","and_left","and_right","imp_elim","imp_intro","forall_elim"].includes(s.rule))return err("UNKNOWN_RULE","Rule is not part of the audited kernel.",s.id);return err("INVALID_STEP","Step contains missing, unexpected, or malformed fields.",s.id);}
   if(s.rule==="axiom"){const registered=AXIOMS[s.axiomId];if(!registered||registered.system!==p.system||!sys.enabledAxioms.includes(s.axiomId))return err("AXIOM_NOT_AVAILABLE","Axiom is unknown, not formalized, or unavailable in this system.",s.id);}
   if(!validFormula(s.formula,{},allowedSorts))return err("INVALID_STEP","Proof step formula is not well-typed in its declared formal system.",s.id);
   const ids=s.premises||[];if(!Array.isArray(ids))return err("INVALID_PREMISES","Premises must be an array.",s.id);
@@ -105,9 +122,9 @@ function verify(p){
  return {valid:true,system:p.system,conclusion:clone(last.formula),openAssumptions:[...last.dependencies].sort(),usedAxioms:[...new Set(used)],checkedSteps:p.steps.length,trace:p.steps.map(x=>({id:x.id,rule:x.rule,formula:clone(x.formula),premises:(x.premises||[]).slice(),axiomId:x.axiomId||null}))};
 }
 function verifyWorkingTrace(trace){
- if(!isObj(trace)||trace.kind!=="ultron-proof-trace")return err("UNTRUSTED_TRACE","Working must be a structured proof trace.");
+ if(!exactKeys(trace,["kind","proof"],["claimedConclusion"])||trace.kind!=="ultron-proof-trace")return err("UNTRUSTED_TRACE","Working must be a strictly shaped structured proof trace.");
  const r=verify(trace.proof);if(!r.valid)return r;
- if(trace.claimedConclusion&&stable(trace.claimedConclusion)!==stable(r.conclusion))return err("FORGED_TRACE","Claimed conclusion differs from replayed derivation.");
+ if(Object.prototype.hasOwnProperty.call(trace,"claimedConclusion")&&stable(trace.claimedConclusion)!==stable(r.conclusion))return err("FORGED_TRACE","Claimed conclusion differs from replayed derivation.");
  return Object.assign({},r,{traceValidated:true,diagnosisEligible:true});
 }
 const api=Object.freeze({SYSTEMS,AXIOMS,T,F,termSort,validFormula,verify,verifyWorkingTrace});

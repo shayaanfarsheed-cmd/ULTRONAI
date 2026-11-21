@@ -66,3 +66,40 @@ test("implication introduction must discharge an assumption used by its derivati
  ],"good");
  assert.equal(K.verify(valid).valid,true);
 });
+
+test("typed AST nodes reject unexpected properties",()=>{
+ const term=T.numeral(7);term.injected="unexpected";
+ assert.equal(K.termSort(term),null);
+ const formula=F.eq(T.numeral(1),T.numeral(1));formula.injected=true;
+ assert.equal(K.validFormula(formula),false);
+ const p=mk("PEANO_N",[],[{id:"r",rule:"eq_refl",term:T.numeral(1),formula:F.eq(T.numeral(1),T.numeral(1)),debug:"extra"}],"r");
+ assert.equal(K.verify(p).code,"INVALID_STEP");
+});
+test("sparse predicate arguments and proof premises are rejected safely",()=>{
+ const sparseArgs=new Array(1);
+ assert.equal(K.validFormula(F.predicate("P",sparseArgs)),false);
+ const sparsePremises=new Array(2);
+ const p=mk("PEANO_N",[],[{id:"bad",rule:"and_intro",premises:sparsePremises,formula:F.and(F.predicate("A"),F.predicate("B"))}],"bad");
+ assert.equal(K.verify(p).code,"INVALID_STEP");
+});
+test("proof and trace envelopes reject unknown fields and sparse lists",()=>{
+ const base=mk("PEANO_N",[],[{id:"r",rule:"eq_refl",term:T.numeral(1),formula:F.eq(T.numeral(1),T.numeral(1))}],"r");
+ assert.equal(K.verify({...base,untrusted:true}).code,"MALFORMED_PROOF");
+ assert.equal(K.verifyWorkingTrace({kind:"ultron-proof-trace",proof:base,untrusted:true}).code,"UNTRUSTED_TRACE");
+ const sparseSteps=mk("PEANO_N",[],new Array(1),"r");
+ assert.equal(K.verify(sparseSteps).code,"MALFORMED_PROOF");
+});
+test("assumptions reject additional untyped fields",()=>{
+ const p=mk("PEANO_N",[{id:"ha",formula:F.predicate("A"),metadata:"not part of the AST"}],
+ [{id:"a",rule:"assumption",assumption:"ha",formula:F.predicate("A")}],"a");
+ assert.equal(K.verify(p).code,"INVALID_ASSUMPTION");
+});
+
+test("a present but null claimed conclusion cannot bypass trace comparison",()=>{
+ const proof=mk("PEANO_N",[],[{id:"r",rule:"eq_refl",term:T.numeral(1),formula:F.eq(T.numeral(1),T.numeral(1))}],"r");
+ assert.equal(K.verifyWorkingTrace({kind:"ultron-proof-trace",proof,claimedConclusion:null}).code,"FORGED_TRACE");
+});
+test("rule-specific step schemas reject malformed premise types",()=>{
+ const proof=mk("PEANO_N",[],[{id:"x",rule:"and_left",premises:"not-an-array",formula:F.predicate("A")}],"x");
+ assert.equal(K.verify(proof).code,"INVALID_STEP");
+});
