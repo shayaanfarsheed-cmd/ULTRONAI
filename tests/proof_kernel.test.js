@@ -477,6 +477,8 @@ test("probability measure terms require an Event and real-valued order",()=>{
  assert.equal(K.termSort(T.sampleSpace()),"Event");
  assert.equal(K.termSort(T.measure(T.event("A"))),"Real");
  assert.equal(K.termSort(T.measure(T.set("A"))),null);
+ assert.equal(K.termSort(T.real(1,0)),null);
+ assert.equal(K.termSort(T.real(-1,1)),"Real");
  assert.equal(K.validFormula(F.lt(T.measure(T.event("A")),T.real(0,1)),{},new Set(K.SYSTEMS.KOLMOGOROV.sorts)),true);
  assert.equal(K.validFormula(F.lt(T.rational(1,2),T.real(1,1)),{},new Set(K.SYSTEMS.KOLMOGOROV.sorts)),false);
 });
