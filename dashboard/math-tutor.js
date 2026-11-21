@@ -112,10 +112,11 @@
           : { valid: false, code: "KERNEL_UNAVAILABLE", message: "The formal proof checker is not loaded." };
       }
       if (traceEvidence && traceEvidence.valid) return {
-        status: "incorrect_trace_validated",
-        message: "The supplied working trace is a valid derivation in its declared formal system. The final answer is still incorrect; the checked proof does not establish the submitted answer.",
+        status: "incorrect_work_submitted",
+        message: "The supplied trace passed formal replay, but it has not yet been linked to this exercise's exact mathematical steps. No misconception is inferred.",
         expected,
         misconception: null,
+        diagnosisLimit: "A formally valid trace is only evidence after its conclusion and each step are mapped to the active exercise.",
         traceEvidence
       };
       if (!hasWork && !traceEvidence) return {
