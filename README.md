@@ -336,7 +336,8 @@ The current proof kernel has isolated contexts for Peano arithmetic, real fields
 Work in small domain-specific increments:
 
 ### 4A. Kernel soundness audit
-- Re-audit assumption introduction/discharge, dependency propagation, substitution, variable capture, eigenvariable conditions, quantifier scope and premise arity.
+- Completed: implication-discharge dependency checks, universal/existential eigenvariable and witness-scope checks, capture-aware substitution, prototype-safe binder environments and bounded proof/trace input validation.
+- Continue adversarial review of assumption introduction/discharge, dependency propagation, quantifier scope, schema freshness, premise arity and every rule-specific side condition.
 - Confirm every rule checks all mathematical side conditions.
 - Reject forged conclusions, forged axiom IDs, cross-context premises, duplicate IDs, forward references, unknown properties and malformed envelopes.
 - Ensure replay is deterministic and cannot execute arbitrary user code.
@@ -349,15 +350,14 @@ Work in small domain-specific increments:
 
 ### 4C. Field and ordered-field reasoning
 - Preserve exact real-field axiom identifiers and statement mappings.
-- Formalize ordered-field axioms with typed order relations and compatible sorts.
-- Add order properties and inequality derivations only with explicit premises and side conditions.
+- Implemented: FIELD-01 through FIELD-09 plus ORDER-01 through ORDER-04 are explicitly enabled in ORDERED_FIELD and COMPLETE_REAL.
+- Next: audit derived inequality properties and ensure every future order rule states all premises and side conditions explicitly.
 - Keep field, ordered-field and complete-real contexts isolated.
 
 ### 4D. Completeness of the real numbers
-- Specify the completeness principle and representation of sets, bounds and suprema.
-- Decide which statements are primitive axioms, schemas or derived theorems.
-- Do not claim executable completeness reasoning until the object language and proof rules exist.
-- Test invalid boundedness, empty sets, missing upper bounds and invalid supremum claims.
+- Implemented: COMPLETE-01 states the least-upper-bound property over nonempty, bounded-above RealSet subsets of Field, with non-strict comparisons derived from ORDER-01 trichotomy.
+- Limitation: RealSet is a typed subset domain, not a full power-set/set-construction evaluator; the checker does not compute numerical suprema.
+- Next: adversarially test empty sets, unbounded sets, missing upper bounds and invalid least-upper-bound claims; extend only when the representation supports the side conditions.
 
 ### 4E. Euclidean geometry
 - Audit typed point, line, circle, segment and angle representations already added.
@@ -374,7 +374,7 @@ Work in small domain-specific increments:
 
 ### 4G. Set theory
 - Audit ZFC axiom mappings and separation/replacement schema-instance rules.
-- ZFC-10 is currently represented by typed primitive relations and exact axiom replay. Do not describe this as a complete set-theoretic formalization: function graphs, indexed membership, non-empty indexed-value semantics and choice selection remain future work. Extend those semantics only with explicit representations and adversarial tests.
+- ZFC-10 is expanded into quantified Set-membership formulas using Kuratowski ordered pairs. The formula defines function graphs with domain exactly I and unique outputs, nonempty indexed family values, and a choice graph selecting an element from each corresponding set. This formalizes the axiom statement but does not construct a choice function or provide a choice algorithm.
 - Keep schema parameters explicit in proof traces.
 - Test capture, variable collisions, invalid source sets, forged schema IDs and cross-context inference.
 - State which axioms are executable, represented only in the Axiom Bank, or unsupported.
