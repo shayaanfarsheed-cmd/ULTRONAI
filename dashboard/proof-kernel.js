@@ -20,7 +20,7 @@ const T=Object.freeze({
  sampleSpace:()=>({kind:"sampleSpace"}), measure:event=>({kind:"measure",event}), countableUnion:sequence=>({kind:"countableUnion",sequence}), countableSum:sequence=>({kind:"countableSum",sequence})
 });
 const F=Object.freeze({
- eq:(left,right)=>({kind:"eq",left,right}), lt:(left,right)=>({kind:"lt",left,right}),
+ eq:(left,right)=>({kind:"eq",left,right}), lt:(left,right)=>({kind:"lt",left,right}), le:(left,right)=>({kind:"le",left,right}),
  and:(left,right)=>({kind:"and",left,right}), implies:(left,right)=>({kind:"implies",left,right}),
  forall:(name,sort,body)=>({kind:"forall",name,sort,body}), exists:(name,sort,body)=>({kind:"exists",name,sort,body}), not:formula=>({kind:"not",formula}),
  member:(term,set)=>({kind:"member",term,set}), incident:(point,line)=>({kind:"incident",point,line}), between:(first,middle,last)=>({kind:"between",first,middle,last}), circleCenter:(circle,center)=>({kind:"circleCenter",circle,center}), onCircle:(point,circle)=>({kind:"onCircle",point,circle}), rightAngle:angle=>({kind:"rightAngle",angle}), angleEqual:(left,right)=>({kind:"angleEqual",left,right}), sameSideInteriorAngles:(firstAngle,secondAngle,firstLine,secondLine,transversal)=>({kind:"sameSideInteriorAngles",firstAngle,secondAngle,firstLine,secondLine,transversal}), angleSumLessThanTwoRightAngles:(firstAngle,secondAngle)=>({kind:"angleSumLessThanTwoRightAngles",firstAngle,secondAngle}), linesMeetOnSameSide:(firstLine,secondLine,transversal)=>({kind:"linesMeetOnSameSide",firstLine,secondLine,transversal}), pairwiseDisjoint:sequence=>({kind:"pairwiseDisjoint",sequence}), predicate:(name,args)=>({kind:"predicate",name,args:args||[]})
@@ -73,6 +73,7 @@ function validFormula(f,bound={},allowedSorts=null) {
  switch(f.kind){
  case "eq":{if(!exactKeys(f,["kind","left","right"]))return false;const sort=termSort(f.left,bound);return !!sort&&sort===termSort(f.right,bound)&&(!allowedSorts||allowedSorts.has(sort));}
  case "lt":{if(!exactKeys(f,["kind","left","right"]))return false;const sort=termSort(f.left,bound);return ["Nat","Field","Real"].includes(sort)&&sort===termSort(f.right,bound)&&(!allowedSorts||allowedSorts.has(sort));}
+ case "le":{if(!exactKeys(f,["kind","left","right"]))return false;const sort=termSort(f.left,bound);return ["Nat","Field","Real"].includes(sort)&&sort===termSort(f.right,bound)&&(!allowedSorts||allowedSorts.has(sort));}
  case "and":case "implies":return exactKeys(f,["kind","left","right"])&&validFormula(f.left,bound,allowedSorts)&&validFormula(f.right,bound,allowedSorts);
  case "not":return exactKeys(f,["kind","formula"])&&validFormula(f.formula,bound,allowedSorts);
  case "forall":case "exists":{if(!exactKeys(f,["kind","name","sort","body"])||typeof f.name!=="string"||!["Nat","Field","Real","Point","Line","Circle","Angle","Event","EventSequence","Probability","Set"].includes(f.sort)||(allowedSorts&&!allowedSorts.has(f.sort)))return false;return validFormula(f.body,Object.assign({},bound,{[f.name]:f.sort}),allowedSorts);}
@@ -228,7 +229,7 @@ const AXIOMS=deepFreeze({
   F.angleEqual(T.variable("A","Angle"),T.variable("B","Angle"))
  )))},
  "EUCLID-05":{system:"EUCLID_GEOMETRY",formula:EUCLID_PARALLEL_POSTULATE},
- "PROB-01":{system:"KOLMOGOROV",formula:F.forall("A","Event",F.not(F.lt(T.measure(T.variable("A","Event")),T.real(0,1))))},
+ "PROB-01":{system:"KOLMOGOROV",formula:F.forall("A","Event",F.le(T.real(0,1),T.measure(T.variable("A","Event"))))},
  "PROB-02":{system:"KOLMOGOROV",formula:F.eq(T.measure(T.sampleSpace()),T.real(1,1))},
  "PROB-03":{system:"KOLMOGOROV",formula:PROB_COUNTABLE_ADDITIVITY},
  "ZFC-01":{system:"ZFC",formula:F.forall("A","Set",F.forall("B","Set",F.implies(F.forall("z","Set",F.and(F.implies(F.member(T.variable("z","Set"),T.variable("A","Set")),F.member(T.variable("z","Set"),T.variable("B","Set"))),F.implies(F.member(T.variable("z","Set"),T.variable("B","Set")),F.member(T.variable("z","Set"),T.variable("A","Set"))))),F.eq(T.variable("A","Set"),T.variable("B","Set")))))},
