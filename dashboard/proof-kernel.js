@@ -37,6 +37,8 @@ function validStepShape(step){
   case "eq_symm":case "eq_trans":case "and_intro":case "and_left":case "and_right":case "imp_elim":return exactKeys(step,base.concat("premises"))&&denseArray(step.premises);
   case "imp_intro":return exactKeys(step,base.concat(["premises","discharge"]))&&denseArray(step.premises)&&Object.prototype.hasOwnProperty.call(step,"discharge")&&typeof step.discharge==="string";
   case "forall_elim":return exactKeys(step,base.concat(["premises","term"]))&&denseArray(step.premises)&&Object.prototype.hasOwnProperty.call(step,"term");
+  case "exists_intro":return exactKeys(step,base.concat(["premises","term"]))&&denseArray(step.premises)&&step.premises.length===1&&Object.prototype.hasOwnProperty.call(step,"term");
+  case "exists_elim":return exactKeys(step,base.concat(["premises","variable","discharge"]))&&denseArray(step.premises)&&step.premises.length===2&&Object.prototype.hasOwnProperty.call(step,"variable")&&typeof step.variable==="string"&&step.variable.length>0&&Object.prototype.hasOwnProperty.call(step,"discharge")&&typeof step.discharge==="string";
   case "forall_intro":return exactKeys(step,base.concat(["premises","variable"]))&&denseArray(step.premises)&&step.premises.length===1&&Object.prototype.hasOwnProperty.call(step,"variable")&&typeof step.variable==="string"&&step.variable.length>0;
   case "induction":return exactKeys(step,base.concat(["premises","axiomId","variable"]))&&denseArray(step.premises)&&step.premises.length===2&&Object.prototype.hasOwnProperty.call(step,"axiomId")&&step.axiomId==="PEANO-04"&&Object.prototype.hasOwnProperty.call(step,"variable")&&typeof step.variable==="string"&&step.variable.length>0;
   default:return false;
@@ -116,7 +118,7 @@ function verify(p){
  for(const a of p.assumptions){if(!exactKeys(a,["id","formula"])||typeof a.id!=="string"||available.has(a.id)||!validFormula(a.formula,{},allowedSorts))return err("INVALID_ASSUMPTION","Assumptions need unique IDs and well-typed formulas.");available.set(a.id,{formula:a.formula,origin:"assumption",dependencies:new Set([a.id])});}
  for(const s of p.steps){
   if(!isObj(s)||typeof s.id!=="string"||available.has(s.id))return err("INVALID_STEP","Each step needs a unique ID.",s&&s.id);
-  if(!validStepShape(s)){if(typeof s.rule==="string"&&!["assumption","axiom","eq_refl","eq_symm","eq_trans","and_intro","and_left","and_right","imp_elim","imp_intro","forall_elim","forall_intro","induction"].includes(s.rule))return err("UNKNOWN_RULE","Rule is not part of the audited kernel.",s.id);return err("INVALID_STEP","Step contains missing, unexpected, or malformed fields.",s.id);}
+  if(!validStepShape(s)){if(typeof s.rule==="string"&&!["assumption","axiom","eq_refl","eq_symm","eq_trans","and_intro","and_left","and_right","imp_elim","imp_intro","forall_elim","forall_intro","exists_intro","exists_elim","induction"].includes(s.rule))return err("UNKNOWN_RULE","Rule is not part of the audited kernel.",s.id);return err("INVALID_STEP","Step contains missing, unexpected, or malformed fields.",s.id);}
   if(s.rule==="axiom"){const registered=AXIOMS[s.axiomId];if(!registered||registered.system!==p.system||!sys.enabledAxioms.includes(s.axiomId))return err("AXIOM_NOT_AVAILABLE","Axiom is unknown, not formalized, or unavailable in this system.",s.id);}
   if(s.rule==="induction"){const schema=AXIOM_SCHEMAS[s.axiomId];if(!schema||schema.system!==p.system||!sys.enabledAxiomSchemas.includes(s.axiomId))return err("AXIOM_SCHEMA_NOT_AVAILABLE","Axiom schema is unknown or unavailable in this formal system.",s.id);}
   if(!validFormula(s.formula,{},allowedSorts))return err("INVALID_STEP","Proof step formula is not well-typed in its declared formal system.",s.id);
@@ -135,6 +137,25 @@ function verify(p){
    case "imp_elim":if(refs.length===2){const i=refs.find(x=>x.formula.kind==="implies"),a=refs.find(x=>x!==i);if(i&&a&&stable(i.formula.left)===stable(a.formula))e=i.formula.right;}break;
    case "imp_intro":{const r=refs.length===1?refs[0]:null,d=available.get(s.discharge);if(r&&d&&d.origin==="assumption"&&r.dependencies.has(s.discharge)&&s.formula.kind==="implies"&&stable(d.formula)===stable(s.formula.left)&&stable(r.formula)===stable(s.formula.right))e=s.formula;break;}
    case "forall_elim":if(refs.length===1&&refs[0].formula.kind==="forall"&&s.term&&termSort(s.term)===refs[0].formula.sort){const candidate=substitute(refs[0].formula.body,refs[0].formula.name,s.term);if(candidate&&validFormula(candidate,{},allowedSorts))e=candidate;}break;
+   case "exists_intro":{
+    const goal=s.formula,witness=s.term;
+    if(refs.length===1&&goal.kind==="exists"&&termSort(witness)===goal.sort){
+     const instance=substitute(goal.body,goal.name,witness);
+     if(instance&&validFormula(instance,{},allowedSorts)&&stable(refs[0].formula)===stable(instance))e=goal;
+    }
+    break;
+   }
+   case "exists_elim":{
+    const existential=refs[0].formula,minor=refs[1],variable=s.variable,discharged=available.get(s.discharge);
+    if(existential.kind!=="exists"||!discharged||discharged.origin!=="assumption"||!minor.dependencies.has(s.discharge)||refs[0].dependencies.has(s.discharge))return err("INVALID_EXISTS_ELIMINATION_SCOPE","Existential elimination needs a minor proof using a temporary witness assumption, and that assumption cannot support the existential premise.",s.id);
+    if(variable===existential.name||allVariableNames(existential.body).has(variable)||freeVariableNames(existential).has(variable)||freeVariableNames(s.formula).has(variable))return err("INVALID_EXISTS_EIGENVARIABLE","Existential witness variable must be fresh from the existential premise and conclusion.",s.id);
+    const expectedWitness=substitute(existential.body,existential.name,T.variable(variable,existential.sort));
+    if(!expectedWitness||!validFormula(expectedWitness,{},allowedSorts)||stable(discharged.formula)!==stable(expectedWitness)||stable(s.formula)!==stable(minor.formula))return err("RULE_MISMATCH","Discharged assumption must be the existential body for the fresh witness, and the conclusion must match the minor proof.",s.id);
+    const remainingDependencies=new Set([...refs[0].dependencies,...minor.dependencies]);remainingDependencies.delete(s.discharge);
+    if(hasFreeVariableInDependencies([{dependencies:remainingDependencies}],variable,available))return err("EXISTS_EIGENVARIABLE_IN_ASSUMPTION","Existential witness variable must not occur free in any remaining undischarged assumption.",s.id);
+    e=minor.formula;
+    break;
+   }
    case "forall_intro":{
     const goal=s.formula,variable=s.variable;
     if(goal.kind!=="forall"||variable===goal.name||allVariableNames(goal.body).has(variable))return err("INVALID_EIGENVARIABLE","Universal-introduction variable must be fresh from the quantified property and its binders.",s.id);
@@ -163,11 +184,11 @@ function verify(p){
   const dependencies=new Set();
   if(s.rule==="assumption")dependencies.add(s.assumption);
   else refs.forEach(ref=>ref.dependencies.forEach(id=>dependencies.add(id)));
-  if(s.rule==="imp_intro")dependencies.delete(s.discharge);
+  if(s.rule==="imp_intro"||s.rule==="exists_elim")dependencies.delete(s.discharge);
   available.set(s.id,{formula:s.formula,origin:s.rule,dependencies});
  }
  const last=available.get(p.conclusion);if(!last||!p.steps.some(x=>x.id===p.conclusion))return err("MISSING_CONCLUSION","Conclusion must reference a derived step.");
- return {valid:true,system:p.system,conclusion:clone(last.formula),openAssumptions:[...last.dependencies].sort(),usedAxioms:[...new Set(used)],usedAxiomSchemas:[...new Set(usedSchemas)],checkedSteps:p.steps.length,trace:p.steps.map(x=>({id:x.id,rule:x.rule,formula:clone(x.formula),premises:(x.premises||[]).slice(),axiomId:x.axiomId||null,variable:x.variable||null}))};
+ return {valid:true,system:p.system,conclusion:clone(last.formula),openAssumptions:[...last.dependencies].sort(),usedAxioms:[...new Set(used)],usedAxiomSchemas:[...new Set(usedSchemas)],checkedSteps:p.steps.length,trace:p.steps.map(x=>({id:x.id,rule:x.rule,formula:clone(x.formula),premises:(x.premises||[]).slice(),axiomId:x.axiomId||null,term:x.term?clone(x.term):null,variable:x.variable||null,discharge:x.discharge||null}))};
 }
 function verifyWorkingTrace(trace){
  if(!exactKeys(trace,["kind","proof"],["claimedConclusion"])||trace.kind!=="ultron-proof-trace")return err("UNTRUSTED_TRACE","Working must be a strictly shaped structured proof trace.");
