@@ -182,7 +182,7 @@ const AXIOMS=deepFreeze({
  )))},
  "EUCLID-05":{system:"EUCLID_GEOMETRY",formula:EUCLID_PARALLEL_POSTULATE},
  "PROB-01":{system:"KOLMOGOROV",formula:F.forall("A","Event",F.not(F.lt(T.measure(T.variable("A","Event")),T.real(0,1))))},
- "PROB-02":{system:"KOLMOGOROV",formula:F.eq(T.measure(T.sampleSpace()),T.real(1,1))},,
+ "PROB-02":{system:"KOLMOGOROV",formula:F.eq(T.measure(T.sampleSpace()),T.real(1,1))},
  "PROB-03":{system:"KOLMOGOROV",formula:PROB_COUNTABLE_ADDITIVITY},
  "ZFC-01":{system:"ZFC",formula:F.forall("A","Set",F.forall("B","Set",F.implies(F.forall("z","Set",F.and(F.implies(F.member(T.variable("z","Set"),T.variable("A","Set")),F.member(T.variable("z","Set"),T.variable("B","Set"))),F.implies(F.member(T.variable("z","Set"),T.variable("B","Set")),F.member(T.variable("z","Set"),T.variable("A","Set"))))),F.eq(T.variable("A","Set"),T.variable("B","Set")))))},
  "ZFC-02":{system:"ZFC",formula:F.exists("E","Set",F.forall("x","Set",F.not(F.member(T.variable("x","Set"),T.variable("E","Set")))))},
