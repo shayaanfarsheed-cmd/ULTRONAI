@@ -7,7 +7,7 @@ const SYSTEMS=deepFreeze({
  ORDERED_FIELD:{label:"Ordered-field theory",sorts:["Field"],enabledAxioms:[],enabledAxiomSchemas:[]},
  COMPLETE_REAL:{label:"Complete real field",sorts:["Field"],enabledAxioms:[],enabledAxiomSchemas:[]},
  EUCLID_GEOMETRY:{label:"Euclidean geometry",sorts:["Point","Line","Circle","Angle"],enabledAxioms:["EUCLID-01","EUCLID-02","EUCLID-03","EUCLID-04","EUCLID-05"],enabledAxiomSchemas:[]},
- KOLMOGOROV:{label:"Kolmogorov probability",sorts:["Event","Real"],enabledAxioms:["PROB-01","PROB-02"],enabledAxiomSchemas:[]},
+ KOLMOGOROV:{label:"Kolmogorov probability",sorts:["Event","Real","EventSequence"],enabledAxioms:["PROB-01","PROB-02","PROB-03"],enabledAxiomSchemas:[]},
  ZFC:{label:"Zermelo–Fraenkel set theory with Choice",sorts:["Set"],enabledAxioms:["ZFC-01","ZFC-02","ZFC-03","ZFC-04","ZFC-05","ZFC-06","ZFC-09"],enabledAxiomSchemas:[]}
 });
 const T=Object.freeze({
@@ -17,13 +17,13 @@ const T=Object.freeze({
  rational:(numerator,denominator)=>({kind:"rational",numerator,denominator}),
  point:name=>({kind:"point",name}), line:name=>({kind:"line",name}), event:name=>({kind:"event",name}), set:name=>({kind:"set",name}),
  real:(numerator,denominator)=>({kind:"real",numerator,denominator}),
- sampleSpace:()=>({kind:"sampleSpace"}), measure:event=>({kind:"measure",event})
+ sampleSpace:()=>({kind:"sampleSpace"}), measure:event=>({kind:"measure",event}), countableUnion:sequence=>({kind:"countableUnion",sequence}), countableSum:sequence=>({kind:"countableSum",sequence})
 });
 const F=Object.freeze({
  eq:(left,right)=>({kind:"eq",left,right}), lt:(left,right)=>({kind:"lt",left,right}),
  and:(left,right)=>({kind:"and",left,right}), implies:(left,right)=>({kind:"implies",left,right}),
  forall:(name,sort,body)=>({kind:"forall",name,sort,body}), exists:(name,sort,body)=>({kind:"exists",name,sort,body}), not:formula=>({kind:"not",formula}),
- member:(term,set)=>({kind:"member",term,set}), incident:(point,line)=>({kind:"incident",point,line}), between:(first,middle,last)=>({kind:"between",first,middle,last}), circleCenter:(circle,center)=>({kind:"circleCenter",circle,center}), onCircle:(point,circle)=>({kind:"onCircle",point,circle}), rightAngle:angle=>({kind:"rightAngle",angle}), angleEqual:(left,right)=>({kind:"angleEqual",left,right}), sameSideInteriorAngles:(firstAngle,secondAngle,firstLine,secondLine,transversal)=>({kind:"sameSideInteriorAngles",firstAngle,secondAngle,firstLine,secondLine,transversal}), angleSumLessThanTwoRightAngles:(firstAngle,secondAngle)=>({kind:"angleSumLessThanTwoRightAngles",firstAngle,secondAngle}), linesMeetOnSameSide:(firstLine,secondLine,transversal)=>({kind:"linesMeetOnSameSide",firstLine,secondLine,transversal}), predicate:(name,args)=>({kind:"predicate",name,args:args||[]})
+ member:(term,set)=>({kind:"member",term,set}), incident:(point,line)=>({kind:"incident",point,line}), between:(first,middle,last)=>({kind:"between",first,middle,last}), circleCenter:(circle,center)=>({kind:"circleCenter",circle,center}), onCircle:(point,circle)=>({kind:"onCircle",point,circle}), rightAngle:angle=>({kind:"rightAngle",angle}), angleEqual:(left,right)=>({kind:"angleEqual",left,right}), sameSideInteriorAngles:(firstAngle,secondAngle,firstLine,secondLine,transversal)=>({kind:"sameSideInteriorAngles",firstAngle,secondAngle,firstLine,secondLine,transversal}), angleSumLessThanTwoRightAngles:(firstAngle,secondAngle)=>({kind:"angleSumLessThanTwoRightAngles",firstAngle,secondAngle}), linesMeetOnSameSide:(firstLine,secondLine,transversal)=>({kind:"linesMeetOnSameSide",firstLine,secondLine,transversal}), pairwiseDisjoint:sequence=>({kind:"pairwiseDisjoint",sequence}), predicate:(name,args)=>({kind:"predicate",name,args:args||[]})
 });
 const isObj=x=>!!x&&typeof x==="object"&&!Array.isArray(x), stable=x=>JSON.stringify(x), clone=x=>JSON.parse(JSON.stringify(x));
 function exactKeys(value,required,optional=[]){if(!isObj(value))return false;const allowed=new Set(required.concat(optional));const keys=Reflect.ownKeys(value);return required.every(key=>Object.prototype.hasOwnProperty.call(value,key))&&keys.every(key=>typeof key==="string"&&allowed.has(key));}
@@ -61,6 +61,8 @@ function termSort(t,bound={}) {
  case "real":return exactKeys(t,["kind","numerator","denominator"])&&Number.isSafeInteger(t.numerator)&&Number.isSafeInteger(t.denominator)&&t.denominator!==0?"Real":null;
  case "sampleSpace":return exactKeys(t,["kind"])?"Event":null;
  case "measure":return exactKeys(t,["kind","event"])&&termSort(t.event,bound)==="Event"?"Real":null;
+ case "countableUnion":return exactKeys(t,["kind","sequence"])&&termSort(t.sequence,bound)==="EventSequence"?"Event":null;
+ case "countableSum":return exactKeys(t,["kind","sequence"])&&termSort(t.sequence,bound)==="EventSequence"?"Real":null;
  default:return null;
  }
 }
@@ -71,7 +73,7 @@ function validFormula(f,bound={},allowedSorts=null) {
  case "lt":{if(!exactKeys(f,["kind","left","right"]))return false;const sort=termSort(f.left,bound);return ["Nat","Field","Real"].includes(sort)&&sort===termSort(f.right,bound)&&(!allowedSorts||allowedSorts.has(sort));}
  case "and":case "implies":return exactKeys(f,["kind","left","right"])&&validFormula(f.left,bound,allowedSorts)&&validFormula(f.right,bound,allowedSorts);
  case "not":return exactKeys(f,["kind","formula"])&&validFormula(f.formula,bound,allowedSorts);
- case "forall":case "exists":{if(!exactKeys(f,["kind","name","sort","body"])||typeof f.name!=="string"||!["Nat","Field","Real","Point","Line","Circle","Angle","Event","Probability","Set"].includes(f.sort)||(allowedSorts&&!allowedSorts.has(f.sort)))return false;return validFormula(f.body,Object.assign({},bound,{[f.name]:f.sort}),allowedSorts);}
+ case "forall":case "exists":{if(!exactKeys(f,["kind","name","sort","body"])||typeof f.name!=="string"||!["Nat","Field","Real","Point","Line","Circle","Angle","Event","EventSequence","Probability","Set"].includes(f.sort)||(allowedSorts&&!allowedSorts.has(f.sort)))return false;return validFormula(f.body,Object.assign({},bound,{[f.name]:f.sort}),allowedSorts);}
  case "member":{if(!exactKeys(f,["kind","term","set"]))return false;const a=termSort(f.term,bound),b=termSort(f.set,bound);return !!a&&b==="Set"&&(!allowedSorts||(allowedSorts.has(a)&&allowedSorts.has(b)));}
  case "incident":return exactKeys(f,["kind","point","line"])&&termSort(f.point,bound)==="Point"&&termSort(f.line,bound)==="Line"&&(!allowedSorts||(allowedSorts.has("Point")&&allowedSorts.has("Line")));
  case "between":return exactKeys(f,["kind","first","middle","last"])&&termSort(f.first,bound)==="Point"&&termSort(f.middle,bound)==="Point"&&termSort(f.last,bound)==="Point"&&(!allowedSorts||allowedSorts.has("Point"));
@@ -82,6 +84,7 @@ function validFormula(f,bound={},allowedSorts=null) {
  case "sameSideInteriorAngles":return exactKeys(f,["kind","firstAngle","secondAngle","firstLine","secondLine","transversal"])&&termSort(f.firstAngle,bound)==="Angle"&&termSort(f.secondAngle,bound)==="Angle"&&termSort(f.firstLine,bound)==="Line"&&termSort(f.secondLine,bound)==="Line"&&termSort(f.transversal,bound)==="Line"&&(!allowedSorts||(allowedSorts.has("Angle")&&allowedSorts.has("Line")));
  case "angleSumLessThanTwoRightAngles":return exactKeys(f,["kind","firstAngle","secondAngle"])&&termSort(f.firstAngle,bound)==="Angle"&&termSort(f.secondAngle,bound)==="Angle"&&(!allowedSorts||allowedSorts.has("Angle"));
  case "linesMeetOnSameSide":return exactKeys(f,["kind","firstLine","secondLine","transversal"])&&termSort(f.firstLine,bound)==="Line"&&termSort(f.secondLine,bound)==="Line"&&termSort(f.transversal,bound)==="Line"&&(!allowedSorts||allowedSorts.has("Line"));
+ case "pairwiseDisjoint":return exactKeys(f,["kind","sequence"])&&termSort(f.sequence,bound)==="EventSequence"&&(!allowedSorts||allowedSorts.has("EventSequence"));
  case "predicate":return exactKeys(f,["kind","name","args"])&&typeof f.name==="string"&&!!f.name&&denseArray(f.args)&&f.args.every(x=>{const sort=termSort(x,bound);return !!sort&&(!allowedSorts||allowedSorts.has(sort));});
  default:return false;
  }
@@ -116,6 +119,11 @@ const pointVar=name=>T.variable(name,"Point");
 const lineVar=name=>T.variable(name,"Line");
 const and4=(a,b,c,d)=>F.and(a,F.and(b,F.and(c,d)));
 const angleVar=name=>T.variable(name,"Angle");
+const sequenceVar=name=>T.variable(name,"EventSequence");
+const PROB_COUNTABLE_ADDITIVITY=F.forall("s","EventSequence",F.implies(
+ F.pairwiseDisjoint(sequenceVar("s")),
+ F.eq(T.measure(T.countableUnion(sequenceVar("s"))),T.countableSum(sequenceVar("s")))
+));
 const EUCLID_PARALLEL_POSTULATE=F.forall("l1","Line",
  F.forall("l2","Line",
   F.forall("t","Line",
@@ -175,6 +183,7 @@ const AXIOMS=deepFreeze({
  "EUCLID-05":{system:"EUCLID_GEOMETRY",formula:EUCLID_PARALLEL_POSTULATE},
  "PROB-01":{system:"KOLMOGOROV",formula:F.forall("A","Event",F.not(F.lt(T.measure(T.variable("A","Event")),T.real(0,1))))},
  "PROB-02":{system:"KOLMOGOROV",formula:F.eq(T.measure(T.sampleSpace()),T.real(1,1))},
+ "PROB-03":{system:"KOLMOGOROV",formula:PROB_COUNTABLE_ADDITIVITY},
  "ZFC-01":{system:"ZFC",formula:F.forall("A","Set",F.forall("B","Set",F.implies(F.forall("z","Set",F.and(F.implies(F.member(T.variable("z","Set"),T.variable("A","Set")),F.member(T.variable("z","Set"),T.variable("B","Set"))),F.implies(F.member(T.variable("z","Set"),T.variable("B","Set")),F.member(T.variable("z","Set"),T.variable("A","Set"))))),F.eq(T.variable("A","Set"),T.variable("B","Set")))))},
  "ZFC-02":{system:"ZFC",formula:F.exists("E","Set",F.forall("x","Set",F.not(F.member(T.variable("x","Set"),T.variable("E","Set")))))},
  "ZFC-03":{system:"ZFC",formula:F.forall("a","Set",F.forall("b","Set",F.exists("c","Set",F.forall("x","Set",

@@ -2,7 +2,7 @@
 const test=require("node:test"),assert=require("node:assert/strict"),K=require("../dashboard/proof-kernel.js");
 const {T,F}=K, mk=(system,assumptions,steps,conclusion)=>({version:1,system,assumptions,steps,conclusion});
 test("typed expression and formula validation",()=>{assert.equal(K.validFormula(F.eq(T.numeral(1),T.numeral(1))),true);assert.equal(K.validFormula(F.eq(T.numeral(1),T.rational(1,1))),false);assert.equal(K.validFormula(F.eq(T.add(T.numeral(1),T.numeral(2)),T.numeral(3))),true);assert.equal(K.validFormula({kind:"evil"}),false);});
-test("formal contexts are separate and conservative",()=>{assert.deepEqual(K.SYSTEMS.PEANO_N.enabledAxioms,["PEANO-02","PEANO-03"]);assert.deepEqual(K.SYSTEMS.PEANO_N.enabledAxiomSchemas,["PEANO-04"]);assert.deepEqual(K.SYSTEMS.REAL_FIELD.enabledAxioms,["FIELD-01","FIELD-02","FIELD-03","FIELD-04","FIELD-05","FIELD-06","FIELD-07","FIELD-08","FIELD-09"]);assert.deepEqual(K.SYSTEMS.REAL_FIELD.enabledAxiomSchemas,[]);for(const s of ["ORDERED_FIELD","COMPLETE_REAL"]){assert.deepEqual(K.SYSTEMS[s].enabledAxioms,[]);assert.deepEqual(K.SYSTEMS[s].enabledAxiomSchemas,[]);}assert.deepEqual(K.SYSTEMS.EUCLID_GEOMETRY.enabledAxioms,["EUCLID-01","EUCLID-02","EUCLID-03","EUCLID-04","EUCLID-05"]);assert.deepEqual(K.SYSTEMS.KOLMOGOROV.enabledAxioms,["PROB-01","PROB-02"]);assert.deepEqual(K.SYSTEMS.ZFC.enabledAxioms,["ZFC-01","ZFC-02","ZFC-03","ZFC-04","ZFC-05","ZFC-06","ZFC-09"]);for(const s of ["EUCLID_GEOMETRY","KOLMOGOROV","ZFC"])assert.deepEqual(K.SYSTEMS[s].enabledAxiomSchemas,[]);});
+test("formal contexts are separate and conservative",()=>{assert.deepEqual(K.SYSTEMS.PEANO_N.enabledAxioms,["PEANO-02","PEANO-03"]);assert.deepEqual(K.SYSTEMS.PEANO_N.enabledAxiomSchemas,["PEANO-04"]);assert.deepEqual(K.SYSTEMS.REAL_FIELD.enabledAxioms,["FIELD-01","FIELD-02","FIELD-03","FIELD-04","FIELD-05","FIELD-06","FIELD-07","FIELD-08","FIELD-09"]);assert.deepEqual(K.SYSTEMS.REAL_FIELD.enabledAxiomSchemas,[]);for(const s of ["ORDERED_FIELD","COMPLETE_REAL"]){assert.deepEqual(K.SYSTEMS[s].enabledAxioms,[]);assert.deepEqual(K.SYSTEMS[s].enabledAxiomSchemas,[]);}assert.deepEqual(K.SYSTEMS.EUCLID_GEOMETRY.enabledAxioms,["EUCLID-01","EUCLID-02","EUCLID-03","EUCLID-04","EUCLID-05"]);assert.deepEqual(K.SYSTEMS.KOLMOGOROV.enabledAxioms,["PROB-01","PROB-02","PROB-03"]);assert.deepEqual(K.SYSTEMS.ZFC.enabledAxioms,["ZFC-01","ZFC-02","ZFC-03","ZFC-04","ZFC-05","ZFC-06","ZFC-09"]);for(const s of ["EUCLID_GEOMETRY","KOLMOGOROV","ZFC"])assert.deepEqual(K.SYSTEMS[s].enabledAxiomSchemas,[]);});
 test("reflexivity replays and forged conclusion fails",()=>{const x=T.variable("x","Nat"),p=mk("PEANO_N",[],[{id:"r",rule:"eq_refl",term:x,formula:F.eq(x,x)}],"r");assert.equal(K.verify(p).valid,true);p.steps[0].formula=F.eq(x,T.numeral(2));assert.equal(K.verify(p).code,"RULE_MISMATCH");});
 test("assumptions, conjunction and implication introduction",()=>{const a=F.predicate("A"),b=F.predicate("B"),p=mk("PEANO_N",[{id:"ha",formula:a},{id:"hb",formula:b}],[{id:"a",rule:"assumption",assumption:"ha",formula:a},{id:"b",rule:"assumption",assumption:"hb",formula:b},{id:"ab",rule:"and_intro",premises:["a","b"],formula:F.and(a,b)},{id:"imp",rule:"imp_intro",premises:["b"],discharge:"hb",formula:F.implies(b,b)}],"imp");assert.equal(K.verify(p).valid,true);});
 test("unknown, forward and duplicate references rejected",()=>{const a=F.predicate("A"),p=mk("PEANO_N",[],[{id:"x",rule:"and_left",premises:["future"],formula:a}],"x");assert.equal(K.verify(p).code,"UNKNOWN_PREMISE");const d=mk("PEANO_N",[{id:"x",formula:a}],[{id:"x",rule:"assumption",assumption:"x",formula:a}],"x");assert.equal(K.verify(d).code,"INVALID_STEP");});
@@ -641,7 +641,29 @@ test("ZFC infinity and foundation reject forged statements",()=>{
   assert.equal(K.verify(forged).code,"RULE_MISMATCH",id);
  }
 });
-test("countable additivity remains disabled until sequence and sum operators exist",()=>{
- assert.equal(K.AXIOMS["PROB-03"],undefined);
- assert.deepEqual(K.SYSTEMS.KOLMOGOROV.enabledAxioms,["PROB-01","PROB-02"]);
+test("Kolmogorov countable additivity replays over pairwise-disjoint event sequences",()=>{
+ const formula=K.AXIOMS["PROB-03"].formula;
+ assert.equal(K.validFormula(formula,{},new Set(K.SYSTEMS.KOLMOGOROV.sorts)),true);
+ const proof=mk("KOLMOGOROV",[],[{id:"ax",rule:"axiom",axiomId:"PROB-03",formula}],"ax");
+ const result=K.verify(proof);
+ assert.equal(result.valid,true);
+ assert.deepEqual(result.usedAxioms,["PROB-03"]);
+ const wrong=mk("REAL_FIELD",[],[{id:"ax",rule:"axiom",axiomId:"PROB-03",formula}],"ax");
+ assert.equal(K.verify(wrong).code,"AXIOM_NOT_AVAILABLE");
 });
+test("countable union and sum terms require EventSequence arguments",()=>{
+ const sequence=T.variable("s","EventSequence");
+ assert.equal(K.termSort(T.countableUnion(sequence)),"Event");
+ assert.equal(K.termSort(T.countableSum(sequence)),"Real");
+ assert.equal(K.termSort(T.countableUnion(T.event("A"))),null);
+ assert.equal(K.termSort(T.countableSum(T.set("A"))),null);
+ assert.equal(K.validFormula(F.pairwiseDisjoint(sequence),{},new Set(K.SYSTEMS.KOLMOGOROV.sorts)),true);
+ assert.equal(K.validFormula(F.pairwiseDisjoint(T.event("A")),{},new Set(K.SYSTEMS.KOLMOGOROV.sorts)),false);
+});
+test("countable additivity rejects forged statements and cross-system use",()=>{
+ const forged=mk("KOLMOGOROV",[],[{id:"ax",rule:"axiom",axiomId:"PROB-03",formula:F.predicate("forged",[])}],"ax");
+ assert.equal(K.verify(forged).code,"RULE_MISMATCH");
+ const incompatible=mk("REAL_FIELD",[],[{id:"ax",rule:"axiom",axiomId:"PROB-03",formula:K.AXIOMS["PROB-03"].formula}],"ax");
+ assert.equal(K.verify(incompatible).code,"AXIOM_NOT_AVAILABLE");
+});
+

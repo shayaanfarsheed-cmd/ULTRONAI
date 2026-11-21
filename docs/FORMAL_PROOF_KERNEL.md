@@ -6,7 +6,7 @@ The browser-side kernel is a deterministic proof replayer. It validates typed sy
 
 ## Typed language
 
-Terms include typed variables, natural numerals, successor, natural/field addition and multiplication, field and real rational literals, points, lines, typed betweenness relations, circles, circle centres/incidence, angles, right-angle/equality and parallel-intersection predicates, events, the sample space, probability measures and sets. Formula constructors include equality, strict order, incidence, conjunction, implication, negation, universal/existential quantification, membership and named predicates. AST nodes use closed schemas: unknown fields, malformed values, incompatible sorts and sparse arrays are rejected.
+Terms include typed variables, natural numerals, successor, natural/field addition and multiplication, field and real rational literals, points, lines, typed betweenness relations, circles, circle centres/incidence, angles, right-angle/equality and parallel-intersection predicates, events, event sequences, the sample space, probability measures, countable unions/sums and sets. Formula constructors include equality, strict order, incidence, conjunction, implication, negation, universal/existential quantification, membership and named predicates. AST nodes use closed schemas: unknown fields, malformed values, incompatible sorts and sparse arrays are rejected.
 
 The `Real` sort is deliberately narrow: rational real literals and probability-measure results are represented, but general real arithmetic and a complete real-field signature are not implemented.
 
@@ -18,7 +18,7 @@ Seven contexts are declared and do not inherit axioms from one another:
 - `REAL_FIELD`: all nine researched field axioms FIELD-01 through FIELD-09 are represented as exact typed formulas.
 - `ORDERED_FIELD` and `COMPLETE_REAL`: declared but have no executable axioms yet.
 - `EUCLID_GEOMETRY`: EUCLID-01, the existence of a common line through two distinct points; EUCLID-02, extension of a nonzero segment to a further point on the same line; EUCLID-03, construction of a circle with any chosen centre and a radius fixed by a point; EUCLID-04, equality of all right angles; and EUCLID-05, the same-side interior-angle parallel postulate.
-- `KOLMOGOROV`: PROB-01 (nonnegative measure) and PROB-02 (sample-space measure one).
+- `KOLMOGOROV`: PROB-01 (nonnegative measure), PROB-02 (sample-space measure one) and PROB-03 (countable additivity over pairwise-disjoint event sequences).
 - `ZFC`: ZFC-01 extensionality, ZFC-02 empty-set existence, ZFC-03 pairing, ZFC-04 union, ZFC-05 power set, ZFC-06 infinity and ZFC-09 foundation.
 
 Each executable axiom is bound to its exact Axiom Bank identifier and active context. A proof cannot use an axiom from another system or replace its formula with a forged statement.
@@ -42,6 +42,11 @@ The geometry context includes a `Circle` sort and typed `circleCenter(Circle, Po
 ## Euclidean segment extension
 
 The geometry AST has a typed `between(first, middle, last)` formula. EUCLID-02 states that for any distinct points A and B there exist a point C and a line l such that A, B and C are incident with l and B lies between A and C. This is the segment-extension postulate with an explicit common-line and betweenness condition; it is not a numeric distance calculation.
+
+
+## Probability countable additivity
+
+The probability context has an `EventSequence` sort, countable-union and countable-sum term operators, and a typed `pairwiseDisjoint(EventSequence)` formula. PROB-03 states that for every pairwise-disjoint event sequence s, the measure of its countable union equals the countable sum of its event measures. The sequence, disjointness, union and sum symbols are primitive in this first-order signature; the kernel checks their sorts and exact axiom formula but does not evaluate infinite series, enumerate the sequence or prove measure-theoretic convergence.
 
 ## ZFC formulas
 
@@ -73,7 +78,7 @@ A working trace must use the exact `ultron-proof-trace` envelope and contain a s
 
 ## Deliberately unimplemented
 
-- PROB-03 countable additivity remains disabled: the language has no countable event sequences, countable unions or infinite sums.
+- The probability signature represents countable sequences, unions and sums as primitive typed symbols; it does not evaluate infinite series or establish convergence/measure-theoretic properties beyond the registered PROB-03 axiom.
 - The Angle and Line relations used by EUCLID-04/05 are primitive symbols. The kernel does not calculate angle measures, derive a right angle from perpendicular lines, or construct the same-side interior-angle configuration from coordinates.
 - ZFC-07 separation and ZFC-08 replacement remain schemas; no formula-metavariable/schema-instantiation mechanism exists.
 - ZFC-10 choice remains disabled; the language does not yet model indexed families and choice functions.
