@@ -85,16 +85,17 @@ class DashboardStaticTests(unittest.TestCase):
 
 
 
-    def test_device_access_and_pairing_controls_are_not_public_navigation(self):
+    def test_device_access_and_pairing_controls_are_absent_from_account_free_dashboard(self):
         html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
-        nav = html.split('<nav class="side-nav"', 1)[1].split("</nav>", 1)[0]
-        self.assertNotIn('data-view="devices"', nav)
-        self.assertIn('id="view-devices"', html)
-        self.assertIn("DEVICE PAIRING", html)
-        self.assertIn("No device credentials, agents, or remote device commands are used.", html)
+        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
+        for legacy_id in ("view-devices", "deviceRamLimitValue"):
+            self.assertNotIn(legacy_id, html)
+        self.assertNotIn("DEVICE PAIRING", html)
+        self.assertNotIn('data-view="devices"', html)
+        self.assertNotIn('$("deviceRamLimitValue")', javascript)
+        self.assertIn('id="ramLimitSlider"', html)
         self.assertIn("This preference is not connected to remote training", html)
         self.assertIn("does not cap the memory available to a hosted runner", html)
-        self.assertIn("deviceRamLimitValue", html)
         self.assertNotIn("WINDOWS / MACOS / LINUX", html)
         self.assertNotIn("future local training runtime", html.lower())
         self.assertNotIn("future local runtime", html.lower())
@@ -197,7 +198,10 @@ class DashboardStaticTests(unittest.TestCase):
         self.assertIn("if (canvas.width !== pixelWidth) canvas.width = pixelWidth;", javascript)
 
     def test_checkpoint_metadata_reads_are_bounded_and_auth_generation_checked(self):
+        html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
+        self.assertNotIn('id="view-checkpoints"', html)
+        self.assertNotIn('data-view="checkpoints"', html)
         self.assertIn("async function mapWithConcurrency(items, limit, mapper)", (DASHBOARD / "runtime.js").read_text(encoding="utf-8"))
         self.assertIn("ULTRON_RUNTIME.mapWithConcurrency(ids, 3", javascript)
         loader = javascript.split("async function loadCheckpointCandidates()", 1)[1].split("async function verifyCheckpoint", 1)[0]
@@ -207,15 +211,13 @@ class DashboardStaticTests(unittest.TestCase):
         self.assertIn("results.filter(Boolean)", loader)
         self.assertLess(loader.index("const listed = await storageRequest"), loader.index("state.status.run_id !== runId"))
 
-    def test_private_activity_is_not_in_public_navigation(self):
+    def test_private_activity_view_and_renderer_are_removed_from_public_dashboard(self):
         html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
-        nav = html.split('<nav class="side-nav"', 1)[1].split("</nav>", 1)[0]
-        self.assertNotIn('data-view="activity"', nav)
-        self.assertIn('id="view-activity"', html)
-        self.assertIn("function renderActivity()", javascript)
-        self.assertIn("if (state.publicMode || !hasVerifiedOwnerSession())", javascript)
-        self.assertIn("renderActivity();", javascript)
+        self.assertNotIn('id="view-activity"', html)
+        self.assertNotIn('data-view="activity"', html)
+        self.assertNotIn("function renderActivity()", javascript)
+        self.assertNotIn("renderActivity();", javascript)
 
     def test_public_overview_reports_capabilities_without_fake_training_metrics(self):
         html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
@@ -269,9 +271,9 @@ class DashboardStaticTests(unittest.TestCase):
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
         storage_sql = (ROOT / "supabase" / "storage-setup.sql").read_text(encoding="utf-8")
         self.assertNotIn('data-view="data"', html)
-        self.assertIn('id="view-data"', html)
-        self.assertIn('id="dataUploadForm"', html)
-        self.assertIn('id="dataFileList"', html)
+        self.assertNotIn('id="view-data"', html)
+        self.assertNotIn('id="dataUploadForm"', html)
+        self.assertNotIn('id="dataFileList"', html)
         self.assertIn('const DATA_LIBRARY_BUCKET = "data-library"', javascript)
         self.assertIn('async function loadDataLibrary()', javascript)
         self.assertIn('async function uploadDataFile()', javascript)
@@ -303,9 +305,9 @@ class DashboardStaticTests(unittest.TestCase):
         html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
         self.assertNotIn('data-view="ask"', html)
-        self.assertIn('id="view-ask"', html)
-        self.assertIn('id="askQuestionForm"', html)
-        self.assertIn('id="askResults"', html)
+        self.assertNotIn('id="view-ask"', html)
+        self.assertNotIn('id="askQuestionForm"', html)
+        self.assertNotIn('id="askResults"', html)
         self.assertIn('async function readDataLibraryForQuestions()', javascript)
         self.assertIn('async function askUltron(question)', javascript)
         self.assertIn('if (!hasVerifiedOwnerSession()) throw new Error("Sign in to the verified owner account', javascript)
