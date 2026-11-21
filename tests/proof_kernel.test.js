@@ -878,3 +878,69 @@ test("working traces enforce the same bounded data contract",()=>{
  trace.loop=trace;
  assert.equal(K.verifyWorkingTrace(trace).code,"RESOURCE_LIMIT");
 });
+
+test("equality substitution replaces a free variable in a formula in either direction",()=>{
+ const a=T.numeral(2),b=T.numeral(3),x=T.variable("x","Nat");
+ const equality=F.eq(a,b),template=F.predicate("P",[x]),left=F.predicate("P",[a]),right=F.predicate("P",[b]);
+ const forward=mk("PEANO_N",[{id:"heq",formula:equality},{id:"hp",formula:left}],[
+  {id:"eq",rule:"assumption",assumption:"heq",formula:equality},
+  {id:"instance",rule:"assumption",assumption:"hp",formula:left},
+  {id:"replace",rule:"eq_subst",premises:["eq","instance"],template,variable:"x",formula:right}
+ ],"replace");
+ const forwardResult=K.verify(forward);
+ assert.equal(forwardResult.valid,true);
+ assert.deepEqual(forwardResult.openAssumptions,["heq","hp"]);
+ const reverse=mk("PEANO_N",[{id:"heq",formula:equality},{id:"hp",formula:right}],[
+  {id:"eq",rule:"assumption",assumption:"heq",formula:equality},
+  {id:"instance",rule:"assumption",assumption:"hp",formula:right},
+  {id:"replace",rule:"eq_subst",premises:["eq","instance"],template,variable:"x",formula:left}
+ ],"replace");
+ assert.equal(K.verify(reverse).valid,true);
+});
+test("equality substitution rejects capture, mismatched templates and missing placeholders",()=>{
+ const a=T.variable("a","Nat"),b=T.variable("b","Nat"),y=T.variable("y","Nat"),x=T.variable("x","Nat");
+ const equality=F.eq(a,y),template=F.forall("y","Nat",F.predicate("R",[x,y]));
+ const capturedInstance=F.forall("y","Nat",F.predicate("R",[a,y]));
+ const capture=mk("PEANO_N",[{id:"heq",formula:equality},{id:"hp",formula:capturedInstance}],[
+  {id:"eq",rule:"assumption",assumption:"heq",formula:equality},
+  {id:"instance",rule:"assumption",assumption:"hp",formula:capturedInstance},
+  {id:"replace",rule:"eq_subst",premises:["eq","instance"],template,variable:"x",formula:F.forall("y","Nat",F.predicate("R",[y,y]))}
+ ],"replace");
+ assert.equal(K.verify(capture).code,"RULE_MISMATCH");
+ const eq=F.eq(T.numeral(1),T.numeral(2)),pa=F.predicate("P",[T.numeral(1)]);
+ const forged=mk("PEANO_N",[{id:"heq",formula:eq},{id:"hp",formula:pa}],[
+  {id:"eq",rule:"assumption",assumption:"heq",formula:eq},
+  {id:"instance",rule:"assumption",assumption:"hp",formula:pa},
+  {id:"replace",rule:"eq_subst",premises:["eq","instance"],template:F.predicate("Q",[x]),variable:"x",formula:F.predicate("Q",[T.numeral(2)])}
+ ],"replace");
+ assert.equal(K.verify(forged).code,"RULE_MISMATCH");
+ const noPlaceholder=mk("PEANO_N",[{id:"heq",formula:eq},{id:"hp",formula:pa}],[
+  {id:"eq",rule:"assumption",assumption:"heq",formula:eq},
+  {id:"instance",rule:"assumption",assumption:"hp",formula:pa},
+  {id:"replace",rule:"eq_subst",premises:["eq","instance"],template:F.predicate("P",[T.numeral(1)]),variable:"x",formula:F.predicate("P",[T.numeral(2)])}
+ ],"replace");
+ assert.equal(K.verify(noPlaceholder).code,"RULE_MISMATCH");
+});
+test("verified proof results preserve the complete original proof and step metadata",()=>{
+ const a=T.numeral(2),b=T.numeral(3),x=T.variable("x","Nat"),equality=F.eq(a,b),left=F.predicate("P",[a]),right=F.predicate("P",[b]),template=F.predicate("P",[x]);
+ const proof=mk("PEANO_N",[{id:"heq",formula:equality},{id:"hp",formula:left}],[
+  {id:"eq",rule:"assumption",assumption:"heq",formula:equality},
+  {id:"instance",rule:"assumption",assumption:"hp",formula:left},
+  {id:"replace",rule:"eq_subst",premises:["eq","instance"],template,variable:"x",formula:right}
+ ],"replace");
+ const result=K.verify(proof);
+ assert.equal(result.valid,true);
+ assert.deepEqual(result.proof,proof);
+ assert.deepEqual(result.trace[2],proof.steps[2]);
+ assert.equal(result.trace[2].template.name,"P");
+ assert.equal(result.trace[2].variable,"x");
+});
+test("equality substitution has an exact step schema and rejects extra fields",()=>{
+ const a=T.numeral(1),b=T.numeral(2),x=T.variable("x","Nat"),eq=F.eq(a,b),pa=F.predicate("P",[a]),pb=F.predicate("P",[b]);
+ const proof=mk("PEANO_N",[{id:"heq",formula:eq},{id:"hp",formula:pa}],[
+  {id:"eq",rule:"assumption",assumption:"heq",formula:eq},
+  {id:"instance",rule:"assumption",assumption:"hp",formula:pa},
+  {id:"replace",rule:"eq_subst",premises:["eq","instance"],template:F.predicate("P",[x]),variable:"x",extra:true,formula:pb}
+ ],"replace");
+ assert.equal(K.verify(proof).code,"INVALID_STEP");
+});

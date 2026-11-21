@@ -139,3 +139,10 @@ The verifier performs an iterative JSON-data preflight before recursive formula 
 
 
 The ZFC choice formula macros select fresh binder names against every variable name in their input terms/formulas. This avoids capture when a caller supplies names that resemble the kernel's internal ordered-pair or function-graph binders. Regression tests deliberately use `__fam_index`, `__fg_pair`, `__choice_index` and `__op_singleton` as free input variables and assert they remain free in the expanded formulas.
+
+
+## Equality substitution and replayable traces
+
+The `eq_subst` rule takes an equality premise, a formula template and a free placeholder variable. The second premise must be exactly one of the two template instances formed by substituting the equality's left or right term; the conclusion must be the opposite instance. Substitution is capture-avoiding, and both instances are revalidated against the active context's sorts. The rule cannot be used if the placeholder is not free in the template or if replacement would be captured by a quantifier.
+
+Successful verification now returns the complete original proof envelope and each complete step object in the trace, preserving all rule-specific inputs such as terms, quantified variables, discharge IDs, schema arguments and formula templates. This makes the verified trace independently inspectable and replayable rather than reconstructing it from a lossy field projection.
