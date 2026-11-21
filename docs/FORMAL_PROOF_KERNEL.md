@@ -6,7 +6,7 @@ The browser-side kernel is a deterministic proof replayer. It validates typed sy
 
 ## Typed language
 
-Terms include typed variables, natural numerals, successor, natural/field addition and multiplication, field and real rational literals, points, lines, typed betweenness relations, events, the sample space, probability measures and sets. Formula constructors include equality, strict order, incidence, conjunction, implication, negation, universal/existential quantification, membership and named predicates. AST nodes use closed schemas: unknown fields, malformed values, incompatible sorts and sparse arrays are rejected.
+Terms include typed variables, natural numerals, successor, natural/field addition and multiplication, field and real rational literals, points, lines, typed betweenness relations, circles, circle centres/incidence, events, the sample space, probability measures and sets. Formula constructors include equality, strict order, incidence, conjunction, implication, negation, universal/existential quantification, membership and named predicates. AST nodes use closed schemas: unknown fields, malformed values, incompatible sorts and sparse arrays are rejected.
 
 The `Real` sort is deliberately narrow: rational real literals and probability-measure results are represented, but general real arithmetic and a complete real-field signature are not implemented.
 
@@ -17,12 +17,17 @@ Seven contexts are declared and do not inherit axioms from one another:
 - `PEANO_N`: Peano arithmetic. Executable finite axioms: PEANO-02 and PEANO-03. PEANO-04 is an explicit induction schema, available only through the dedicated induction rule.
 - `REAL_FIELD`: all nine researched field axioms FIELD-01 through FIELD-09 are represented as exact typed formulas.
 - `ORDERED_FIELD` and `COMPLETE_REAL`: declared but have no executable axioms yet.
-- `EUCLID_GEOMETRY`: EUCLID-01, the existence of a common line through two distinct points; and EUCLID-02, extension of a nonzero segment to a further point on the same line.
+- `EUCLID_GEOMETRY`: EUCLID-01, the existence of a common line through two distinct points; EUCLID-02, extension of a nonzero segment to a further point on the same line; and EUCLID-03, construction of a circle with any chosen centre and a radius fixed by a point.
 - `KOLMOGOROV`: PROB-01 (nonnegative measure) and PROB-02 (sample-space measure one).
 - `ZFC`: ZFC-01 extensionality, ZFC-02 empty-set existence, ZFC-03 pairing, ZFC-04 union, ZFC-05 power set, ZFC-06 infinity and ZFC-09 foundation.
 
 Each executable axiom is bound to its exact Axiom Bank identifier and active context. A proof cannot use an axiom from another system or replace its formula with a forged statement.
 
+
+
+## Euclidean circle construction
+
+The geometry context includes a `Circle` sort and typed `circleCenter(Circle, Point)` and `onCircle(Point, Circle)` formulas. EUCLID-03 states that for any chosen centre O and radius-defining point A, there exists a circle c with centre O and with A on the circle. This formalizes the construction postulate without inventing numeric distance or circumference operations.
 
 ## Euclidean segment extension
 
@@ -59,7 +64,7 @@ A working trace must use the exact `ultron-proof-trace` envelope and contain a s
 ## Deliberately unimplemented
 
 - PROB-03 countable additivity remains disabled: the language has no countable event sequences, countable unions or infinite sums.
-- EUCLID-03 through EUCLID-05 remain disabled: circle construction, angle measure and parallel behavior need additional geometric objects and side conditions.
+- EUCLID-04 and EUCLID-05 remain disabled: right-angle equality and parallel behavior need angle-measure and parallel-line structures.
 - ZFC-07 separation and ZFC-08 replacement remain schemas; no formula-metavariable/schema-instantiation mechanism exists.
 - ZFC-10 choice remains disabled; the language does not yet model indexed families and choice functions.
 - General real arithmetic, ordered-field laws and completeness axioms remain unimplemented.
