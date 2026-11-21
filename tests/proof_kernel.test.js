@@ -32,3 +32,18 @@ test("proof contexts reject terms from incompatible mathematical domains",()=>{
  const field=mk("REAL_FIELD",[],[{id:"x",rule:"eq_refl",term:T.point("A"),formula:pointEquality}],"x");
  assert.equal(K.verify(field).valid,false);
 });
+
+test("proof replay reports undischarged assumptions and closes discharged ones",()=>{
+ const a=F.predicate("A"),p=mk("PEANO_N",[{id:"ha",formula:a}],[{id:"a",rule:"assumption",assumption:"ha",formula:a},{id:"imp",rule:"imp_intro",premises:["a"],discharge:"ha",formula:F.implies(a,a)}],"imp");
+ const result=K.verify(p);assert.equal(result.valid,true);assert.deepEqual(result.openAssumptions,[]);
+ const open=mk("PEANO_N",[{id:"ha",formula:a}],[{id:"a",rule:"assumption",assumption:"ha",formula:a}],"a");
+ assert.deepEqual(K.verify(open).openAssumptions,["ha"]);
+});
+test("assumption and axiom rules reject extraneous premises",()=>{
+ const a=F.predicate("A"),p=mk("PEANO_N",[{id:"ha",formula:a}],[{id:"a",rule:"assumption",assumption:"ha",premises:["ha"],formula:a}],"a");
+ assert.equal(K.verify(p).valid,false);
+});
+test("bound variables cannot lie about their declared sort",()=>{
+ const bad=F.forall("x","Nat",F.eq(T.variable("x","Field"),T.variable("x","Field")));
+ assert.equal(K.validFormula(bad),false);
+});
