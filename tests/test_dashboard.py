@@ -85,24 +85,17 @@ class DashboardStaticTests(unittest.TestCase):
 
 
 
-    def test_device_access_page_matches_remote_compute_architecture(self):
+    def test_device_access_and_pairing_controls_are_not_public_navigation(self):
         html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
-        javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
-
-        self.assertIn('data-view="devices"><span>▣</span> Device access', html)
+        nav = html.split('<nav class="side-nav"', 1)[1].split("</nav>", 1)[0]
+        self.assertNotIn('data-view="devices"', nav)
         self.assertIn('id="view-devices"', html)
-        self.assertIn("REMOTE CONTROL CONSOLE", html)
-        self.assertIn("compute runs on the selected remote provider", html)
-        self.assertIn("Google Colab remains manual-only", html)
+        self.assertIn("DEVICE PAIRING", html)
         self.assertIn("No device credentials, agents, or remote device commands are used.", html)
-        self.assertNotIn("LOCAL TRAINING RUNTIME", html)
-        self.assertNotIn("WINDOWS / MACOS / LINUX", html)
         self.assertIn("This preference is not connected to remote training", html)
         self.assertIn("does not cap the memory available to a hosted runner", html)
         self.assertIn("deviceRamLimitValue", html)
-        self.assertIn("not sent to a remote training process", javascript)
-        self.assertIn("Choose a preferred memory budget for future remote training.", html)
-        self.assertIn("not sent to the remote provider", html)
+        self.assertNotIn("WINDOWS / MACOS / LINUX", html)
         self.assertNotIn("future local training runtime", html.lower())
         self.assertNotIn("future local runtime", html.lower())
 
@@ -111,7 +104,14 @@ class DashboardStaticTests(unittest.TestCase):
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
         ids = re.findall(r'\bid="([^"]+)"', html)
         references = set(re.findall(r'\$\("([^"]+)"\)', javascript))
-        missing = sorted(references.difference(ids))
+        # These IDs belong only to unreachable legacy owner-auth helpers. The public
+        # dashboard intentionally has no corresponding sign-in or sign-out UI.
+        legacy_auth_ids = {
+            "ownerSignInButton", "ownerSignOutButton", "ownerSignInDialog",
+            "ownerSignInForm", "ownerCancelButton", "ownerSubmitButton",
+            "ownerAuthMessage", "ownerEmail", "ownerPassword",
+        }
+        missing = sorted(references.difference(ids).difference(legacy_auth_ids))
         duplicates = sorted({value for value in ids if ids.count(value) > 1})
         self.assertEqual(missing, [])
         self.assertEqual(duplicates, [])
@@ -122,29 +122,29 @@ class DashboardStaticTests(unittest.TestCase):
                 source = path.read_text(encoding="utf-8")
                 self.assertIsNone(re.search(r"sb_secret_[A-Za-z0-9]{12,}", source), path.name)
 
-    def test_owner_auth_is_allowlisted_and_has_no_signup_flow(self):
+    def test_public_dashboard_has_no_sign_in_or_published_owner_identifier(self):
         html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
         config = (DASHBOARD / "config.js").read_text(encoding="utf-8")
-        self.assertIn('id="ownerSignInForm"', html)
-        self.assertIn('id="ownerSignOutButton"', html)
-        self.assertIn("user.id !== OWNER_USER_ID", javascript)
+        self.assertNotIn('id="ownerSignInForm"', html)
+        self.assertNotIn('id="ownerSignOutButton"', html)
+        self.assertNotIn('id="ownerSignInDialog"', html)
+        self.assertNotIn("ownerUserId", config)
         self.assertIn("state.publicMode = nextPublicMode", javascript)
-        self.assertRegex(
-            config,
-            r'ownerUserId: "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"',
-        )
         self.assertRegex(config, r'supabasePublishableKey: "sb_publishable_[A-Za-z0-9_-]+"')
         self.assertNotIn("REPLACE_WITH", config)
-        self.assertNotIn("signup", javascript.lower())
         self.assertNotIn("signUp", html)
 
-    def test_guest_mode_is_default_and_owner_session_is_verified(self):
+    def test_public_mode_is_default_and_legacy_sessions_are_cleared(self):
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
+        init = javascript.split("async function init()", 1)[1].split("document.addEventListener", 1)[0]
         self.assertIn("publicMode: true", javascript)
-        self.assertIn('AUTH_ROOT + "user"', javascript)
-        self.assertIn("setAccessMode(restoredOwner)", javascript)
-        self.assertIn('$("ownerPassword").value = ""', javascript)
+        self.assertIn("clearLegacyOwnerState();", init)
+        self.assertIn("setAccessMode(false);", init)
+        self.assertNotIn("loadSavedSession()", init)
+        self.assertNotIn("verifyOwnerSession()", init)
+        self.assertIn("sessionStorage.removeItem(SESSION_KEY)", javascript)
+        self.assertIn("key.indexOf(CACHE_PREFIX) === 0", javascript)
 
     def test_session_refresh_is_single_flight_and_invalidated_on_auth_transition(self):
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
@@ -207,23 +207,24 @@ class DashboardStaticTests(unittest.TestCase):
         self.assertIn("results.filter(Boolean)", loader)
         self.assertLess(loader.index("const listed = await storageRequest"), loader.index("state.status.run_id !== runId"))
 
-    def test_private_activity_view_is_guest_gated(self):
+    def test_private_activity_is_not_in_public_navigation(self):
         html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
-        self.assertIn('data-view="activity"', html)
+        nav = html.split('<nav class="side-nav"', 1)[1].split("</nav>", 1)[0]
+        self.assertNotIn('data-view="activity"', nav)
         self.assertIn('id="view-activity"', html)
-        self.assertIn('id="activityLogs"', html)
-        self.assertIn('id="activitySwitches"', html)
         self.assertIn("function renderActivity()", javascript)
         self.assertIn("if (state.publicMode || !hasVerifiedOwnerSession())", javascript)
         self.assertIn("renderActivity();", javascript)
 
-    def test_guest_overview_does_not_recommend_starting_training(self):
+    def test_public_overview_discloses_training_disabled_without_account_controls(self):
         html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
-        self.assertIn("Welcome to the ULTRON guest dashboard", javascript)
-        self.assertIn("Private training status, history, checkpoints and device controls are not loaded", javascript)
-        self.assertIn("Training remains disabled", javascript)
+        self.assertIn("ULTRON is not training", javascript)
+        self.assertIn("account-free website provides the public math-learning interface", javascript)
+        self.assertIn("Public browser access · training disabled", javascript)
+        self.assertIn('class="connection-badge">PUBLIC</span>', html)
+        self.assertNotIn("Read-only status", html)
         self.assertNotIn('id="autoStartToggle"', html)
         self.assertNotIn("autoStartToggle", javascript)
 
@@ -262,7 +263,7 @@ class DashboardStaticTests(unittest.TestCase):
         html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
         storage_sql = (ROOT / "supabase" / "storage-setup.sql").read_text(encoding="utf-8")
-        self.assertIn('data-view="data"', html)
+        self.assertNotIn('data-view="data"', html)
         self.assertIn('id="view-data"', html)
         self.assertIn('id="dataUploadForm"', html)
         self.assertIn('id="dataFileList"', html)
@@ -296,7 +297,7 @@ class DashboardStaticTests(unittest.TestCase):
     def test_ask_ultron_searches_owner_data_and_shows_source_evidence(self):
         html = (DASHBOARD / "index.html").read_text(encoding="utf-8")
         javascript = (DASHBOARD / "app.js").read_text(encoding="utf-8")
-        self.assertIn('data-view="ask"', html)
+        self.assertNotIn('data-view="ask"', html)
         self.assertIn('id="view-ask"', html)
         self.assertIn('id="askQuestionForm"', html)
         self.assertIn('id="askResults"', html)
