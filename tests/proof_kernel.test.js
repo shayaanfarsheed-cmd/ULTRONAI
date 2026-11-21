@@ -296,9 +296,9 @@ test("field inverse axioms remain isolated and reject forged statements",()=>{
   assert.equal(K.verify(forged).code,"RULE_MISMATCH",id);
  }
 });
-test("existential quantification is syntax only; unregistered inference rules stay rejected",()=>{
+test("unregistered existential inference names remain rejected",()=>{
  const proof=mk("REAL_FIELD",[],[
-  {id:"fake",rule:"exists_intro",premises:[],formula:F.exists("x","Field",F.predicate("P",[T.variable("x","Field")]))}
+  {id:"fake",rule:"exists_magic",premises:[],formula:F.exists("x","Field",F.predicate("P",[T.variable("x","Field")]))}
  ],"fake");
  assert.equal(K.verify(proof).code,"UNKNOWN_RULE");
 });
@@ -379,8 +379,10 @@ test("existential elimination rejects witness leakage through another open assum
   {id:"case-step",rule:"assumption",assumption:"case",formula:witnessAssumption},
   {id:"other-step",rule:"assumption",assumption:"other",formula:other},
   {id:"truth",rule:"eq_refl",term:T.rational(1,1),formula:conclusion},
-  {id:"combined",rule:"and_intro",premises:["truth","other-step"],formula:F.and(conclusion,other)},
-  {id:"minor-proof",rule:"and_left",premises:["combined"],formula:conclusion},
+  {id:"case-and-truth",rule:"and_intro",premises:["case-step","truth"],formula:F.and(witnessAssumption,conclusion)},
+  {id:"combined",rule:"and_intro",premises:["other-step","case-and-truth"],formula:F.and(other,F.and(witnessAssumption,conclusion))},
+  {id:"peel-other",rule:"and_right",premises:["combined"],formula:F.and(witnessAssumption,conclusion)},
+  {id:"minor-proof",rule:"and_right",premises:["peel-other"],formula:conclusion},
   {id:"eliminated",rule:"exists_elim",premises:["major-step","minor-proof"],variable:"k",discharge:"case",formula:conclusion}
  ],"eliminated");
  assert.equal(K.verify(proof).code,"EXISTS_EIGENVARIABLE_IN_ASSUMPTION");
