@@ -54,11 +54,15 @@ class TrainingControlSecurityContractTests(unittest.TestCase):
         script = (ROOT / "dashboard/app.js").read_text()
         init = script.split("async function init()", 1)[1].split("document.addEventListener", 1)[0]
         self.assertIn("clearLegacyOwnerState();", init)
-        self.assertIn("setAccessMode(false);", init)
-        self.assertNotIn("loadSavedSession()", init)
-        self.assertNotIn("verifyOwnerSession()", init)
-        self.assertIn('sessionStorage.removeItem(SESSION_KEY)', script)
-        self.assertIn('key.indexOf(CACHE_PREFIX) === 0', script)
+        self.assertNotIn("setAccessMode", script)
+        self.assertNotIn("loadSavedSession", script)
+        self.assertNotIn("verifyOwnerSession", script)
+        self.assertIn('sessionStorage.removeItem("ultron_training_session")', script)
+        self.assertIn('key.indexOf("ultron_training_cache_") === 0', script)
+        self.assertNotIn("sessionStorage.setItem", script)
+        self.assertNotIn("/auth/v1/", script)
+        self.assertNotIn("/rest/v1/", script)
+        self.assertNotIn("/storage/v1/", script)
 
     def test_launch_refreshes_status_after_busy_flag_is_cleared(self):
         script = (ROOT / "dashboard/training-control.js").read_text()
