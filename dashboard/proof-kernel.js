@@ -16,7 +16,7 @@ const T=Object.freeze({
  multiply:(left,right)=>({kind:"mul",left,right}),
  rational:(numerator,denominator)=>({kind:"rational",numerator,denominator}),
  point:name=>({kind:"point",name}), line:name=>({kind:"line",name}), event:name=>({kind:"event",name}), set:name=>({kind:"set",name}),
- emptySet:()=>({kind:"emptySet"}), real:(numerator,denominator)=>({kind:"real",numerator,denominator}),
+ real:(numerator,denominator)=>({kind:"real",numerator,denominator}),
  sampleSpace:()=>({kind:"sampleSpace"}), measure:event=>({kind:"measure",event})
 });
 const F=Object.freeze({
@@ -58,7 +58,6 @@ function termSort(t,bound={}) {
  case "event":return exactKeys(t,["kind","name"])&&typeof t.name==="string"&&t.name?"Event":null;
  case "set":return exactKeys(t,["kind","name"])&&typeof t.name==="string"&&t.name?"Set":null;
  case "line":return exactKeys(t,["kind","name"])&&typeof t.name==="string"&&t.name?"Line":null;
- case "emptySet":return exactKeys(t,["kind"])?"Set":null;
  case "real":return exactKeys(t,["kind","numerator","denominator"])&&Number.isSafeInteger(t.numerator)&&Number.isSafeInteger(t.denominator)&&t.denominator!==0?"Real":null;
  case "sampleSpace":return exactKeys(t,["kind"])?"Event":null;
  case "measure":return exactKeys(t,["kind","event"])&&termSort(t.event,bound)==="Event"?"Real":null;
