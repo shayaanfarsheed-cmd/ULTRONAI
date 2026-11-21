@@ -108,3 +108,6 @@ The probability language distinguishes strict order (`lt`) from non-strict order
 The ordered-field context explicitly lists all nine field axioms as available alongside ORDER-01 through ORDER-04; this is a deliberate shared registration, not implicit inheritance. Trichotomy is encoded as exactly one of a<b, a=b, or b<a, using only the existing conjunction and negation connectives. Strict-order transitivity, addition invariance, and multiplication by a positive element are stated with typed Field terms.
 
 The complete-real context explicitly lists those same field/order axioms and COMPLETE-01. A RealSet variable denotes a subset of the Field domain. COMPLETE-01 states: every nonempty RealSet that is bounded above has a least upper bound, expressed as an upper bound that is less than or equal to every other upper bound. The checker validates the complete quantified formula and the Field/RealSet membership sorts; it does not compute suprema.
+
+
+For COMPLETE-01, the non-strict comparisons are expanded as the negation of the reverse strict comparison (x ≤ y is represented by ¬(y < x)). ORDER-01 trichotomy makes this equivalent to the usual non-strict order. This avoids treating the standalone `le` relation used by the probability context as if it were automatically connected to the ordered-field strict order.

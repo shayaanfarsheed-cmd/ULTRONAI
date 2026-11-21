@@ -1138,3 +1138,10 @@ The Stage 4 first implementation adds:
 - Regression tests cover exact axiom replay, cross-context rejection, RealSet membership typing and incompatible numeric sorts. Test Suite, preflight, Training Prototype Validation, Chromium and WebKit all passed.
 - The RealSet domain and order axioms are formal signatures; no general real arithmetic engine or numerical supremum evaluator is claimed.
 - No training, model weights, checkpoints, dataset generation, Supabase or production configuration changes.
+
+
+### COMPLETE-01 order-definition follow-up (in progress)
+
+- Branch: `fix/complete-real-strict-order-encoding`.
+- The least-upper-bound formula now expresses each non-strict comparison as the negation of the reverse strict comparison, relying on ORDER-01 trichotomy. This prevents the completeness axiom from silently using an unrelated primitive `le` relation.
+- Added a regression asserting that COMPLETE-01 contains strict-order nodes and no standalone `le` nodes. Validation pending.
