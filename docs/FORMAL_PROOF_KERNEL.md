@@ -18,7 +18,7 @@ Seven contexts are declared and do not inherit axioms from one another:
 - `REAL_FIELD`: all nine researched field axioms FIELD-01 through FIELD-09 are represented as exact typed formulas.
 - `ORDERED_FIELD` and `COMPLETE_REAL`: declared but have no executable axioms yet.
 - `EUCLID_GEOMETRY`: EUCLID-01, the existence of a common line through two distinct points; EUCLID-02, extension of a nonzero segment to a further point on the same line; EUCLID-03, construction of a circle with any chosen centre and a radius fixed by a point; EUCLID-04, equality of all right angles; and EUCLID-05, the same-side interior-angle parallel postulate.
-- `KOLMOGOROV`: PROB-01 (nonnegative measure), PROB-02 (sample-space measure one) and PROB-03 (countable additivity over pairwise-disjoint event sequences).
+- `KOLMOGOROV`: PROB-01 (zero is less than or equal to every event measure), PROB-02 (sample-space measure one) and PROB-03 (countable additivity over pairwise-disjoint event sequences).
 - `ZFC`: ZFC-01 extensionality, ZFC-02 empty-set existence, ZFC-03 pairing, ZFC-04 union, ZFC-05 power set, ZFC-06 infinity and ZFC-09 foundation.
 
 Each executable axiom is bound to its exact Axiom Bank identifier and active context. A proof cannot use an axiom from another system or replace its formula with a forged statement.
@@ -86,3 +86,6 @@ A working trace must use the exact `ultron-proof-trace` envelope and contain a s
 - There is no free-form or handwriting proof parser, and no general negation introduction/elimination rule.
 - The kernel does not decide theoremhood, prove axiom consistency or establish soundness of axioms beyond the trusted formalization assumptions.
 
+
+
+The probability language distinguishes strict order (`lt`) from non-strict order (`le`). PROB-01 is encoded directly as `0 ≤ μ(A)` for every event, rather than relying on an unproved equivalence between nonnegativity and the negation of a strict inequality. Both order nodes enforce exact AST shape and matching numeric sorts; the probability context tests ensure field rationals cannot be substituted for Real values.
