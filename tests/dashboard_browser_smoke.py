@@ -106,7 +106,7 @@ def main() -> None:
             require(legacy_storage["session"] is None and legacy_storage["caches"] == [],
                     "Legacy owner credentials or account cache were not cleared on startup.")
             require(page.locator("#serverList .server-card").count() >= 1, "Public provider directory did not render.")
-            require("usage not measured" in page.locator("#serverList").inner_text().lower(),
+            require("usage not published" in page.locator("#serverList").inner_text().lower(),
                     "Provider quota display must not invent live usage.")
             require("NEXT" not in page.locator("#serverList").inner_text(),
                     "Static provider registry must not imply a live next-server recommendation.")
