@@ -12,7 +12,6 @@ ROOT = Path(__file__).resolve().parents[1]
 VIEW_NAMES = (
     "overview",
     "learning",
-    "ask",
     "math",
     "servers",
     "settings",
